@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use serde_json::json;
 use warp::{Rejection, Reply};
 use core::models::WorkerInfo;
-use core::jobs::Job;
+use core::job_manage::Job;
 use crate::state::FishermanState;
 
 pub struct FishermanService {

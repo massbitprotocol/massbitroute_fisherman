@@ -10,8 +10,10 @@ use std::env;
 lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String =
         env::var("SCHEDULER_ENDPOINT").unwrap_or(String::from("https://scheduler.massbitroute.net"));
-     pub static ref WORKER_ID: String =
+    pub static ref WORKER_ID: String =
         env::var("WORKER_ID").unwrap_or(String::from("someworkerhash"));
+    pub static ref ZONE: String =
+        env::var("ZONE").unwrap_or(String::from("AS")).to_uppercase();
     pub static ref FISHERMAN_ENDPOINT: String =
         env::var("FISHERMAN_ENDPOINT").unwrap_or(String::from("0.0.0.0:4040"));
 }
