@@ -1,7 +1,7 @@
+use reqwest::Body;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::hash::Hash;
-use serde::{Serialize, Deserialize};
-use reqwest::Body;
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerInfo {
     worker_id: String,
@@ -14,7 +14,7 @@ impl WorkerInfo {
         WorkerInfo {
             worker_id: "".to_string(),
             url: "".to_string(),
-            worker_spec: "".to_string()
+            worker_spec: "".to_string(),
         }
     }
 }
@@ -24,20 +24,20 @@ impl Into<Body> for WorkerInfo {
         todo!()
     }
 }
-pub struct  WorkerRegisterResult {
+
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct WorkerRegisterResult {
     worker_id: String,
-    result: String
+    result: String,
 }
 
 impl WorkerRegisterResult {
     pub fn new() -> Self {
         WorkerRegisterResult {
             worker_id: "".to_string(),
-            result: "".to_string()
+            result: "".to_string(),
         }
     }
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct WorkerStateParam {
-
-}
+pub struct WorkerStateParam {}
