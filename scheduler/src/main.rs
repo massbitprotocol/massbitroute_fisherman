@@ -5,7 +5,7 @@ use scheduler::server_builder::ServerBuilder;
 use log::{debug, info, warn};
 use scheduler::SCHEDULER_ENDPOINT;
 use scheduler::server_config::AccessControl;
-use scheduler::service::http::HttpServiceBuilder;
+use scheduler::service::scheduler::HttpServiceBuilder;
 
 #[tokio::main]
 async fn main() {
@@ -21,8 +21,9 @@ async fn main() {
     let server = ServerBuilder::default()
         .with_entry_point(socket_addr)
         .with_access_control(access_control)
+        
         .build(http_service);
-    info!("Run service ");
+    info!("Init http service ");
 
     let task_serve = server.serve();
     task_serve.await;

@@ -1,21 +1,23 @@
 use std::borrow::BorrowMut;
 use crate::server_config::AccessControl;
 use std::collections::VecDeque;
-
+use core::jobs::JobResult;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
 use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::Sender;
 use warp::http::{HeaderMap, Method};
 
 use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
-use crate::service::http::HttpService;
+use crate::service::{SchedulerService, ProcessorService};
+
 use core::models::WorkerInfo;
+use crate::state::{SchedulerState, ProcessorState};
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
 
@@ -28,7 +30,10 @@ pub struct ServerBuilder {
 pub struct SchedulerServer {
     entry_point: String,
     access_control: AccessControl,
-    pub scheduler_service: Arc<HttpService>,
+    scheduler_service: Arc<SchedulerService>,
+    processor_service: Arc<ProcessorService>,
+    scheduler_state: Arc<Mutex<SchedulerState>>,
+    processor_state: Arc<Mutex<ProcessorState>>
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -63,10 +68,11 @@ impl SchedulerServer {
         info!("cors: {:?}", cors);
         let router = self
             .create_ping().with(&cors)
-            //.create_get_status(self.scheduler_service.clone()).await.with(&cors)
-            .or(self.create_route_register_worker(self.scheduler_service.clone()).await.with(&cors))
-            .or(self.create_route_pause_worker(self.scheduler_service.clone()).await.with(&cors))
-            .or(self.create_route_resume_worker(self.scheduler_service.clone()).await.with(&cors))
+            .or(self.create_route_register_worker(self.scheduler_service.clone()).with(&cors))
+            .or(self.create_route_pause_worker(self.scheduler_service.clone()).with(&cors))
+            .or(self.create_route_resume_worker(self.scheduler_service.clone()).with(&cors))
+            //For report processor
+            .or(self.create_route_reports(self.processor_service.clone()).with(&cors))
             .recover(handle_rejection);
         let socket_addr: SocketAddr = self.entry_point.parse().unwrap();
 
@@ -87,7 +93,7 @@ impl SchedulerServer {
         let res = SimpleResponse { success };
         Ok(warp::reply::json(&res))
     }
-    async fn create_route_register_worker(&self, service: Arc<HttpService>)
+    fn create_route_register_worker(&self, service: Arc<SchedulerService>)
                                           -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "register")
             .and(SchedulerServer::log_headers())
@@ -103,7 +109,7 @@ impl SchedulerServer {
                 }
             })
     }
-    async fn create_route_pause_worker(&self, service: Arc<HttpService>)
+    fn create_route_pause_worker(&self, service: Arc<SchedulerService>)
                                           -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "pause")
             .and(SchedulerServer::log_headers())
@@ -119,7 +125,7 @@ impl SchedulerServer {
                 }
             })
     }
-    async fn create_route_resume_worker(&self, service: Arc<HttpService>)
+    fn create_route_resume_worker(&self, service: Arc<SchedulerService>)
                                           -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "resume")
             .and(SchedulerServer::log_headers())
@@ -135,7 +141,7 @@ impl SchedulerServer {
                 }
             })
     }
-    async fn create_route_stop_worker(&self, service: Arc<HttpService>)
+    fn create_route_stop_worker(&self, service: Arc<SchedulerService>)
                                         -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "stop")
             .and(SchedulerServer::log_headers())
@@ -151,31 +157,22 @@ impl SchedulerServer {
                 }
             })
     }
-    /// Get status of component
-    /*
-    async fn create_get_status(
-        &self,
-        service: Arc<Scheduler>,
-        sender: Sender<ComponentInfo>,
-    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        let sender_clone = sender.clone();
-        warp::path!("get_status")
+
+    fn create_route_reports(&self, service: Arc<ProcessorService>, state: Arc<Mutex<ProcessorState>>)
+                                -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("report")
             .and(SchedulerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |body: Value| {
-                info!("#### Received request body ####");
-                info!("{}", body);
-                let component_info: ComponentInfo = serde_json::from_value(body).unwrap();
-                let sender_another_clone = sender_clone.clone();
+            .and_then(move |worker_info: WorkerInfo| {
+                info!("#### Received request body {:?} ####", &worker_info);
+                let clone_service = service.clone();
+                let clone_state = state.clone();
                 async move {
-                    let res = sender_another_clone.send(component_info).await;
-                    Self::simple_response(true).await
+                    clone_service.process_report(worker_info, clone_state).await
                 }
             })
     }
-    */
-
 
     fn log_headers() -> impl Filter<Extract = (), Error = Infallible> + Copy {
         warp::header::headers_cloned()
@@ -202,11 +199,14 @@ impl ServerBuilder {
         self.access_control = access_control;
         self
     }
-    pub fn build(&self, service: HttpService) -> SchedulerServer {
+    pub fn build(&self, scheduler: SchedulerService, processor: ProcessorService) -> SchedulerServer {
         SchedulerServer {
             entry_point: self.entry_point.clone(),
             access_control: self.access_control.clone(),
-            scheduler_service: Arc::new(service),
+            scheduler_service: Arc::new(scheduler),
+            processor_service: Arc::new(processor),
+            scheduler_state: Arc::new(Mutex::new(SchedulerState {})),
+            processor_state: Arc::new(Mutex::new(ProcessorState {}))
         }
     }
 }
