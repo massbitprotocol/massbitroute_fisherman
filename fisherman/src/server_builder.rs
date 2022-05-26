@@ -1,8 +1,8 @@
 use crate::server_config::AccessControl;
-use std::collections::VecDeque;
-use core::job_manage::Job;
+use common::job_manage::Job;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 
 use serde_json::Value;
 use std::convert::Infallible;
@@ -11,12 +11,13 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::Sender;
 use warp::http::{HeaderMap, Method};
 
-use warp::reply::Json;
-use warp::{http::StatusCode, Filter, Rejection, Reply};
 use crate::service::FishermanService;
 use crate::state::FishermanState;
-use core::models::WorkerInfo;
-use core::models::WorkerStateParam;
+use common::models::WorkerInfo;
+use common::models::WorkerStateParam;
+use std::default::Default;
+use warp::reply::Json;
+use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
 
@@ -30,7 +31,7 @@ pub struct FishermanServer {
     entry_point: String,
     access_control: AccessControl,
     pub fisherman_service: Arc<FishermanService>,
-    fisherman_state: Arc<Mutex<FishermanState>>
+    fisherman_state: Arc<Mutex<FishermanState>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -64,11 +65,24 @@ impl FishermanServer {
             ]);
         info!("cors: {:?}", cors);
         let router = self
-            .create_ping().with(&cors)
+            .create_ping()
+            .with(&cors)
             //.create_get_status(self.scheduler_service.clone()).await.with(&cors)
-            .or(self.create_route_handle_jobs(self.fisherman_service.clone(), self.fisherman_state.clone()).with(&cors))
-            .or(self.create_route_update_jobs(self.fisherman_service.clone(), self.fisherman_state.clone()).with(&cors))
-            .or(self.create_route_get_state(self.fisherman_service.clone()).with(&cors))
+            .or(self
+                .create_route_handle_jobs(
+                    self.fisherman_service.clone(),
+                    self.fisherman_state.clone(),
+                )
+                .with(&cors))
+            .or(self
+                .create_route_update_jobs(
+                    self.fisherman_service.clone(),
+                    self.fisherman_state.clone(),
+                )
+                .with(&cors))
+            .or(self
+                .create_route_get_state(self.fisherman_service.clone())
+                .with(&cors))
             .recover(handle_rejection);
         let socket_addr: SocketAddr = self.entry_point.parse().unwrap();
 
@@ -89,10 +103,11 @@ impl FishermanServer {
         let res = SimpleResponse { success };
         Ok(warp::reply::json(&res))
     }
-    fn create_route_handle_jobs(&self,
-              service: Arc<FishermanService>,
-              state: Arc<Mutex<FishermanState>>)
-        -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    fn create_route_handle_jobs(
+        &self,
+        service: Arc<FishermanService>,
+        state: Arc<Mutex<FishermanState>>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("jobs_handle")
             .and(FishermanServer::log_headers())
             .and(warp::post())
@@ -102,15 +117,14 @@ impl FishermanServer {
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 // let sender_another_clone = sender_clone.clone();
-                async move {
-                    clone_service.handle_jobs(jobs, clone_state).await
-                }
+                async move { clone_service.handle_jobs(jobs, clone_state).await }
             })
     }
-    fn create_route_update_jobs(&self,
-                                      service: Arc<FishermanService>,
-                                      state: Arc<Mutex<FishermanState>>)
-                                          -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    fn create_route_update_jobs(
+        &self,
+        service: Arc<FishermanService>,
+        state: Arc<Mutex<FishermanState>>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("jobs_update")
             .and(FishermanServer::log_headers())
             .and(warp::post())
@@ -119,23 +133,21 @@ impl FishermanServer {
                 info!("#### Received request body {:?} ####", &jobs);
                 let clone_service = service.clone();
                 let clone_state = state.clone();
-                async move {
-                    clone_service.update_jobs(jobs, clone_state).await
-                }
+                async move { clone_service.update_jobs(jobs, clone_state).await }
             })
     }
-    fn create_route_get_state(&self, service: Arc<FishermanService>)
-                                          -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    fn create_route_get_state(
+        &self,
+        service: Arc<FishermanService>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("get_state")
             .and(FishermanServer::log_headers())
             .and(warp::get())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then( move |param: WorkerStateParam| {
+            .and_then(move |param: WorkerStateParam| {
                 info!("#### Received request body ####");
                 let clone_service = service.clone();
-                async move {
-                    clone_service.get_state().await
-                }
+                async move { clone_service.get_state().await }
             })
     }
 
@@ -163,7 +175,6 @@ impl FishermanServer {
             })
     }
     */
-
 
     fn log_headers() -> impl Filter<Extract = (), Error = Infallible> + Copy {
         warp::header::headers_cloned()
@@ -195,7 +206,7 @@ impl FishermanServerBuilder {
             entry_point: self.entry_point.clone(),
             access_control: self.access_control.clone(),
             fisherman_service: Arc::new(service),
-            fisherman_state: Arc::new(Mutex::new(FishermanState::default()))
+            fisherman_state: Arc::new(Mutex::new(FishermanState::default())),
         }
     }
 }
