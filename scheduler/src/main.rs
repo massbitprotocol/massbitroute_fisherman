@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::{Command, Arg};
 use futures_util::future::join;
 use core::logger::init_logger;
 use scheduler::server_builder::ServerBuilder;
@@ -13,10 +13,7 @@ async fn main() {
     dotenv::dotenv().ok();
 
     let _res = init_logger(&String::from("Fisherman Scheduler"));
-    let matches = App::new("scheduler")
-        .version("0.1")
-        .about("fisherman-scheduler")
-        .subcommand(create_scheduler_app())
+    let matches = create_scheduler_app()
         .get_matches();
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
     let http_service = HttpServiceBuilder::default().build();
@@ -32,9 +29,10 @@ async fn main() {
     //join(task_job, task_serve).await;
 }
 
-fn create_scheduler_app() -> App<'static> {
-    App::new("check-kind")
-        .about("check node kind is correct")
+fn create_scheduler_app() -> Command<'static> {
+    Command::new("check-kind")
+        .version("0.1")
+        .about("fisherman-scheduler")
         .arg(
             Arg::new("list-node-id-file")
                 .short('n')
