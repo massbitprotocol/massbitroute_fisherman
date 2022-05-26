@@ -1,6 +1,7 @@
 use crate::state::FishermanState;
 use common::job_manage::Job;
 use common::models::WorkerInfo;
+use log::info;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use warp::{Rejection, Reply};
@@ -16,19 +17,26 @@ impl FishermanService {
         jobs: Vec<Job>,
         state: Arc<Mutex<FishermanState>>,
     ) -> Result<impl Reply, Rejection> {
-        print!("Handle jobs {:?}", &jobs);
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
+        info!("Handle jobs {:?}", &jobs);
+        let mut jds = vec![];
+        for job in jobs {
+            let jd = job.job_detail.unwrap();
+            jds.push(jd);
+        }
+        //serde_json::to_string(jds);
+        let res = warp::reply::json(&jds);
+        return Ok(res);
     }
     pub async fn update_jobs(
         &self,
         jobs: Vec<Job>,
         state: Arc<Mutex<FishermanState>>,
     ) -> Result<impl Reply, Rejection> {
-        print!("Update jobs: {:?}", &jobs);
+        info!("Update jobs: {:?}", &jobs);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }
     pub async fn get_state(&self) -> Result<impl Reply, Rejection> {
-        print!("Get state request");
+        info!("Get state request");
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }
 }

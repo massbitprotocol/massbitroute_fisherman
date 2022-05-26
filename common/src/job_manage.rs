@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use serde::{Serialize, Deserialize};
 use crate::component::ComponentInfo;
 use crate::job_action::CheckStep;
+use serde::{Deserialize, Serialize};
 
 type Url = String;
 type JobId = String;
@@ -21,30 +21,21 @@ pub enum JobType {
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
 pub enum ComponentType {
     NODE,
-    GATEWAY
+    GATEWAY,
 }
-#[derive(Clone, Serialize, Deserialize, Debug,Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Job {
     job_id: JobId,
-    component_info: ComponentInfo, //
-    /*
-     * Fist priority is 1
-     */
-    priority: u32,
-    time_out:Timestamp,
+    component_info: ComponentInfo,
+    priority: u32, //Fist priority is 1
+    time_out: Timestamp,
     start_deadline: Timestamp,
     component_url: Url,
     repeat_number: i32,
     interval: u32,
     header: HashMap<String, String>,
-    /*
-     * For fisherman call to send job result
-     */
-    callback_url: Url,
-    /*
-     *
-     */
-    job_detail: Option<JobDetail>,
+    callback_url: Url, //For fisherman call to send job result
+    pub job_detail: Option<JobDetail>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobCancel {
@@ -52,7 +43,7 @@ pub struct JobCancel {
      * Time to perform ping request (if duration =-1 then perform ping without finish)
      */
     job_id: JobId,
-    reason: String,     //Using for log
+    reason: String, //Using for log
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobPing {}
@@ -66,13 +57,12 @@ pub struct JobCompound {
 pub struct JobBenchmark {
     connection: u32,
     thread: u32,
-    rate: u32,              // Requests/sec
-    duration: u64,          // Time to perform benchmark in ms
-    timeout: Timestamp,           // Timeout foreach request
-    script: String,         // Name of .lua script
-    histograms: Vec<u32>,   // List of expected percentile,
+    rate: u32,            // Requests/sec
+    duration: u64,        // Time to perform benchmark in ms
+    timeout: Timestamp,   // Timeout foreach request
+    script: String,       // Name of .lua script
+    histograms: Vec<u32>, // List of expected percentile,
 }
-
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobCancelResult {
@@ -85,30 +75,29 @@ pub struct JobCancelResult {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobPingResult {
     job: Job,
-    request_timestamp: u64,      //Time to send request
-    response_timestamp: u64,     //Time to get response
+    request_timestamp: u64,  //Time to send request
+    response_timestamp: u64, //Time to get response
     response_time: Vec<u32>, //response time or -1 if timed out
-
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobCompoundResult {
     job: Job,
-    request_timestamp: u64,      //Time to send request
-    response_timestamp: u64,     //Time to get response
-    response_status: String,     //http status
-    values: HashMap<String, serde_json::Value>
+    request_timestamp: u64,  //Time to send request
+    response_timestamp: u64, //Time to get response
+    response_status: String, //http status
+    values: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobBenchmarkResult {
     job: Job,
-    request_timestamp: u64,      //Time to send request
-    response_timestamp: u64,     //Time to get response
+    request_timestamp: u64,  //Time to send request
+    response_timestamp: u64, //Time to get response
     request_rate: f32,
-    transfer_rate: f32,          //KB
-    average_latency: f32,        //In ms
-    histograms: HashMap<u32, f32>
+    transfer_rate: f32,   //KB
+    average_latency: f32, //In ms
+    histograms: HashMap<u32, f32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -129,4 +118,11 @@ pub enum JobResult {
     Compound(JobCompoundResult),
     // perform benchmark checking
     Benchmark(JobBenchmarkResult),
+}
+
+#[test]
+fn test_serialize() {
+    let jd = JobDetail::Ping(JobPing {});
+    let str_jd = serde_json::to_string(&jd).unwrap();
+    println!("str_jd: {}", str_jd);
 }
