@@ -1,7 +1,11 @@
+use crate::state::ProcessorState;
+use common::job_manage::JobResult;
 use common::models::WorkerInfo;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use warp::{Rejection, Reply};
+
+#[derive(Default)]
 pub struct ProcessorService {}
 
 impl ProcessorService {
@@ -10,10 +14,10 @@ impl ProcessorService {
     }
     pub async fn process_report(
         &self,
-        worker_info: WorkerInfo,
-        state: Arc<Mutex<ReportState>>,
+        job_result: JobResult,
+        state: Arc<Mutex<ProcessorState>>,
     ) -> Result<impl Reply, Rejection> {
-        info!("Handle report from worker {:?}", &worker_info);
+        print!("Handle report from worker {:?}", &job_result);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }
 }

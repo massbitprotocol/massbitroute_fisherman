@@ -4,6 +4,7 @@ use serde_json::json;
 use std::sync::{Arc, Mutex};
 use warp::{Rejection, Reply};
 
+#[derive(Default)]
 pub struct SchedulerService {}
 
 impl SchedulerService {
@@ -34,17 +35,12 @@ impl SchedulerService {
         print!("Handle register worker request from {:?}", &worker_info);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }
-    pub async fn stop_worker(&self, worker_info: WorkerInfo) -> Result<impl Reply, Rejection> {
-        print!("Handle register worker request from {:?}", &worker_info);
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
-    }
-    //For handler job report
-    pub async fn report_result(
+    pub async fn stop_worker(
         &self,
-        job_result: JobResult,
-        state: Arc<Mutex<ProcessorState>>,
+        worker_info: WorkerInfo,
+        scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
-        print!("Handle report from worker {:?}", &worker_info);
+        print!("Handle register worker request from {:?}", &worker_info);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }
 }

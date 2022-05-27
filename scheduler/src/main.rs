@@ -1,11 +1,18 @@
 use clap::{Arg, Command};
 use common::logger::init_logger;
-use futures_util::future::join;
+use futures_util::future::{join, join4};
 use log::{debug, info, warn};
+use scheduler::models::providers::ProviderStorage;
+use scheduler::provider::scanner::ProviderScanner;
 use scheduler::server_builder::ServerBuilder;
 use scheduler::server_config::AccessControl;
-use scheduler::service::scheduler::HttpServiceBuilder;
+use scheduler::service::delivery::JobDelivery;
+use scheduler::service::generator::JobGenerator;
+use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::SCHEDULER_ENDPOINT;
+use std::sync::Arc;
+use tokio::sync::mpsc;
+use tokio::task;
 
 #[tokio::main]
 async fn main() {
@@ -15,17 +22,30 @@ async fn main() {
     let _res = init_logger(&String::from("Fisherman Scheduler"));
     let matches = create_scheduler_app().get_matches();
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
-    let http_service = HttpServiceBuilder::default().build();
+    let scheduler_service = SchedulerServiceBuilder::default().build();
+    let processor_service = ProcessorServiceBuilder::default().build();
     let access_control = AccessControl::default();
     let server = ServerBuilder::default()
         .with_entry_point(socket_addr)
         .with_access_control(access_control)
-        .build(http_service);
+        .build(scheduler_service, processor_service);
+    //let (tx, mut rx) = mpsc::channel(1024);
+    let provider_storage = ProviderStorage::default();
+    let mut provider_scanner = ProviderScanner::new(Arc::new(provider_storage));
+    let mut job_generator = JobGenerator::new(Arc::new(provider_storage));
+    let mut job_delivery = JobDelivery::new();
     info!("Init http service ");
-
+    let task_provider_scanner = task::spawn(async move { provider_scanner.init() });
+    let task_job_generator = task::spawn(async move { job_generator.init() });
+    let task_job_delivery = task::spawn(async move { job_delivery.init() });
     let task_serve = server.serve();
-    task_serve.await;
-    //join(task_job, task_serve).await;
+    join4(
+        task_provider_scanner,
+        task_job_generator,
+        task_job_delivery,
+        task_serve,
+    )
+    .await;
 }
 
 fn create_scheduler_app() -> Command<'static> {
