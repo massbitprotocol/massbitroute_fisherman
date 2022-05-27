@@ -1,11 +1,11 @@
-use clap::{Command, Arg};
+use clap::{Arg, Command};
+use common::logger::init_logger;
 use futures_util::future::join;
-use core::logger::init_logger;
-use scheduler::server_builder::ServerBuilder;
 use log::{debug, info, warn};
-use scheduler::SCHEDULER_ENDPOINT;
+use scheduler::server_builder::ServerBuilder;
 use scheduler::server_config::AccessControl;
 use scheduler::service::scheduler::HttpServiceBuilder;
+use scheduler::SCHEDULER_ENDPOINT;
 
 #[tokio::main]
 async fn main() {
@@ -13,15 +13,13 @@ async fn main() {
     dotenv::dotenv().ok();
 
     let _res = init_logger(&String::from("Fisherman Scheduler"));
-    let matches = create_scheduler_app()
-        .get_matches();
+    let matches = create_scheduler_app().get_matches();
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
     let http_service = HttpServiceBuilder::default().build();
     let access_control = AccessControl::default();
     let server = ServerBuilder::default()
         .with_entry_point(socket_addr)
         .with_access_control(access_control)
-        
         .build(http_service);
     info!("Init http service ");
 
