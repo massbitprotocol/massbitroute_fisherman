@@ -88,6 +88,7 @@ impl FishermanServer {
 
         warp::serve(router).run(socket_addr).await;
     }
+
     /// Ping API
     fn create_ping(
         &self,
@@ -206,7 +207,7 @@ impl FishermanServerBuilder {
             entry_point: self.entry_point.clone(),
             access_control: self.access_control.clone(),
             fisherman_service: Arc::new(service),
-            fisherman_state: Arc::new(Mutex::new(FishermanState::default())),
+            fisherman_state: Arc::new(Mutex::new(FishermanState::new())),
         }
     }
 }

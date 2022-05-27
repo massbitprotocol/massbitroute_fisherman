@@ -3,7 +3,6 @@ use common::logger::init_logger;
 use futures_util::future::{join, join4};
 use log::{debug, info, warn};
 use scheduler::models::providers::ProviderStorage;
-use scheduler::models::workers::WorkerPool;
 use scheduler::provider::scanner::ProviderScanner;
 use scheduler::server_builder::ServerBuilder;
 use scheduler::server_config::AccessControl;
@@ -31,10 +30,9 @@ async fn main() {
         .with_access_control(access_control)
         .build(scheduler_service, processor_service);
     //let (tx, mut rx) = mpsc::channel(1024);
-    let provider_storage = Arc::new(ProviderStorage::default());
-    let worker_pool = Arc::new(WorkerPool::new());
-    let mut provider_scanner = ProviderScanner::new(provider_storage.clone());
-    let mut job_generator = JobGenerator::new(provider_storage.clone(), worker_pool.clone());
+    let provider_storage = ProviderStorage::default();
+    let mut provider_scanner = ProviderScanner::new(Arc::new(provider_storage));
+    let mut job_generator = JobGenerator::new(Arc::new(provider_storage));
     let mut job_delivery = JobDelivery::new();
     info!("Init http service ");
     let task_provider_scanner = task::spawn(async move { provider_scanner.init() });
