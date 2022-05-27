@@ -1,17 +1,23 @@
-use std::sync::{Arc, Mutex};
+use crate::state::ProcessorState;
+use common::job_manage::JobResult;
+use common::models::WorkerInfo;
 use serde_json::json;
+use std::sync::{Arc, Mutex};
 use warp::{Rejection, Reply};
-use core::models::WorkerInfo;
-pub struct ProcessorService {
 
-}
+#[derive(Default)]
+pub struct ProcessorService {}
 
 impl ProcessorService {
     pub fn builder() -> ProcessorServiceBuilder {
         ProcessorServiceBuilder::default()
     }
-    pub async fn process_report(&self, worker_info: WorkerInfo, state: Arc<Mutex<ReportState>>) -> Result<impl Reply, Rejection>{
-        print!("Handle report from worker {:?}", &worker_info);
+    pub async fn process_report(
+        &self,
+        job_result: JobResult,
+        state: Arc<Mutex<ProcessorState>>,
+    ) -> Result<impl Reply, Rejection> {
+        print!("Handle report from worker {:?}", &job_result);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }
 }
@@ -23,7 +29,7 @@ pub struct ProcessorServiceBuilder {
 impl Default for ProcessorServiceBuilder {
     fn default() -> Self {
         Self {
-            inner: ProcessorService {}
+            inner: ProcessorService {},
         }
     }
 }
