@@ -2,7 +2,9 @@ use std::thread::sleep;
 use std::time::Duration;
 
 #[derive(Default)]
-pub struct JobDelivery {}
+pub struct JobDelivery {
+    wo
+}
 
 impl JobDelivery {
     pub fn new() -> Self {
