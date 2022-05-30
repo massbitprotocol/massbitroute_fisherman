@@ -10,6 +10,10 @@ pub type NetworkType = String;
 pub type UrlType = String;
 pub type ComponentId = String;
 pub type JobId = String;
-
+pub type WorkerId = String;
+pub type IPAddress = String;
+pub type Node = ComponentInfo;
+pub type Gateway = ComponentInfo;
+use crate::component::ComponentInfo;
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;

@@ -1,6 +1,6 @@
 use crate::state::ProcessorState;
 use common::job_manage::JobResult;
-use common::models::WorkerInfo;
+use common::worker::WorkerInfo;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use warp::{Rejection, Reply};

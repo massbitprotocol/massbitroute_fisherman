@@ -17,7 +17,7 @@ use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 use crate::state::{ProcessorState, SchedulerState};
-use common::models::WorkerInfo;
+use common::worker::WorkerInfo;
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
 

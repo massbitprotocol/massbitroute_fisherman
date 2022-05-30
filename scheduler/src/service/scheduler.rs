@@ -1,5 +1,5 @@
 use crate::state::{ProcessorState, SchedulerState};
-use common::models::WorkerInfo;
+use common::worker::WorkerInfo;
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use warp::{Rejection, Reply};

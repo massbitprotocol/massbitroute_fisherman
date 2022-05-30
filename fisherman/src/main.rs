@@ -58,7 +58,7 @@ fn create_job_process_thread(mut receiver: Receiver<Job>) -> JoinHandle<()> {
 
             if let Some(job) = job {
                 // Init job result
-                let job_result = job.process();
+                let job_result = job.process().await;
                 if let Ok(job_result) = job_result {
                     info!("Send job result: {:?}", job_result);
                     let res = job_result.send().await;
