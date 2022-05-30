@@ -46,16 +46,17 @@ pub struct Job {
 }
 
 impl Job {
-    pub async fn process(&self) -> JoinHandle<Result<JobResult, Error>> {
-        let task = tokio::spawn(async move {
-            let job_detail = self.job_detail.as_ref().unwrap();
-            match job_detail {
-                JobDetail::Ping(job_detail) => self.process_ping().await,
-                JobDetail::Compound(job_detail) => Ok(JobResult::new(self)),
-                JobDetail::Benchmark(job_detail) => Ok(JobResult::new(self)),
-            }
-        });
-        task
+    pub async fn process(&self) -> Result<JobResult, Error> {
+        // let task = tokio::spawn(async move {
+        //     let job_detail = self.job_detail.as_ref().unwrap();
+        //     match job_detail {
+        //         JobDetail::Ping(job_detail) => self.process_ping().await,
+        //         JobDetail::Compound(job_detail) => Ok(JobResult::new(self)),
+        //         JobDetail::Benchmark(job_detail) => Ok(JobResult::new(self)),
+        //     }
+        // });
+        // task
+        todo!()
     }
 
     async fn process_ping(&self) -> Result<JobResult, Error> {
