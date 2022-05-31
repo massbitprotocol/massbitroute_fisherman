@@ -17,6 +17,6 @@ impl SchedulerState {
 impl SchedulerState {
     pub async fn verify_node(&mut self, node_info: ComponentInfo) {
         log::debug!("Push node {:?} to verification queue", &node_info);
-        self.providers.lock().await.add_verify_node(node_info);
+        self.providers.lock().await.add_verify_node(node_info).await;
     }
 }
