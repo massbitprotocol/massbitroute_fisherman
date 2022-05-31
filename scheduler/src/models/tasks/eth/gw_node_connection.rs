@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 pub struct TaskGWNodeConnection {
     list_nodes: Vec<Arc<Node>>,
-    list_gateways: Vec<Act<Gateway>>,
+    list_gateways: Vec<Arc<Gateway>>,
 }
 impl TaskGWNodeConnection {
     pub fn new() -> Self {

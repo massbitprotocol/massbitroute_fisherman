@@ -3,9 +3,9 @@ use anyhow::Error;
 use common::component::ComponentInfo;
 use common::job_manage::{Job, JobDetail, JobPing, JobResult};
 use common::{Gateway, Node};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::vec;
-
 /*
  * Apply for node to get latest block number and time
  */

@@ -7,11 +7,12 @@ use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
+use tokio::sync::Mutex;
 
 pub struct ProviderScanner {
     url_list_nodes: String,
     url_list_gateways: String,
-    providers: Arc<ProviderStorage>,
+    providers: Arc<Mutex<ProviderStorage>>,
     workers: Arc<WorkerPool>,
 }
 /*
@@ -21,7 +22,7 @@ impl ProviderScanner {
     pub fn new(
         url_list_nodes: String,
         url_list_gateways: String,
-        providers: Arc<ProviderStorage>,
+        providers: Arc<Mutex<ProviderStorage>>,
         workers: Arc<WorkerPool>,
     ) -> Self {
         ProviderScanner {

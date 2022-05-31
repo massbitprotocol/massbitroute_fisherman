@@ -3,9 +3,9 @@ use anyhow::Error;
 use common::component::ComponentInfo;
 use common::job_manage::{Job, JobDetail, JobPing, JobResult};
 use common::{Gateway, Node};
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::vec;
-
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
  */

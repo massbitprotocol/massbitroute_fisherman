@@ -12,7 +12,7 @@ pub struct NodeBenchmark {}
 
 impl NodeBenchmark {
     pub fn new() -> Self {
-        TaskBenchmark {}
+        NodeBenchmark {}
     }
 }
 impl TaskApplicant for NodeBenchmark {
@@ -25,7 +25,7 @@ pub struct GatewayBenchmark {}
 
 impl GatewayBenchmark {
     pub fn new() -> Self {
-        TaskBenchmark {}
+        GatewayBenchmark {}
     }
 }
 impl TaskApplicant for GatewayBenchmark {

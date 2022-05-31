@@ -3,7 +3,6 @@ use crate::models::tasks::eth::{
 };
 use common::component::ComponentInfo;
 use common::job_manage::Job;
-use eth::benchmark::TaskBenchmark;
 use log::debug;
 use std::default;
 use std::sync::Arc;
@@ -20,7 +19,7 @@ pub trait TaskApplicant: Sync + Send {
 }
 
 pub fn get_tasks() -> Vec<Arc<dyn TaskApplicant>> {
-    let mut result: Vec<Arc<dyn TaskApplicant>>::default() = ();
+    let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
     result.push(Arc::new(GatewayBenchmark::new()));
     result.push(Arc::new(NodeBenchmark::new()));
     result.push(Arc::new(TaskGWNodeConnection::new()));

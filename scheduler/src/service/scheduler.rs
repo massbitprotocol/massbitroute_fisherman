@@ -1,7 +1,11 @@
+use crate::models::providers::ProviderStorage;
 use crate::state::{ProcessorState, SchedulerState};
+use common::component::ComponentInfo;
 use common::worker::WorkerInfo;
+use log::log;
 use serde_json::json;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use warp::{Rejection, Reply};
 
 #[derive(Default)]
@@ -43,6 +47,17 @@ impl SchedulerService {
         print!("Handle register worker request from {:?}", &worker_info);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }
+    pub async fn node_verify(
+        &self,
+        node_info: ComponentInfo,
+        scheduler_state: Arc<Mutex<SchedulerState>>,
+    ) -> Result<impl Reply, Rejection> {
+        log::info!("Handle node verify request from {:?}", &node_info);
+        scheduler_state.lock().await.verify_node(node_info).await;
+        return Ok(warp::reply::json(
+            &json!({ "Success": "Node added to verifying queue" }),
+        ));
+    }
 }
 pub struct SchedulerServiceBuilder {
     inner: SchedulerService,
@@ -55,7 +70,6 @@ impl Default for SchedulerServiceBuilder {
         }
     }
 }
-
 impl SchedulerServiceBuilder {
     pub fn build(self) -> SchedulerService {
         self.inner

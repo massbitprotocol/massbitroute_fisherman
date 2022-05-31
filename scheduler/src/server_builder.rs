@@ -8,11 +8,12 @@ use std::collections::VecDeque;
 use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::Sender;
+use std::sync::Arc;
+use tokio::sync::{mpsc::Sender, Mutex};
 use warp::http::{HeaderMap, Method};
 
 use crate::service::{ProcessorService, SchedulerService};
+use common::component::ComponentInfo;
 use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
@@ -27,7 +28,7 @@ pub struct ServerBuilder {
     access_control: AccessControl,
     scheduler_service: SchedulerService,
     processor_service: ProcessorService,
-    scheduler_state: SchedulerState,
+    scheduler_state: Arc<Mutex<SchedulerState>>,
     processor_state: ProcessorState,
 }
 
@@ -74,19 +75,25 @@ impl SchedulerServer {
             .create_ping()
             .with(&cors)
             .or(self
-                .create_route_register_worker(
+                .create_route_worker_register(
                     self.scheduler_service.clone(),
                     self.scheduler_state.clone(),
                 )
                 .with(&cors))
             .or(self
-                .create_route_pause_worker(
+                .create_route_worker_pause(
                     self.scheduler_service.clone(),
                     self.scheduler_state.clone(),
                 )
                 .with(&cors))
             .or(self
-                .create_route_resume_worker(
+                .create_route_worker_resume(
+                    self.scheduler_service.clone(),
+                    self.scheduler_state.clone(),
+                )
+                .with(&cors))
+            .or(self
+                .create_route_node_verify(
                     self.scheduler_service.clone(),
                     self.scheduler_state.clone(),
                 )
@@ -115,7 +122,7 @@ impl SchedulerServer {
         let res = SimpleResponse { success };
         Ok(warp::reply::json(&res))
     }
-    fn create_route_register_worker(
+    fn create_route_worker_register(
         &self,
         service: Arc<SchedulerService>,
         state: Arc<Mutex<SchedulerState>>,
@@ -135,7 +142,7 @@ impl SchedulerServer {
                 }
             })
     }
-    fn create_route_pause_worker(
+    fn create_route_worker_pause(
         &self,
         service: Arc<SchedulerService>,
         state: Arc<Mutex<SchedulerState>>,
@@ -151,7 +158,7 @@ impl SchedulerServer {
                 async move { clone_service.pause_worker(worker_info, clone_state).await }
             })
     }
-    fn create_route_resume_worker(
+    fn create_route_worker_resume(
         &self,
         service: Arc<SchedulerService>,
         state: Arc<Mutex<SchedulerState>>,
@@ -167,7 +174,7 @@ impl SchedulerServer {
                 async move { clone_service.resume_worker(worker_info, clone_state).await }
             })
     }
-    fn create_route_stop_worker(
+    fn create_route_worker_stop(
         &self,
         service: Arc<SchedulerService>,
         state: Arc<Mutex<SchedulerState>>,
@@ -183,7 +190,22 @@ impl SchedulerServer {
                 async move { clone_service.stop_worker(worker_info, clone_state).await }
             })
     }
-
+    fn create_route_node_verify(
+        &self,
+        service: Arc<SchedulerService>,
+        state: Arc<Mutex<SchedulerState>>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("node" / "verify")
+            .and(SchedulerServer::log_headers())
+            .and(warp::post())
+            .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
+            .and_then(move |node_info: ComponentInfo| {
+                info!("#### Received request body {:?} ####", &node_info);
+                let clone_service = service.clone();
+                let clone_state = state.clone();
+                async move { clone_service.node_verify(node_info, clone_state).await }
+            })
+    }
     fn create_route_reports(
         &self,
         service: Arc<ProcessorService>,
@@ -235,7 +257,7 @@ impl ServerBuilder {
         self
     }
     pub fn with_scheduler_state(mut self, scheduler_state: SchedulerState) -> Self {
-        self.scheduler_state = scheduler_state;
+        self.scheduler_state = Arc::new(Mutex::new(scheduler_state));
         self
     }
     pub fn with_processor_state(mut self, processor_state: ProcessorState) -> Self {
@@ -252,7 +274,7 @@ impl ServerBuilder {
             access_control: self.access_control.clone(),
             scheduler_service: Arc::new(scheduler),
             processor_service: Arc::new(processor),
-            scheduler_state: Arc::new(Mutex::new(SchedulerState {})),
+            scheduler_state: self.scheduler_state.clone(),
             processor_state: Arc::new(Mutex::new(ProcessorState {})),
         }
     }

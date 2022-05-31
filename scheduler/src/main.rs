@@ -2,6 +2,7 @@
 extern crate diesel_migrations;
 
 use clap::{Arg, Command};
+use common::component::ComponentInfo;
 use common::logger::init_logger;
 use diesel::r2d2::ConnectionManager;
 use diesel::{r2d2, PgConnection};
@@ -16,9 +17,10 @@ use scheduler::server_config::{AccessControl, Config};
 use scheduler::service::delivery::JobDelivery;
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
+use scheduler::state::SchedulerState;
 use scheduler::{CONNECTION_POOL_SIZE, DATABASE_URL, SCHEDULER_CONFIG, SCHEDULER_ENDPOINT};
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
 use tokio::task;
 
 embed_migrations!("./migrations");
@@ -42,12 +44,14 @@ async fn main() {
     }
     let config = Config::load(SCHEDULER_CONFIG.as_str());
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
+    let provider_storage = Arc::new(Mutex::new(ProviderStorage::default()));
+    let worker_pool = Arc::new(WorkerPool::default());
+    let scheduler_state = SchedulerState::new(provider_storage.clone());
     let scheduler_service = SchedulerServiceBuilder::default().build();
     let processor_service = ProcessorServiceBuilder::default().build();
     let access_control = AccessControl::default();
     //let (tx, mut rx) = mpsc::channel(1024);
-    let provider_storage = Arc::new(ProviderStorage::default());
-    let worker_pool = Arc::new(WorkerPool::default());
+
     let mut provider_scanner = ProviderScanner::new(
         config.url_list_nodes.clone(),
         config.url_list_gateways.clone(),
@@ -63,6 +67,7 @@ async fn main() {
     let server = ServerBuilder::default()
         .with_entry_point(socket_addr)
         .with_access_control(access_control)
+        .with_scheduler_state(scheduler_state)
         .build(scheduler_service, processor_service);
     let task_serve = server.serve();
     join4(
