@@ -13,8 +13,8 @@ use warp::http::{HeaderMap, Method};
 
 use crate::service::FishermanService;
 use crate::state::FishermanState;
-use common::models::WorkerInfo;
-use common::models::WorkerStateParam;
+use common::worker::WorkerInfo;
+use common::worker::WorkerStateParam;
 use std::default::Default;
 use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};

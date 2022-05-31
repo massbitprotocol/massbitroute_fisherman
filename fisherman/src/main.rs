@@ -1,8 +1,8 @@
 use anyhow::Error;
 use common::job_manage::{Job, JobResult};
 use common::logger::init_logger;
-use common::models::WorkerInfo;
-use common::models::WorkerRegisterResult;
+use common::worker::{WorkerInfo, WorkerRegisterResult};
+use fisherman::job::job_process::JobProcess;
 use fisherman::server_builder::FishermanServerBuilder;
 use fisherman::server_config::AccessControl;
 use fisherman::service::FishermanServiceBuilder;
@@ -100,8 +100,6 @@ async fn register() -> Result<WorkerRegisterResult, anyhow::Error> {
     let request_builder = client
         .post(scheduler_url.to_string())
         .header("content-type", "application/json")
-        //        .header("x-api-key", node.token.as_str())
-        //        .header("host", node.get_host_header(&self.domain))
         .body(serde_json::to_string(&worker_info)?);
     debug!("request_builder: {:?}", request_builder);
     let result = request_builder.send().await?.text().await?;

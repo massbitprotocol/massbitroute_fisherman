@@ -38,53 +38,37 @@ pub struct Job {
     time_out: Timestamp,
     start_deadline: Timestamp,
     component_url: Url,
-    repeat_number: i32,
+    pub repeat_number: i32,
     interval: u32,
     header: HashMap<String, String>,
     callback_url: Url, //For fisherman call to send job result
     pub job_detail: Option<JobDetail>,
+    running_mode: JobRunningMode,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub enum JobRunningMode {
+    Endless(EndlessMode),
+    Finite,
+}
+
+impl Default for JobRunningMode {
+    fn default() -> Self {
+        JobRunningMode::Finite
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct EndlessMode {
+    report_interval: u32, // Number of results before report
 }
 
 impl Job {
     pub fn new(job_detail: JobDetail) -> Self {
         Job {
-            job_id: "".to_string(),
-            component_info: Default::default(),
-            priority: 0,
-            time_out: 0,
-            start_deadline: 0,
-            component_url: "".to_string(),
-            repeat_number: 0,
-            interval: 0,
-            header: Default::default(),
-            callback_url: "".to_string(),
             job_detail: Some(job_detail),
+            ..Default::default()
         }
-
-        Ok(JobResult::Ping(JobPingResult::default()))
-    }
-}
-impl Job {
-    pub async fn process(&self) -> JoinHandle<Result<JobResult, Error>> {
-        // let task = tokio::spawn(async move {
-        //     let job_detail = self.job_detail.as_ref().unwrap();
-        //     match job_detail {
-        //         JobDetail::Ping(job_detail) => self.process_ping().await,
-        //         JobDetail::Compound(job_detail) => Ok(JobResult::new(self)),
-        //         JobDetail::Benchmark(job_detail) => Ok(JobResult::new(self)),
-        //     }
-        // });
-        // task
-        todo!()
-    }
-
-    async fn process_ping(&self) -> Result<JobResult, Error> {
-        for repeat_time in 1..self.repeat_number {
-            info!("*** Do ping ***");
-            sleep(Duration::from_millis(1000)).await;
-        }
-
-        Ok(JobResult::Ping(JobPingResult::default()))
     }
 }
 

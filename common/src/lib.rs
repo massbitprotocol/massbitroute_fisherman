@@ -3,6 +3,7 @@ pub mod job_action;
 pub mod job_manage;
 pub mod logger;
 pub mod models;
+pub mod task_spawn;
 pub mod worker;
 
 pub type BlockChainType = String;
