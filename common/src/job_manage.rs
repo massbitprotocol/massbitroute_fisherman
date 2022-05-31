@@ -46,7 +46,26 @@ pub struct Job {
 }
 
 impl Job {
-    pub async fn process(&self) -> Result<JobResult, Error> {
+    pub fn new(job_detail: JobDetail) -> Self {
+        Job {
+            job_id: "".to_string(),
+            component_info: Default::default(),
+            priority: 0,
+            time_out: 0,
+            start_deadline: 0,
+            component_url: "".to_string(),
+            repeat_number: 0,
+            interval: 0,
+            header: Default::default(),
+            callback_url: "".to_string(),
+            job_detail: Some(job_detail),
+        }
+
+        Ok(JobResult::Ping(JobPingResult::default()))
+    }
+}
+impl Job {
+    pub async fn process(&self) -> JoinHandle<Result<JobResult, Error>> {
         // let task = tokio::spawn(async move {
         //     let job_detail = self.job_detail.as_ref().unwrap();
         //     match job_detail {
