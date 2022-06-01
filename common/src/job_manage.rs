@@ -33,28 +33,31 @@ pub enum ComponentType {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Job {
     pub job_id: JobId,
-    component_info: ComponentInfo,
-    priority: u32, //Fist priority is 1
-    time_out: Timestamp,
-    start_deadline: Timestamp,
-    component_url: Url,
+    pub component_info: ComponentInfo,
+    pub priority: u32, //Fist priority is 1
+    pub time_out: Timestamp,
+    pub start_deadline: Timestamp,
+    pub component_url: Url,
     pub repeat_number: i32,
-    interval: u32,
-    header: HashMap<String, String>,
-    callback_url: Url, //For fisherman call to send job result
+    pub interval: u32,
+    pub header: HashMap<String, String>,
+    pub callback_url: Url, //For fisherman call to send job result
     pub job_detail: Option<JobDetail>,
-    running_mode: JobRunningMode,
+    pub running_mode: JobRunningMode,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum JobRunningMode {
     Endless(EndlessMode),
-    Finite,
+    Finite(FiniteMode),
 }
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct FiniteMode {}
 
 impl Default for JobRunningMode {
     fn default() -> Self {
-        JobRunningMode::Finite
+        JobRunningMode::Finite { 0: FiniteMode {} }
     }
 }
 
@@ -85,7 +88,7 @@ pub struct JobPing {}
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobCompound {
-    check_steps: Vec<CheckStep>,
+    pub check_steps: Vec<CheckStep>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]

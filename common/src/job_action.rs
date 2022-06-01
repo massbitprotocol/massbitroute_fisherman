@@ -4,23 +4,22 @@ use crate::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct CheckStep {
     #[serde(default)]
-    action: Value,
+    pub action: Value,
     #[serde(default)]
-    return_name: String,
+    pub return_name: String,
     #[serde(default)]
-    failed_case: FailedCase,
+    pub failed_case: FailedCase,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct FailedCase {
     #[serde(default)]
-    critical: bool,
+    pub critical: bool,
     #[serde(default)]
     message: String,
     #[serde(default)]
-    conclude: CheckMkStatus,
+    pub conclude: CheckMkStatus,
 }
-
 
 #[derive(PartialEq, Clone, Debug, Deserialize, Serialize)]
 pub enum CheckMkStatus {
