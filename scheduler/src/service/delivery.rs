@@ -1,10 +1,12 @@
 use crate::models::jobs::{AssignmentBuffer, JobAssignment};
 use crate::models::workers::{Worker, WorkerInfoStorage};
 use crate::JOB_DELIVERY_PERIOD;
+use common::job_manage::Job;
 use common::worker::WorkerInfo;
 use common::WorkerId;
 use futures_util::future::join_all;
 use log::{debug, log};
+use sea_orm::sea_query::IndexType::Hash;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::sleep;
@@ -35,14 +37,26 @@ impl JobDelivery {
             log::debug!("Run delivery for {} jobs", assignments.len());
             let undelivered = Vec::<JobAssignment>::default();
             let mut handlers = Vec::new();
+            let mut worker_jobs = HashMap::<WorkerId, Vec<Job>>::default();
+            let mut workers = HashMap::<WorkerId, Arc<WorkerInfo>>::default();
             for job_assign in assignments.into_iter() {
-                let worker = self.get_worker(job_assign.worker);
+                let JobAssignment { worker, job, .. } = job_assign;
+                if let Some(mut jobs) = worker_jobs.get_mut(&worker.worker_id) {
+                    jobs.push(job)
+                } else {
+                    worker_jobs.insert(worker.worker_id.clone(), vec![job]);
+                }
+                workers.insert(worker.worker_id.clone(), worker);
+            }
+            for (id, jobs) in worker_jobs.into_iter() {
+                let worker = self.get_worker(workers.get(&id).unwrap().clone());
                 let handler = tokio::spawn(async move {
                     // Process each socket concurrently.
-                    worker.send_job(&job_assign.job).await
+                    worker.send_jobs(&jobs).await
                 });
                 handlers.push(handler);
             }
+
             join_all(handlers).await;
             sleep(Duration::from_secs(JOB_DELIVERY_PERIOD));
         }
