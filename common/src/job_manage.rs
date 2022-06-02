@@ -3,12 +3,15 @@ use log::{debug, info};
 use reqwest::Response;
 use std::collections::HashMap;
 use std::hash::Hash;
+
 use std::time::{SystemTime, UNIX_EPOCH};
+use tokio::time::{sleep, Duration};
 
 use crate::component::ComponentInfo;
 use crate::job_action::CheckStep;
 use crate::JobId;
 use serde::{Deserialize, Serialize};
+use tokio::task::JoinHandle;
 
 type Url = String;
 type Timestamp = u128;
@@ -42,14 +45,49 @@ pub struct Job {
     pub job_detail: Option<JobDetail>,
 }
 
+impl From<&Job> for reqwest::Body {
+    fn from(job: &Job) -> Self {
+        reqwest::Body::from(serde_json::to_string(job).unwrap())
+    }
+}
 impl Job {
-    pub fn process(&self) -> Result<JobResult, Error> {
-        let job_detail = self.job_detail.as_ref().unwrap();
-        match job_detail {
-            JobDetail::Ping(job_detail) => Ok(JobResult::new(self)),
-            JobDetail::Compound(job_detail) => Ok(JobResult::new(self)),
-            JobDetail::Benchmark(job_detail) => Ok(JobResult::new(self)),
+    pub fn new(job_detail: JobDetail) -> Self {
+        Job {
+            job_id: "".to_string(),
+            component_info: Default::default(),
+            priority: 0,
+            time_out: 0,
+            start_deadline: 0,
+            component_url: "".to_string(),
+            repeat_number: 0,
+            interval: 0,
+            header: Default::default(),
+            callback_url: "".to_string(),
+            job_detail: Some(job_detail),
         }
+    }
+}
+impl Job {
+    pub async fn process(&self) -> JoinHandle<Result<JobResult, Error>> {
+        // let task = tokio::spawn(async move {
+        //     let job_detail = self.job_detail.as_ref().unwrap();
+        //     match job_detail {
+        //         JobDetail::Ping(job_detail) => self.process_ping().await,
+        //         JobDetail::Compound(job_detail) => Ok(JobResult::new(self)),
+        //         JobDetail::Benchmark(job_detail) => Ok(JobResult::new(self)),
+        //     }
+        // });
+        // task
+        todo!()
+    }
+
+    async fn process_ping(&self) -> Result<JobResult, Error> {
+        for repeat_time in 1..self.repeat_number {
+            info!("*** Do ping ***");
+            sleep(Duration::from_millis(1000)).await;
+        }
+
+        Ok(JobResult::Ping(JobPingResult::default()))
     }
 }
 

@@ -18,4 +18,6 @@ lazy_static! {
     pub static ref ENVIRONMENT: String = env::var("ENVIRONMENT").unwrap_or(String::from("local"));
     pub static ref FISHERMAN_ENDPOINT: String =
         env::var("FISHERMAN_ENDPOINT").unwrap_or(String::from("0.0.0.0:4040"));
+    // pub static ref FISHERMAN_MAX_PARALLEL_JOBS: usize =
+    //     <usize> env::var("MAX_PARALLEL_JOBS").unwrap_or("8");
 }

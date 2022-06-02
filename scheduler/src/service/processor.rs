@@ -1,8 +1,9 @@
 use crate::state::ProcessorState;
 use common::job_manage::JobResult;
-use common::models::WorkerInfo;
+use common::worker::WorkerInfo;
 use serde_json::json;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use warp::{Rejection, Reply};
 
 #[derive(Default)]
