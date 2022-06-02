@@ -90,4 +90,24 @@ impl Worker {
             }
         }
     }
+    pub async fn send_jobs(&self, jobs: &Vec<Job>) -> Result<(), anyhow::Error> {
+        let client_builder = reqwest::ClientBuilder::new();
+        let client = client_builder.danger_accept_invalid_certs(true).build()?;
+        log::debug!("Send {} jobs to worker {:?}", jobs.len(), &self.worker_info);
+        if let Ok(body) = serde_json::to_string(jobs) {}
+        let request_builder = client
+            .post(self.worker_info.url.as_str())
+            .header("content-type", "application/json")
+            .body(serde_json::to_string(jobs)?);
+        match request_builder.send().await {
+            Ok(res) => {
+                log::debug!("Worker response: {:?}", res);
+                Ok(())
+            }
+            Err(err) => {
+                log::debug!("Error:{:?}", &err);
+                Err(anyhow!(format!("{:?}", &err)))
+            }
+        }
+    }
 }
