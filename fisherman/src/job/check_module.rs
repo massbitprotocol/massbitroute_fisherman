@@ -19,7 +19,6 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use std::{thread, usize};
 
 use crate::job::check_module::CheckMkStatus::{Unknown, Warning};
-use crate::job::check_path_though::ActionCallListPath;
 use crate::{BASE_ENDPOINT_JSON, BENCHMARK_WRK_PATH, LOCAL_IP, PORTAL_AUTHORIZATION, ZONE};
 use common::component::ComponentType;
 use common::component::{ComponentInfo, Zone};
@@ -70,26 +69,10 @@ pub struct UserInfo {
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct CheckComponent {
-    // input
-    pub list_node_id_file: String,
-    pub list_gateway_id_file: String,
-    pub list_dapi_id_file: String,
-    pub list_user_file: String,
-    pub check_flow_file: String,
-    pub base_endpoint_file: String,
     // MBR Domain
     pub domain: String,
-    // The output file
-    pub output_file: String,
     // inner data
-    pub list_nodes: Vec<ComponentInfo>,
-    pub list_gateways: Vec<ComponentInfo>,
-    pub list_dapis: Vec<ComponentInfo>,
-    pub list_users: Vec<UserInfo>,
     pub base_nodes: HashMap<BlockChainType, HashMap<NetworkType, Vec<EndpointInfo>>>,
-    pub check_flows: CheckFlows,
-    pub is_loop_check: bool,
-    pub is_write_to_file: bool,
     pub config: Config,
 }
 
@@ -278,123 +261,6 @@ impl CheckMkReport {
 impl CheckComponent {
     pub fn builder() -> GeneratorBuilder {
         GeneratorBuilder::default()
-    }
-
-    fn get_user(&self, user_id: &String) -> Option<&UserInfo> {
-        self.list_users.iter().find(|user| &user.id == user_id)
-    }
-
-    pub async fn get_components_list(
-        &self,
-        filter_status: Option<&String>,
-        filter_zone: &Zone,
-        filter_chain_id: Option<&String>,
-    ) -> Result<(Vec<ComponentInfo>, Vec<ComponentInfo>), anyhow::Error> {
-        // Get nodes
-        let url = &self.list_node_id_file;
-        debug!("list_node_id url:{}", url);
-        let res_data = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .build()
-            .unwrap()
-            .get(url)
-            .header("Authorization", PORTAL_AUTHORIZATION.as_str())
-            .send()
-            .await?
-            .text()
-            .await?;
-        debug!("res_data Node: {:?}", res_data);
-        let mut components: Vec<ComponentInfo> = serde_json::from_str(res_data.as_str())?;
-        debug!("components Node: {:?}", components);
-        for component in components.iter_mut() {
-            component.component_type = ComponentType::Node;
-        }
-        let mut list_nodes = components;
-
-        //Get gateway
-        let url = &self.list_gateway_id_file;
-        debug!("list_gateway_id url:{}", url);
-        let res_data = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .build()
-            .unwrap()
-            .get(url)
-            .header("Authorization", PORTAL_AUTHORIZATION.as_str())
-            .send()
-            .await?
-            .text()
-            .await?;
-        debug!("res_data Gateway: {:?}", res_data);
-        let mut components: Vec<ComponentInfo> = serde_json::from_str(res_data.as_str()).unwrap();
-        debug!("components Gateway: {:?}", components);
-        for component in components.iter_mut() {
-            component.component_type = ComponentType::Gateway;
-        }
-        let mut list_gateways = components;
-
-        //Filter components
-        if let Some(status) = filter_status {
-            list_nodes.retain(|component| &component.status == status);
-            list_gateways.retain(|component| &component.status == status);
-        }
-
-        //Filter zone
-        //info!("Zone:{:?}", filter_zone);
-        if *filter_zone != Zone::GB {
-            list_nodes.retain(|component| component.zone == *filter_zone);
-            list_gateways.retain(|component| component.zone == *filter_zone);
-        }
-
-        //Filter ChainId
-        if let Some(chain_id) = filter_chain_id {
-            list_nodes.retain(|component| component.get_chain_id() == *chain_id);
-            list_gateways.retain(|component| component.get_chain_id() == *chain_id);
-        }
-
-        Ok((list_nodes, list_gateways))
-    }
-
-    pub async fn reload_components_list(
-        &mut self,
-        filter_status: Option<&String>,
-        filter_zone: &Zone,
-        filter_chain_id: Option<&String>,
-    ) -> Result<(), anyhow::Error> {
-        let (list_nodes, list_gateways) = self
-            .get_components_list(filter_status, filter_zone, filter_chain_id)
-            .await?;
-        self.list_nodes = list_nodes;
-        self.list_gateways = list_gateways;
-        Ok(())
-    }
-
-    pub fn get_check_steps(
-        &self,
-        blockchain: &String,
-        component_type: &String,
-        tasks: &Vec<TaskType>,
-    ) -> Result<Vec<CheckStep>, anyhow::Error> {
-        // info!("blockchain:{:?}", blockchain);
-        // info!("component_type:{:?}", component_type);
-        // info!("self.check_flows:{:?}", self.check_flows);
-        let mut check_steps = Vec::new();
-        for task in tasks {
-            match self.check_flows.get(task.as_str()) {
-                Some(check_flows) => {
-                    for check_flow in check_flows {
-                        if (&check_flow.blockchain == blockchain || check_flow.blockchain == "all")
-                            && &check_flow.component == component_type
-                        {
-                            check_steps.extend(check_flow.check_steps.clone());
-                        }
-                    }
-                }
-                None => {
-                    warn!("Cannot find suitable task: {} in check-flow.json", task);
-                }
-            }
-        }
-        Ok(check_steps)
     }
 
     fn do_compare(
@@ -766,47 +632,6 @@ impl CheckComponent {
                     debug!("compare action: {:?}", &action);
                     self.compare_action(&action, component, &step.return_name, &step_result)
                 }
-                "call_list_path" => {
-                    let action: ActionCallListPath =
-                        serde_json::from_value(step.action.clone()).unwrap();
-
-                    debug!("action: {:?}", action);
-
-                    let res = self
-                        .get_components_list(
-                            Some(&"staked".to_string()),
-                            &Zone::GB,
-                            Some(&component.get_chain_id()),
-                        )
-                        .await;
-                    debug!("res call_list_path: {:?}", res);
-                    let res = match res {
-                        Ok((list_nodes, list_gateways)) => {
-                            if component.component_type == ComponentType::Gateway {
-                                action
-                                    .call_action_list_path(
-                                        component.clone(),
-                                        list_nodes.clone(),
-                                        self.domain.clone(),
-                                        self.config.check_path_timeout_ms,
-                                    )
-                                    .await
-                            } else {
-                                action
-                                    .call_action_list_path(
-                                        component.clone(),
-                                        list_gateways.clone(),
-                                        self.domain.clone(),
-                                        self.config.check_path_timeout_ms,
-                                    )
-                                    .await
-                            }
-                        }
-                        Err(err) => Err(err),
-                    };
-                    debug!("report: {:?}", res);
-                    res
-                }
                 _ => Err(anyhow::Error::msg("not support action")),
             };
 
@@ -870,18 +695,10 @@ impl CheckComponent {
                 }
             }
         }
-        let user = self.get_user(&component.user_id);
-        let user_info = match user {
-            None => "".to_string(),
-            Some(user) => {
-                format!("id:{},{},email:{}", user.id, user.name, user.email)
-            }
-        };
         if status == CheckMkStatus::Ok {
             message.push_str(format!("Succeed {} steps. ", step_number).as_str());
         }
 
-        message.push_str(&user_info);
         Ok(CheckMkReport {
             status: status as u8,
             service_name: format!(
@@ -896,72 +713,6 @@ impl CheckComponent {
             status_detail: message,
             success: true,
         })
-    }
-
-    pub async fn get_report_component(
-        &self,
-        component_info: &ComponentInfo,
-    ) -> Result<(CheckMkReport, WrkReport), Error> {
-        // Get logic report
-        let mut check_mk_report = CheckMkReport::default();
-        let mut wrk_report = WrkReport::default();
-        debug!("component_info:{:?}", component_info);
-        let check_steps = self
-            .get_check_steps(
-                &component_info.blockchain,
-                &component_info.component_type.to_string(),
-                &self.config.check_task_list_node,
-            )
-            .unwrap_or_default();
-        debug!("check_steps:{:?}", check_steps);
-        if check_steps.is_empty() {
-            check_mk_report = CheckMkReport::new_unknown_report("check_steps is empty".to_string())
-        }
-        let res_check_data = self.run_check_steps(&check_steps, &component_info).await;
-        debug!("res:{:?}", res_check_data);
-
-        let response_time_threshold = if component_info.component_type == ComponentType::Gateway {
-            self.config.node_response_time_threshold_ms
-        } else {
-            self.config.gateway_response_time_threshold_ms
-        };
-
-        match res_check_data {
-            Err(err) => check_mk_report = CheckMkReport::new_failed_report(format!("{:?}", err)),
-            Ok(res_check_data) => {
-                if res_check_data.success == true && res_check_data.status == 0 {
-                    // logic report is ok and not skip_benchmark run benchmark
-                    let res_benchmark = match self.config.skip_benchmark {
-                        true => CheckMkReport {
-                            status: 0,
-                            service_name: "Skip benchmark".to_string(),
-                            metric: Default::default(),
-                            status_detail: "Skip benchmark".to_string(),
-                            success: true,
-                        },
-                        false => {
-                            wrk_report = self
-                                .run_benchmark(response_time_threshold, &component_info)
-                                .await?;
-
-                            let res_benchmark = CheckMkReport::from_wrk_report(
-                                wrk_report.clone(),
-                                self.config.success_percent_threshold,
-                                response_time_threshold,
-                                self.config.accepted_low_latency_percent,
-                            );
-                            res_benchmark
-                        }
-                    };
-
-                    check_mk_report =
-                        CheckMkReport::combine_report(&res_check_data, &res_benchmark);
-                } else {
-                    check_mk_report = res_check_data;
-                }
-            }
-        }
-        Ok((check_mk_report, wrk_report))
     }
 
     fn get_benchmark_url(component: &ComponentInfo) -> String {
@@ -1013,149 +764,13 @@ impl CheckComponent {
             &component.blockchain,
         )
     }
-
-    //Using in fisherman service
-    pub async fn check_components(
-        &self,
-        tasks: &Vec<TaskType>,
-        components: &Vec<ComponentInfo>,
-    ) -> Result<Vec<(ComponentInfo, CheckMkReport)>, anyhow::Error> {
-        // Call node
-        //http://cf242b49-907f-49ce-8621-4b7655be6bb8.node.mbr.massbitroute.com
-        //header 'x-api-key: vnihqf14qk5km71aatvfr7c3djiej9l6mppd5k20uhs62p0b1cm79bfkmcubal9ug44e8cu2c74m29jpusokv6ft6r01o5bnv5v4gb8='
-        // Check node
-        let mut reports = Vec::new();
-        for component in components {
-            match self.get_report_component(&component).await {
-                Ok((check_mk_report, wrk_report)) => {
-                    // Store reports
-                    reports.push((component.clone(), check_mk_report));
-                }
-                Err(e) => {
-                    info!(
-                        "Cannot get report for component {:?}, error: {:?}",
-                        component, e
-                    );
-                }
-            }
-        }
-        Ok(reports)
-    }
 }
-
+#[derive(Default)]
 pub struct GeneratorBuilder {
     inner: CheckComponent,
 }
 
-impl Default for GeneratorBuilder {
-    fn default() -> Self {
-        Self {
-            inner: CheckComponent {
-                list_node_id_file: "".to_string(),
-                list_gateway_id_file: "".to_string(),
-                list_dapi_id_file: "".to_string(),
-                list_user_file: "".to_string(),
-                check_flow_file: "".to_string(),
-                base_endpoint_file: "".to_string(),
-                domain: "".to_string(),
-                output_file: "".to_string(),
-                list_nodes: vec![],
-                list_gateways: vec![],
-                list_dapis: vec![],
-                list_users: vec![],
-                base_nodes: Default::default(),
-                check_flows: Default::default(),
-                is_loop_check: false,
-                is_write_to_file: false,
-                config: Default::default(),
-            },
-        }
-    }
-}
-
 impl GeneratorBuilder {
-    pub async fn with_list_node_id_file(
-        mut self,
-        path: String,
-        status: Option<String>,
-    ) -> GeneratorBuilder {
-        self.inner.list_node_id_file = path.clone();
-        self
-    }
-
-    pub async fn with_list_gateway_id_file(
-        mut self,
-        path: String,
-        status: Option<String>,
-    ) -> GeneratorBuilder {
-        self.inner.list_gateway_id_file = path.clone();
-        self
-    }
-    pub async fn with_list_dapi_id_file(mut self, path: String) -> GeneratorBuilder {
-        self.inner.list_dapi_id_file = path.clone();
-        self
-    }
-    pub async fn with_list_user_file(mut self, path: String) -> GeneratorBuilder {
-        self.inner.list_user_file = path.clone();
-
-        let list_users: Vec<UserInfo> = self.get_list_user().await.unwrap_or_default();
-        debug!("list users: {:?}", &list_users);
-        self.inner.list_users = list_users;
-        self
-    }
-
-    async fn get_list_user(&self) -> Result<Vec<UserInfo>, anyhow::Error> {
-        let mut users: Vec<UserInfo> = Vec::new();
-        debug!("----------Create list of users info details----------");
-        let list_id_file = &self.inner.list_user_file;
-        let lines: Vec<String> = match list_id_file.starts_with("http") {
-            true => {
-                let url = list_id_file;
-                debug!("url:{}", url);
-                let node_data = reqwest::get(url).await?.text().await?;
-                debug!("node_data: {}", node_data);
-                let lines: Vec<String> = node_data.split("\n").map(|s| s.to_string()).collect();
-                lines
-            }
-            false => {
-                let file = File::open(list_id_file)?;
-                let reader = BufReader::new(file);
-                reader.lines().into_iter().filter_map(|s| s.ok()).collect()
-            }
-        };
-        for line in lines {
-            if !line.is_empty() {
-                //println!("line: {}", &line);
-                //debug!("line: {:?}", &line);
-                let data: Vec<String> = line.split(' ').map(|piece| piece.to_string()).collect();
-                //debug!("data: {:?}", &data);
-
-                let user =
-                    // 298eef2b-5fa2-4a3d-b00c-fe95b01e237c zhangpanyi@live.com zhangpanyi@live.com true
-                    UserInfo {
-                        name: data[1].clone(),
-                        id: data[0].clone(),
-                        email: data[2].clone(),
-                        verified: data[3].clone().parse::<bool>().unwrap_or_default()
-                    };
-
-                users.push(user);
-            }
-        }
-
-        return Ok(users);
-    }
-
-    pub fn with_check_flow_file(mut self, path: String) -> Self {
-        let json = std::fs::read_to_string(&path)
-            .unwrap_or_else(|err| panic!("Unable to read `{}`: {}", path, err));
-        debug!("json: {:#?}", json);
-        let test_flow: CheckFlows = serde_json::from_str(&minify(&json)).unwrap();
-        debug!("test_flow: {:#?}", test_flow);
-        self.inner.check_flow_file = path;
-        self.inner.check_flows = test_flow;
-        self
-    }
     pub fn with_domain(mut self, path: String) -> Self {
         self.inner.domain = path;
         self
@@ -1171,26 +786,6 @@ impl GeneratorBuilder {
         self.inner.config = config;
         self
     }
-    pub fn with_base_endpoint_file(mut self, path: String) -> Self {
-        let json = if !path.is_empty() {
-            std::fs::read_to_string(&path)
-                .unwrap_or_else(|err| panic!("Unable to read `{}`: {}", path, err))
-        } else {
-            info!("Load base endpoint from env: \n{:?}", *BASE_ENDPOINT_JSON);
-            BASE_ENDPOINT_JSON.clone()
-        };
-
-        let base_nodes: HashMap<BlockChainType, HashMap<NetworkType, Vec<EndpointInfo>>> =
-            serde_json::from_str(&minify(&json)).unwrap_or_default();
-        self.inner.base_endpoint_file = path;
-        self.inner.base_nodes = base_nodes;
-        self
-    }
-    pub fn with_output_file(mut self, output_file: String) -> Self {
-        self.inner.output_file = output_file;
-        self
-    }
-
     pub fn build(self) -> CheckComponent {
         self.inner
     }

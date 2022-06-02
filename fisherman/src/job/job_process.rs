@@ -44,7 +44,6 @@ impl JobProcess for Job {
     }
     async fn process_compound(&self, job_detail: &JobCompound) -> Result<JobResult, Error> {
         let builder = GeneratorBuilder::default();
-
         let check_component = builder
             .with_domain((*DOMAIN).to_string())
             .with_base_endpoint(job_detail.base_endpoints.clone())
