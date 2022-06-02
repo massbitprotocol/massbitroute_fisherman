@@ -1,6 +1,6 @@
+use crate::{BlockChainType, ComponentId, NetworkType, UrlType};
+use crate::{Deserialize, Serialize};
 use std::str::FromStr;
-use crate::{BlockChainType, ComponentId, NetworkType};
-use crate::{Deserialize,Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default, Hash, PartialEq, Eq)]
 pub struct ComponentInfo {
@@ -24,6 +24,26 @@ pub struct ComponentInfo {
     pub status: String,
 }
 
+impl ComponentInfo {
+    pub fn get_url(&self) -> UrlType {
+        format!("https://{}", self.ip)
+    }
+
+    pub fn get_host_header(&self, domain: &String) -> String {
+        match self.component_type {
+            ComponentType::Node => {
+                format!("{}.node.mbr.{}", self.id, domain)
+            }
+            ComponentType::Gateway => {
+                format!("{}.gw.mbr.{}", self.id, domain)
+            }
+        }
+    }
+
+    pub fn get_chain_id(&self) -> String {
+        format!("{}.{}", self.blockchain, self.network)
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Eq)]
 pub enum ComponentType {
@@ -45,7 +65,6 @@ impl std::default::Default for ComponentType {
         ComponentType::Node
     }
 }
-
 
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
 pub enum Zone {

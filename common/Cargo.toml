@@ -16,3 +16,4 @@ log4rs              = { git = "https://github.com/yakov-bakhmatov/log4rs", branc
 lazy_static         = "1.4.0"
 reqwest =  { version = "0.11" , features = ["multipart","native-tls"] }
 tokio = { version = "1.16" , features = ["full"] }
+futures = "0.3"

@@ -1,6 +1,6 @@
 use crate::state::FishermanState;
 use common::job_manage::Job;
-use common::models::WorkerInfo;
+use common::worker::WorkerInfo;
 use common::JobId;
 use common::{Deserialize, Serialize};
 use log::info;

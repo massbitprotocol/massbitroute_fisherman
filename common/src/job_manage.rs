@@ -9,7 +9,8 @@ use tokio::time::{sleep, Duration};
 
 use crate::component::ComponentInfo;
 use crate::job_action::CheckStep;
-use crate::JobId;
+use crate::job_action::EndpointInfo;
+use crate::{BlockChainType, JobId, NetworkType};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 
@@ -33,16 +34,38 @@ pub enum ComponentType {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Job {
     pub job_id: JobId,
-    component_info: ComponentInfo,
-    priority: u32, //Fist priority is 1
-    time_out: Timestamp,
-    start_deadline: Timestamp,
-    component_url: Url,
-    repeat_number: i32,
-    interval: u32,
-    header: HashMap<String, String>,
-    callback_url: Url, //For fisherman call to send job result
+    pub component_info: ComponentInfo,
+    pub priority: u32, //Fist priority is 1
+    pub time_out: Timestamp,
+    pub start_deadline: Timestamp,
+    pub component_url: Url,
+    pub repeat_number: i32,
+    pub interval: u32,
+    pub header: HashMap<String, String>,
+    pub callback_url: Url, //For fisherman call to send job result
     pub job_detail: Option<JobDetail>,
+    pub running_mode: JobRunningMode,
+    pub config: Option<Config>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub enum JobRunningMode {
+    Endless(EndlessMode),
+    Finite(FiniteMode),
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct FiniteMode {}
+
+impl Default for JobRunningMode {
+    fn default() -> Self {
+        JobRunningMode::Finite { 0: FiniteMode {} }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct EndlessMode {
+    report_interval: u32, // Number of results before report
 }
 
 impl From<&Job> for reqwest::Body {
@@ -53,41 +76,9 @@ impl From<&Job> for reqwest::Body {
 impl Job {
     pub fn new(job_detail: JobDetail) -> Self {
         Job {
-            job_id: "".to_string(),
-            component_info: Default::default(),
-            priority: 0,
-            time_out: 0,
-            start_deadline: 0,
-            component_url: "".to_string(),
-            repeat_number: 0,
-            interval: 0,
-            header: Default::default(),
-            callback_url: "".to_string(),
             job_detail: Some(job_detail),
+            ..Default::default()
         }
-    }
-}
-impl Job {
-    pub async fn process(&self) -> JoinHandle<Result<JobResult, Error>> {
-        // let task = tokio::spawn(async move {
-        //     let job_detail = self.job_detail.as_ref().unwrap();
-        //     match job_detail {
-        //         JobDetail::Ping(job_detail) => self.process_ping().await,
-        //         JobDetail::Compound(job_detail) => Ok(JobResult::new(self)),
-        //         JobDetail::Benchmark(job_detail) => Ok(JobResult::new(self)),
-        //     }
-        // });
-        // task
-        todo!()
-    }
-
-    async fn process_ping(&self) -> Result<JobResult, Error> {
-        for repeat_time in 1..self.repeat_number {
-            info!("*** Do ping ***");
-            sleep(Duration::from_millis(1000)).await;
-        }
-
-        Ok(JobResult::Ping(JobPingResult::default()))
     }
 }
 
@@ -104,7 +95,8 @@ pub struct JobPing {}
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobCompound {
-    check_steps: Vec<CheckStep>,
+    pub check_steps: Vec<CheckStep>,
+    pub base_endpoints: HashMap<BlockChainType, HashMap<NetworkType, Vec<EndpointInfo>>>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -215,4 +207,27 @@ impl JobResult {
 
         Ok(sender)
     }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub struct Config {
+    pub check_interval_ms: u64,
+    pub check_task_list_node: Vec<String>,
+    pub check_task_list_all: Vec<String>,
+    pub check_task_list_gateway: Vec<String>,
+    pub max_json_body_size: u64,
+    pub response_time_key: String,
+    pub max_length_report_detail: usize,
+    pub benchmark_thread: i32,
+    pub benchmark_connection: i32,
+    pub benchmark_duration: String,
+    pub benchmark_rate: i32,
+    pub benchmark_script: String,
+    pub benchmark_wrk_path: String,
+    pub check_path_timeout_ms: u64,
+    pub success_percent_threshold: u32,
+    pub node_response_time_threshold_ms: f32,
+    pub gateway_response_time_threshold_ms: f32,
+    pub accepted_low_latency_percent: f32,
+    pub skip_benchmark: bool,
 }
