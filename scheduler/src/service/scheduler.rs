@@ -20,8 +20,15 @@ impl SchedulerService {
         worker_info: WorkerInfo,
         scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
-        print!("Handle register worker request from {:?}", &worker_info);
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
+        log::debug!("Handle register worker request from {:?}", &worker_info);
+        scheduler_state
+            .lock()
+            .await
+            .register_worker(worker_info)
+            .await;
+        return Ok(warp::reply::json(
+            &json!({ "Message": "Worker registered" }),
+        ));
     }
     pub async fn pause_worker(
         &self,

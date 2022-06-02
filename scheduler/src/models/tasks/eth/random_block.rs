@@ -25,7 +25,7 @@ impl TaskRandomBlock {
 }
 
 impl TaskApplicant for TaskRandomBlock {
-    fn apply(&self, node: Arc<Node>) -> Result<Vec<Job>, Error> {
+    fn apply(&self, node: &Node) -> Result<Vec<Job>, Error> {
         let vec = Vec::default();
         Ok(vec)
     }

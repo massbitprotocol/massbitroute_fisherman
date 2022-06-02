@@ -25,7 +25,8 @@ impl TaskPing {
 }
 
 impl TaskApplicant for TaskPing {
-    fn apply(&self, component: Arc<ComponentInfo>) -> Result<Vec<Job>, Error> {
+    fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+        log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};
         let job = Job::new(JobDetail::Ping(job_ping));
         let vec = vec![job];

@@ -1,5 +1,5 @@
 use crate::models::providers::ProviderStorage;
-use crate::models::workers::WorkerPool;
+use crate::models::workers::WorkerInfoStorage;
 use crate::PORTAL_AUTHORIZATION;
 use common::component::{ComponentInfo, ComponentType};
 use log::debug;
@@ -13,7 +13,7 @@ pub struct ProviderScanner {
     url_list_nodes: String,
     url_list_gateways: String,
     providers: Arc<Mutex<ProviderStorage>>,
-    workers: Arc<WorkerPool>,
+    workers: Arc<Mutex<WorkerInfoStorage>>,
 }
 /*
  * Scan portal and call api to every worker to update latest status
@@ -23,7 +23,7 @@ impl ProviderScanner {
         url_list_nodes: String,
         url_list_gateways: String,
         providers: Arc<Mutex<ProviderStorage>>,
-        workers: Arc<WorkerPool>,
+        workers: Arc<Mutex<WorkerInfoStorage>>,
     ) -> Self {
         ProviderScanner {
             url_list_nodes,
@@ -32,7 +32,7 @@ impl ProviderScanner {
             workers,
         }
     }
-    pub fn init(&mut self) {
+    pub async fn run(&mut self) {
         loop {
             println!("Get new provider");
             sleep(Duration::from_secs(60));

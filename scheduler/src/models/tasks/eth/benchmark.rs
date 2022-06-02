@@ -16,8 +16,8 @@ impl NodeBenchmark {
     }
 }
 impl TaskApplicant for NodeBenchmark {
-    fn apply(&self, node: Arc<Node>) -> Result<Vec<Job>, anyhow::Error> {
-        todo!()
+    fn apply(&self, node: &Node) -> Result<Vec<Job>, anyhow::Error> {
+        Ok(Vec::new())
     }
 }
 
@@ -29,7 +29,7 @@ impl GatewayBenchmark {
     }
 }
 impl TaskApplicant for GatewayBenchmark {
-    fn apply(&self, gateway: Arc<Gateway>) -> Result<Vec<Job>, anyhow::Error> {
-        todo!()
+    fn apply(&self, gateway: &Gateway) -> Result<Vec<Job>, anyhow::Error> {
+        Ok(Vec::new())
     }
 }

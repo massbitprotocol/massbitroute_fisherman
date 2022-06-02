@@ -21,7 +21,8 @@ impl TaskGWNodeConnection {
     }
 }
 impl TaskApplicant for TaskGWNodeConnection {
-    fn apply(&self, component: Arc<ComponentInfo>) -> Result<Vec<Job>, anyhow::Error> {
-        todo!()
+    fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error> {
+        let vec = Vec::default();
+        Ok(vec)
     }
 }

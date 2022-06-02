@@ -1,3 +1,7 @@
+#[macro_use]
+extern crate diesel;
+extern crate diesel_migrations;
+
 use dotenv;
 use lazy_static::lazy_static;
 use serde::Deserialize;
@@ -5,11 +9,13 @@ use std::env;
 
 pub mod models;
 pub mod provider;
+pub mod seaorm;
 pub mod server_builder;
 pub mod server_config;
 pub mod service;
 pub mod state;
-
+pub const JOB_GENERATOR_PERIOD: u64 = 10; //In seconds
+pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds
 lazy_static! {
     pub static ref COMPONENT_NAME: String = String::from("[Scheduler]");
     pub static ref SCHEDULER_ENDPOINT: String =

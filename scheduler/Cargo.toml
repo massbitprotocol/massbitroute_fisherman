@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 common = {path = "../common"}
-diesel          = { version = "1.4.7", features = ["postgres", "serde_json", "numeric", "r2d2", "chrono"] }
+diesel          = { version = "1.4.7", features = ["postgres", "serde_json", "numeric", "r2d2", "chrono", "uuidv07"] }
 diesel-derive-enum  = { version = "1.1", features = ["postgres"] }
 diesel_migrations   = "1.4.0"
 serde_json = "1.0"
@@ -30,3 +30,5 @@ strum_macros = "0.24"
 strum = "0.24"
 local-ip-address = "0.4"
 dotenv = "0.15"
+uuid = "1.1.0"
+sea-orm = {version = "0.8.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros" ]}

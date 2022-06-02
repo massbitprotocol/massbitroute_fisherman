@@ -4,6 +4,7 @@ use crate::{IPAddress, WorkerId};
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::hash::Hash;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -12,12 +13,12 @@ pub struct WorkerInfo {
      * In register phase WorkerId is default (empty),
      * Scheduler issue an id for worker and return in result
      */
-    worker_id: WorkerId,
-    worker_ip: IPAddress,
-    url: String,
+    pub worker_id: WorkerId,
+    pub worker_ip: IPAddress,
+    pub url: String,
     pub zone: Zone,
-    worker_spec: WorkerSpec,
-    available_time_frame: Option<TimeFrames>,
+    pub worker_spec: WorkerSpec,
+    pub available_time_frame: Option<TimeFrames>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerSpec {

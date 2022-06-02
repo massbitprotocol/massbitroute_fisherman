@@ -45,6 +45,11 @@ pub struct Job {
     pub job_detail: Option<JobDetail>,
 }
 
+impl From<&Job> for reqwest::Body {
+    fn from(job: &Job) -> Self {
+        reqwest::Body::from(serde_json::to_string(job).unwrap())
+    }
+}
 impl Job {
     pub fn new(job_detail: JobDetail) -> Self {
         Job {
