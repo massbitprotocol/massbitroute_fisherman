@@ -1,5 +1,5 @@
-use crate::Value;
 use crate::{Deserialize, Serialize};
+use crate::{UrlType, Value};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct CheckStep {
@@ -33,4 +33,11 @@ impl Default for CheckMkStatus {
     fn default() -> Self {
         CheckMkStatus::Unknown
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
+pub struct EndpointInfo {
+    pub url: UrlType,
+    #[serde(default, rename = "X-Api-Key")]
+    pub x_api_key: String,
 }

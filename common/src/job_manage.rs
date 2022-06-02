@@ -9,7 +9,8 @@ use tokio::time::{sleep, Duration};
 
 use crate::component::ComponentInfo;
 use crate::job_action::CheckStep;
-use crate::JobId;
+use crate::job_action::EndpointInfo;
+use crate::{BlockChainType, JobId, NetworkType};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 
@@ -44,6 +45,7 @@ pub struct Job {
     pub callback_url: Url, //For fisherman call to send job result
     pub job_detail: Option<JobDetail>,
     pub running_mode: JobRunningMode,
+    pub config: Option<Config>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -89,6 +91,7 @@ pub struct JobPing {}
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobCompound {
     pub check_steps: Vec<CheckStep>,
+    pub base_endpoints: HashMap<BlockChainType, HashMap<NetworkType, Vec<EndpointInfo>>>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -199,4 +202,27 @@ impl JobResult {
 
         Ok(sender)
     }
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub struct Config {
+    pub check_interval_ms: u64,
+    pub check_task_list_node: Vec<String>,
+    pub check_task_list_all: Vec<String>,
+    pub check_task_list_gateway: Vec<String>,
+    pub max_json_body_size: u64,
+    pub response_time_key: String,
+    pub max_length_report_detail: usize,
+    pub benchmark_thread: i32,
+    pub benchmark_connection: i32,
+    pub benchmark_duration: String,
+    pub benchmark_rate: i32,
+    pub benchmark_script: String,
+    pub benchmark_wrk_path: String,
+    pub check_path_timeout_ms: u64,
+    pub success_percent_threshold: u32,
+    pub node_response_time_threshold_ms: f32,
+    pub gateway_response_time_threshold_ms: f32,
+    pub accepted_low_latency_percent: f32,
+    pub skip_benchmark: bool,
 }

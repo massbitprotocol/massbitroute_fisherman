@@ -1,5 +1,5 @@
 use crate::job::check_module::ActionResponse;
-use crate::{CONFIG, HASH_TEST_20K};
+use crate::HASH_TEST_20K;
 use clap::Arg;
 use common::component::ComponentInfo;
 use common::component::ComponentType;
@@ -20,6 +20,7 @@ pub struct ActionCallListPath {
     header: HashMap<String, String>,
     time_out: usize,
     return_fields: Vec<ReturnField>,
+    check_path_timeout_ms: u64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
@@ -64,6 +65,7 @@ impl ActionCallListPath {
         check_component: ComponentInfo,
         components: Vec<ComponentInfo>,
         domain: String,
+        check_path_timeout_ms: u64,
     ) -> Result<ActionResponse, anyhow::Error> {
         let return_name = "call_action_list_path".to_string();
         let check_component_org = Arc::new(check_component);
@@ -107,7 +109,7 @@ impl ActionCallListPath {
                     .unwrap();
                 let res_data = reqwest::Client::builder()
                     .danger_accept_invalid_certs(true)
-                    .timeout(Duration::from_millis(CONFIG.check_path_timeout_ms))
+                    .timeout(Duration::from_millis(check_path_timeout_ms))
                     .build()
                     .unwrap()
                     .get(url)
@@ -122,34 +124,6 @@ impl ActionCallListPath {
 
                         for return_field in return_fields.iter() {
                             match return_field.data_from {
-                                // ResponsePart::Header => {
-                                //     match return_field.field_name.as_ref().unwrap().as_str() {
-                                //         "X-Mbr-Checksum" => {
-                                //             if let Some(value) = res_data.headers().get(
-                                //                 return_field.field_name.as_ref().unwrap().to_string(),
-                                //             ) {
-                                //                 let checksum = value.to_str().unwrap();
-                                //                 if checksum != HASH_TEST_20K.as_str() {
-                                //                     conclude = CheckMkStatus::Critical;
-                                //                     message.push_str(&format!(
-                                //                         "{} {} has wrong checksum {} in path check.",
-                                //                         component.component_type.to_string(),
-                                //                         component.id,
-                                //                         checksum
-                                //                     ));
-                                //                 };
-                                //             } else {
-                                //                 conclude = CheckMkStatus::Critical;
-                                //                 message.push_str(&format!(
-                                //                     "{} {} has no checksum in path check.",
-                                //                     component.component_type.to_string(),
-                                //                     component.id
-                                //                 ));
-                                //             }
-                                //         }
-                                //         _ => {}
-                                //     }
-                                // }
                                 ResponsePart::Body => match body.clone() {
                                     Some(body) => {
                                         if body != *return_field.field_data.as_ref().unwrap() {

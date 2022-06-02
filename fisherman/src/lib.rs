@@ -9,30 +9,7 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use std::env;
 
-pub const CONFIG_FILE: &str = "config_check_component.json";
-
-#[derive(Deserialize, Debug)]
-pub(crate) struct Config {
-    pub check_interval_ms: u64,
-    pub check_task_list_node: Vec<String>,
-    pub check_task_list_all: Vec<String>,
-    pub check_task_list_gateway: Vec<String>,
-    pub max_json_body_size: u64,
-    pub response_time_key: String,
-    pub max_length_report_detail: usize,
-    pub benchmark_thread: i32,
-    pub benchmark_connection: i32,
-    pub benchmark_duration: String,
-    pub benchmark_rate: i32,
-    pub benchmark_script: String,
-    pub benchmark_wrk_path: String,
-    pub check_path_timeout_ms: u64,
-    pub success_percent_threshold: u32,
-    pub node_response_time_threshold_ms: f32,
-    pub gateway_response_time_threshold_ms: f32,
-    pub accepted_low_latency_percent: f32,
-    pub skip_benchmark: bool,
-}
+//pub const CONFIG_FILE: &str = "config_check_component.json";
 
 lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String = env::var("SCHEDULER_ENDPOINT")
@@ -56,12 +33,12 @@ lazy_static! {
         env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
     pub static ref LOCAL_IP: String = local_ip_address::local_ip().unwrap().to_string();
     pub static ref HASH_TEST_20K: String = "95c5679435a0a714918dc92b546dc0ba".to_string();
-    pub(crate) static ref CONFIG: Config = get_config();
+    //pub(crate) static ref CONFIG: Config = get_config();
     pub static ref DOMAIN: String = env::var("DOMAIN").expect("There is no env var DOMAIN");
 }
 
-fn get_config() -> Config {
-    let json = std::fs::read_to_string(CONFIG_FILE)
-        .unwrap_or_else(|err| panic!("Unable to read config file `{}`: {}", CONFIG_FILE, err));
-    serde_json::from_str::<Config>(&*json).unwrap()
-}
+// fn get_config() -> Config {
+//     let json = std::fs::read_to_string(CONFIG_FILE)
+//         .unwrap_or_else(|err| panic!("Unable to read config file `{}`: {}", CONFIG_FILE, err));
+//     serde_json::from_str::<Config>(&*json).unwrap()
+// }

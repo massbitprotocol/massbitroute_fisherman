@@ -20,12 +20,11 @@ use std::{thread, usize};
 
 use crate::job::check_module::CheckMkStatus::{Unknown, Warning};
 use crate::job::check_path_though::ActionCallListPath;
-use crate::job::store_report::ReportType::ReportProvider;
-use crate::job::store_report::{ReportType, ReporterRole, SendPurpose, StoreReport};
-use crate::{BASE_ENDPOINT_JSON, BENCHMARK_WRK_PATH, CONFIG, LOCAL_IP, PORTAL_AUTHORIZATION, ZONE};
+use crate::{BASE_ENDPOINT_JSON, BENCHMARK_WRK_PATH, LOCAL_IP, PORTAL_AUTHORIZATION, ZONE};
 use common::component::ComponentType;
 use common::component::{ComponentInfo, Zone};
-use common::job_action::{CheckMkStatus, CheckStep};
+use common::job_action::{CheckMkStatus, CheckStep, EndpointInfo};
+use common::job_manage::Config;
 use std::str::FromStr;
 use strum_macros::EnumString;
 use warp::{Rejection, Reply};
@@ -91,16 +90,10 @@ pub struct CheckComponent {
     pub check_flows: CheckFlows,
     pub is_loop_check: bool,
     pub is_write_to_file: bool,
+    pub config: Config,
 }
 
 type CheckFlows = HashMap<TaskType, Vec<CheckFlow>>;
-
-#[derive(Clone, Debug, Deserialize, Serialize, Default)]
-pub struct EndpointInfo {
-    url: UrlType,
-    #[serde(default, rename = "X-Api-Key")]
-    x_api_key: String,
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct CheckFlow {
@@ -111,18 +104,6 @@ pub struct CheckFlow {
     #[serde(default)]
     check_steps: Vec<CheckStep>,
 }
-
-// #[derive(Clone, Debug, Deserialize, Serialize)]
-// pub enum ActionConclude {
-//     Passed,
-//     Failed,
-//     Unknown,
-// }
-// impl Default for ActionConclude {
-//     fn default() -> Self {
-//         ActionConclude::Unknown
-//     }
-// }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct FailedCase {
@@ -529,9 +510,9 @@ impl CheckComponent {
             // Calling to Base node retry if failed
             for endpoint in base_endpoints {
                 debug!("try endpoint:{:?}", endpoint);
-                let res =
-                    Self::call_action_base_node(&action, &step.return_name, &step_result, endpoint)
-                        .await;
+                let res = self
+                    .call_action_base_node(&action, &step.return_name, &step_result, endpoint)
+                    .await;
                 if res.is_ok() {
                     debug!("endpoint {:?} success return: {:?}", endpoint, res);
                     return res;
@@ -590,17 +571,18 @@ impl CheckComponent {
 
         let str_resp = res??.text().await?;
         debug!("response call: {:?}", str_resp);
-        Self::prepare_result(&str_resp, response_time_ms, action, return_name)
+        self.prepare_result(&str_resp, response_time_ms, action, return_name)
     }
 
     fn prepare_result(
+        &self,
         str_resp: &String,
         response_time_ms: u128,
         action: &ActionCall,
         return_name: &String,
     ) -> Result<ActionResponse, anyhow::Error> {
         let mut str_resp_short = str_resp.clone();
-        str_resp_short.truncate(CONFIG.max_length_report_detail);
+        str_resp_short.truncate(self.config.max_length_report_detail);
 
         let resp: Value = serde_json::from_str(&str_resp).map_err(|e| {
             anyhow::Error::msg(format!(
@@ -614,7 +596,7 @@ impl CheckComponent {
 
         // Add response_time
         result.insert(
-            CONFIG.response_time_key.to_string(),
+            self.config.response_time_key.to_string(),
             response_time_ms.to_string(),
         );
 
@@ -662,6 +644,7 @@ impl CheckComponent {
     }
 
     async fn call_action_base_node(
+        &self,
         action: &ActionCall,
         return_name: &String,
         step_result: &StepResult,
@@ -707,7 +690,7 @@ impl CheckComponent {
         let str_resp = res??.text().await?;
 
         // Prepare return result
-        let res = Self::prepare_result(&str_resp, response_time_ms, action, return_name);
+        let res = self.prepare_result(&str_resp, response_time_ms, action, return_name);
         debug!("res: {:?}", res);
 
         // Check timestamp is reasonable
@@ -805,6 +788,7 @@ impl CheckComponent {
                                         component.clone(),
                                         list_nodes.clone(),
                                         self.domain.clone(),
+                                        self.config.check_path_timeout_ms,
                                     )
                                     .await
                             } else {
@@ -813,6 +797,7 @@ impl CheckComponent {
                                         component.clone(),
                                         list_gateways.clone(),
                                         self.domain.clone(),
+                                        self.config.check_path_timeout_ms,
                                     )
                                     .await
                             }
@@ -831,7 +816,7 @@ impl CheckComponent {
             match report {
                 Ok(report) => {
                     let resp_time = if let Some(response_time_ms) =
-                        report.result.get(&*CONFIG.response_time_key)
+                        report.result.get(&*self.config.response_time_key)
                     {
                         Some(response_time_ms.parse::<i64>().unwrap_or_default())
                     } else {
@@ -839,7 +824,7 @@ impl CheckComponent {
                     };
                     if let Some(resp_time) = resp_time {
                         let metric_name =
-                            format!("{}_{}", report.return_name, CONFIG.response_time_key);
+                            format!("{}_{}", report.return_name, self.config.response_time_key);
                         metric.insert(metric_name, resp_time.into());
                     }
 
@@ -925,7 +910,7 @@ impl CheckComponent {
             .get_check_steps(
                 &component_info.blockchain,
                 &component_info.component_type.to_string(),
-                &CONFIG.check_task_list_node,
+                &self.config.check_task_list_node,
             )
             .unwrap_or_default();
         debug!("check_steps:{:?}", check_steps);
@@ -936,9 +921,9 @@ impl CheckComponent {
         debug!("res:{:?}", res_check_data);
 
         let response_time_threshold = if component_info.component_type == ComponentType::Gateway {
-            CONFIG.node_response_time_threshold_ms
+            self.config.node_response_time_threshold_ms
         } else {
-            CONFIG.gateway_response_time_threshold_ms
+            self.config.gateway_response_time_threshold_ms
         };
 
         match res_check_data {
@@ -946,7 +931,7 @@ impl CheckComponent {
             Ok(res_check_data) => {
                 if res_check_data.success == true && res_check_data.status == 0 {
                     // logic report is ok and not skip_benchmark run benchmark
-                    let res_benchmark = match CONFIG.skip_benchmark {
+                    let res_benchmark = match self.config.skip_benchmark {
                         true => CheckMkReport {
                             status: 0,
                             service_name: "Skip benchmark".to_string(),
@@ -961,9 +946,9 @@ impl CheckComponent {
 
                             let res_benchmark = CheckMkReport::from_wrk_report(
                                 wrk_report.clone(),
-                                CONFIG.success_percent_threshold,
+                                self.config.success_percent_threshold,
                                 response_time_threshold,
-                                CONFIG.accepted_low_latency_percent,
+                                self.config.accepted_low_latency_percent,
                             );
                             res_benchmark
                         }
@@ -1010,15 +995,15 @@ impl CheckComponent {
         };
 
         let mut benchmark = WrkBenchmark::build(
-            CONFIG.benchmark_thread,
-            CONFIG.benchmark_connection,
-            CONFIG.benchmark_duration.to_string(),
-            CONFIG.benchmark_rate,
+            self.config.benchmark_thread,
+            self.config.benchmark_connection,
+            self.config.benchmark_duration.to_string(),
+            self.config.benchmark_rate,
             dapi_url,
             component.token.clone(),
             host,
-            CONFIG.benchmark_script.to_string(),
-            CONFIG.benchmark_wrk_path.to_string(),
+            self.config.benchmark_script.to_string(),
+            self.config.benchmark_wrk_path.to_string(),
             BENCHMARK_WRK_PATH.clone().to_string(),
             response_time_threshold,
         );
@@ -1082,6 +1067,7 @@ impl Default for GeneratorBuilder {
                 check_flows: Default::default(),
                 is_loop_check: false,
                 is_write_to_file: false,
+                config: Default::default(),
             },
         }
     }
@@ -1172,6 +1158,17 @@ impl GeneratorBuilder {
     }
     pub fn with_domain(mut self, path: String) -> Self {
         self.inner.domain = path;
+        self
+    }
+    pub fn with_base_endpoint(
+        mut self,
+        base_nodes: HashMap<BlockChainType, HashMap<NetworkType, Vec<EndpointInfo>>>,
+    ) -> Self {
+        self.inner.base_nodes = base_nodes;
+        self
+    }
+    pub fn with_config(mut self, config: Config) -> Self {
+        self.inner.config = config;
         self
     }
     pub fn with_base_endpoint_file(mut self, path: String) -> Self {
