@@ -6,9 +6,9 @@ use dotenv;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use std::env;
-
 pub mod models;
 pub mod provider;
+pub mod report_processors;
 pub mod seaorm;
 pub mod server_builder;
 pub mod server_config;
