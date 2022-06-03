@@ -7,31 +7,33 @@ use std::collections::VecDeque;
 use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use warp::http::{HeaderMap, Method};
 
-use crate::service::FishermanService;
-use crate::state::FishermanState;
+use crate::services::WebService;
+use crate::state::WorkerState;
 use common::worker::WorkerInfo;
 use common::worker::WorkerStateParam;
 use std::default::Default;
+use tokio::sync::Mutex;
 use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
 
 #[derive(Default)]
-pub struct FishermanServerBuilder {
+pub struct WebServerBuilder {
     entry_point: String,
     access_control: AccessControl,
+    worker_state: Arc<Mutex<WorkerState>>,
 }
 
-pub struct FishermanServer {
+pub struct WorkerServer {
     entry_point: String,
     access_control: AccessControl,
-    pub fisherman_service: Arc<FishermanService>,
-    fisherman_state: Arc<Mutex<FishermanState>>,
+    pub web_service: Arc<WebService>,
+    worker_state: Arc<Mutex<WorkerState>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -44,9 +46,9 @@ pub struct SimpleResponse {
     success: bool,
 }
 
-impl FishermanServer {
-    pub fn builder() -> FishermanServerBuilder {
-        FishermanServerBuilder::default()
+impl WorkerServer {
+    pub fn builder() -> WebServerBuilder {
+        WebServerBuilder::default()
     }
     pub async fn serve(&self) {
         let allow_headers: Vec<String> = self.access_control.get_access_control_allow_headers();
@@ -69,19 +71,13 @@ impl FishermanServer {
             .with(&cors)
             //.create_get_status(self.scheduler_service.clone()).await.with(&cors)
             .or(self
-                .create_route_handle_jobs(
-                    self.fisherman_service.clone(),
-                    self.fisherman_state.clone(),
-                )
+                .create_route_handle_jobs(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
             .or(self
-                .create_route_update_jobs(
-                    self.fisherman_service.clone(),
-                    self.fisherman_state.clone(),
-                )
+                .create_route_update_jobs(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
             .or(self
-                .create_route_get_state(self.fisherman_service.clone())
+                .create_route_get_state(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
             .recover(handle_rejection);
         let socket_addr: SocketAddr = self.entry_point.parse().unwrap();
@@ -106,28 +102,27 @@ impl FishermanServer {
     }
     fn create_route_handle_jobs(
         &self,
-        service: Arc<FishermanService>,
-        state: Arc<Mutex<FishermanState>>,
+        service: Arc<WebService>,
+        state: Arc<Mutex<WorkerState>>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("jobs_handle")
-            .and(FishermanServer::log_headers())
+            .and(WorkerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |jobs: Vec<Job>| {
                 info!("#### Received request body {:?} ####", &jobs);
                 let clone_service = service.clone();
                 let clone_state = state.clone();
-                // let sender_another_clone = sender_clone.clone();
                 async move { clone_service.handle_jobs(jobs, clone_state).await }
             })
     }
     fn create_route_update_jobs(
         &self,
-        service: Arc<FishermanService>,
-        state: Arc<Mutex<FishermanState>>,
+        service: Arc<WebService>,
+        state: Arc<Mutex<WorkerState>>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("jobs_update")
-            .and(FishermanServer::log_headers())
+            .and(WorkerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |jobs: Vec<Job>| {
@@ -139,16 +134,18 @@ impl FishermanServer {
     }
     fn create_route_get_state(
         &self,
-        service: Arc<FishermanService>,
+        service: Arc<WebService>,
+        state: Arc<Mutex<WorkerState>>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("get_state")
-            .and(FishermanServer::log_headers())
+            .and(WorkerServer::log_headers())
             .and(warp::get())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |param: WorkerStateParam| {
                 info!("#### Received request body ####");
                 let clone_service = service.clone();
-                async move { clone_service.get_state().await }
+                let clone_state = state.clone();
+                async move { clone_service.get_state(clone_state).await }
             })
     }
 
@@ -193,7 +190,7 @@ impl FishermanServer {
             .untuple_one()
     }
 }
-impl FishermanServerBuilder {
+impl WebServerBuilder {
     pub fn with_entry_point(mut self, entry_point: &str) -> Self {
         self.entry_point = String::from(entry_point);
         self
@@ -202,12 +199,16 @@ impl FishermanServerBuilder {
         self.access_control = access_control;
         self
     }
-    pub fn build(&self, service: FishermanService) -> FishermanServer {
-        FishermanServer {
+    pub fn with_worker_state(mut self, worker_state: WorkerState) -> Self {
+        self.worker_state = Arc::new(Mutex::new(worker_state));
+        self
+    }
+    pub fn build(&self, service: WebService) -> WorkerServer {
+        WorkerServer {
             entry_point: self.entry_point.clone(),
             access_control: self.access_control.clone(),
-            fisherman_service: Arc::new(service),
-            fisherman_state: Arc::new(Mutex::new(FishermanState::new())),
+            web_service: Arc::new(service),
+            worker_state: self.worker_state.clone(),
         }
     }
 }

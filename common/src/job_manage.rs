@@ -120,9 +120,9 @@ pub struct JobCancelResult {
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobPingResult {
-    job: Job,
-    response_timestamp: Timestamp, //Time to get response
-    response_time: Vec<u32>,       //response time or -1 if timed out
+    pub job: Job,
+    pub response_timestamp: Timestamp, //Time to get response
+    pub response_time: Vec<u32>,       //response time or -1 if timed out
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
