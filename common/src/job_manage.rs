@@ -10,6 +10,7 @@ use tokio::time::{sleep, Duration};
 use crate::component::ComponentInfo;
 use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
+use crate::tasks::ping::CallPingError;
 use crate::{BlockChainType, ComponentId, JobId, NetworkType};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
@@ -133,7 +134,28 @@ pub struct JobCancelResult {
 pub struct JobPingResult {
     pub job: Job,
     pub response_timestamp: Timestamp, //Time to get response
-    pub response_time: Vec<u32>,       //response time or -1 if timed out
+    pub responses: Vec<PingResponse>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct PingResponse {
+    pub response_time: Timestamp,
+    pub response_body: String,
+    pub http_code: u16,
+    pub error_code: u8,
+    pub message: String,
+}
+
+impl From<CallPingError> for PingResponse {
+    fn from(error: CallPingError) -> Self {
+        let message = match error.clone() {
+            CallPingError::BuildError(message)
+            | CallPingError::SendError(message)
+            | CallPingError::GetBodyError(message) => message.to_string(),
+        };
+        let error_code = error as u32;
+        PingResponse::new_error(error_code as u8, message.as_str())
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
