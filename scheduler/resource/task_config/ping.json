@@ -1,0 +1,6 @@
+{
+  "ping_success_ratio_threshold": 0.50,
+  "ping_sample_number": 10,
+  "ping_request_response": "pong",
+  "ping_timeout_ms": 500
+}

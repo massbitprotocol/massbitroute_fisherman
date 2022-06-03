@@ -10,12 +10,16 @@ use tokio::time::{sleep, Duration};
 use crate::component::ComponentInfo;
 use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
-use crate::{BlockChainType, JobId, NetworkType};
+use crate::{BlockChainType, ComponentId, JobId, NetworkType};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
+use uuid::Uuid;
 
 type Url = String;
 type Timestamp = u128;
+
+const DEFAULT_JOB_INTERVAL: Timestamp = 1000;
+const DEFAULT_JOB_TIMEOUT: Timestamp = 5000;
 
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
 pub enum JobType {
@@ -34,13 +38,13 @@ pub enum ComponentType {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Job {
     pub job_id: JobId,
-    pub component_info: ComponentInfo,
+    pub component_id: ComponentId,
     pub priority: u32, //Fist priority is 1
     pub time_out: Timestamp,
     pub start_deadline: Timestamp,
     pub component_url: Url,
-    pub repeat_number: i32,
-    pub interval: u32,
+    pub repeat_number: u32,
+    pub interval: Timestamp,
     pub header: HashMap<String, String>,
     pub callback_url: Url, //For fisherman call to send job result
     pub job_detail: Option<JobDetail>,
@@ -75,8 +79,15 @@ impl From<&Job> for reqwest::Body {
 }
 impl Job {
     pub fn new(job_detail: JobDetail) -> Self {
+        let uuid = Uuid::new_v4();
         Job {
+            job_id: uuid.to_string(),
+            priority: 1,
+            repeat_number: 1,
+            time_out: DEFAULT_JOB_TIMEOUT,
+            interval: DEFAULT_JOB_INTERVAL,
             job_detail: Some(job_detail),
+            running_mode: JobRunningMode::Finite(FiniteMode {}),
             ..Default::default()
         }
     }
