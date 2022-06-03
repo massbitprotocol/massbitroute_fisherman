@@ -1,16 +1,19 @@
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
+use crate::seaorm::services::worker_service::WorkerService;
 use crate::seaorm::workers;
+use crate::REPORT_CALLBACK;
 use common::component::ComponentInfo;
-use common::worker::WorkerInfo;
+use common::worker::{WorkerInfo, WorkerRegisterResult};
 use sea_orm::ActiveModelTrait;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct SchedulerState {
     connection: Arc<DatabaseConnection>,
+    worker_service: Arc<WorkerService>,
     worker_pool: Arc<Mutex<WorkerInfoStorage>>,
     providers: Arc<Mutex<ProviderStorage>>,
 }
@@ -18,11 +21,13 @@ pub struct SchedulerState {
 impl SchedulerState {
     pub fn new(
         connection: Arc<DatabaseConnection>,
+        worker_service: Arc<WorkerService>,
         worker_pool: Arc<Mutex<WorkerInfoStorage>>,
         providers: Arc<Mutex<ProviderStorage>>,
     ) -> SchedulerState {
         SchedulerState {
             connection,
+            worker_service,
             worker_pool,
             providers,
         }
@@ -30,12 +35,33 @@ impl SchedulerState {
 }
 
 impl SchedulerState {
-    pub async fn register_worker(&self, worker_info: WorkerInfo) {
+    pub async fn register_worker(
+        &self,
+        worker_info: WorkerInfo,
+    ) -> Result<WorkerRegisterResult, anyhow::Error> {
+        println!("{:?}", &worker_info);
+        let report_callback = REPORT_CALLBACK.as_str().to_string();
         //Save worker to db
-        let worker = workers::ActiveModel::from(&worker_info);
-        let saved_worker = worker.insert(self.connection.as_ref()).await;
-        self.worker_pool.lock().await.add_worker(worker_info);
-        println!("{:?}", &saved_worker);
+        if let Some(WorkerInfo { worker_id, .. }) = self
+            .worker_service
+            .clone()
+            .get_stored_worker(&worker_info.worker_id)
+            .await
+        {
+            Ok(WorkerRegisterResult {
+                worker_id,
+                report_callback,
+            })
+        } else {
+            let worker_id = worker_info.worker_id.clone();
+            self.worker_service.clone().store_worker(&worker_info).await;
+            self.worker_pool.lock().await.add_worker(worker_info);
+            Ok(WorkerRegisterResult {
+                worker_id,
+                report_callback,
+            })
+        }
+
         //Add worker to ProviderStorage
     }
     pub async fn verify_node(&mut self, node_info: ComponentInfo) {

@@ -1,8 +1,8 @@
 use crate::models::component::ZoneComponents;
-use crate::models::tasks::TaskApplicant;
 use anyhow::Error;
 use common::component::{ComponentInfo, ComponentType, Zone};
 use common::job_manage::Job;
+use common::tasks::generator::TaskApplicant;
 use common::ComponentId;
 use log::log;
 use serde::{Deserialize, Serialize};

@@ -1,7 +1,8 @@
-use crate::executor::{get_eth_executors, TaskExecutor};
 use crate::models::job::JobBuffer;
 use crate::JOB_EXECUTOR_PERIOD;
 use common::job_manage::{Job, JobResult};
+use common::tasks::executor::TaskExecutor;
+use common::tasks::get_eth_executors;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;

@@ -1,10 +1,11 @@
 use crate::models::jobs::{AssignmentBuffer, JobAssignment};
 use crate::models::providers::ProviderStorage;
-use crate::models::tasks::{get_eth_tasks, TaskApplicant};
 use crate::models::workers::{Worker, WorkerInfoStorage};
-use crate::JOB_GENERATOR_PERIOD;
+use crate::{CONFIG_DIR, JOB_GENERATOR_PERIOD};
 use common::component::{ComponentInfo, Zone};
 use common::job_manage::Job;
+use common::tasks::generator::TaskApplicant;
+use common::tasks::get_eth_task_genrators;
 use common::worker::WorkerInfo;
 use common::{ComponentId, WorkerId};
 use std::collections::HashMap;
@@ -30,7 +31,7 @@ impl JobGenerator {
         JobGenerator {
             providers,
             worker_infos,
-            tasks: get_eth_tasks(),
+            tasks: get_eth_task_genrators(CONFIG_DIR.as_str()),
             assignments,
         }
     }
