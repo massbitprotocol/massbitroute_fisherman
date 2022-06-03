@@ -18,7 +18,7 @@ use scheduler::server_config::{AccessControl, Config};
 use scheduler::service::delivery::JobDelivery;
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
-use scheduler::state::SchedulerState;
+use scheduler::state::{ProcessorState, SchedulerState};
 use scheduler::{CONNECTION_POOL_SIZE, DATABASE_URL, SCHEDULER_CONFIG, SCHEDULER_ENDPOINT};
 
 use scheduler::seaorm::get_sea_db_connection;
@@ -62,12 +62,6 @@ async fn main() {
     let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
     let assigment_buffer = Arc::new(Mutex::new(AssignmentBuffer::default()));
 
-    let scheduler_state = SchedulerState::new(
-        arc_conn.clone(),
-        worker_service,
-        worker_infos.clone(),
-        provider_storage.clone(),
-    );
     let scheduler_service = SchedulerServiceBuilder::default().build();
     let processor_service = ProcessorServiceBuilder::default().build();
     let access_control = AccessControl::default();
@@ -89,10 +83,18 @@ async fn main() {
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
     let task_job_generator = task::spawn(async move { job_generator.run().await });
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
+    let scheduler_state = SchedulerState::new(
+        arc_conn.clone(),
+        worker_service,
+        worker_infos.clone(),
+        provider_storage.clone(),
+    );
+    let processor_state = ProcessorState::new(arc_conn.clone());
     let server = ServerBuilder::default()
         .with_entry_point(socket_addr)
         .with_access_control(access_control)
         .with_scheduler_state(scheduler_state)
+        .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
     let task_serve = server.serve();
     join4(

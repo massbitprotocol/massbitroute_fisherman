@@ -15,11 +15,12 @@ impl ProcessorService {
     }
     pub async fn process_report(
         &self,
-        job_result: JobResult,
+        job_results: Vec<JobResult>,
         state: Arc<Mutex<ProcessorState>>,
     ) -> Result<impl Reply, Rejection> {
-        print!("Handle report from worker {:?}", &job_result);
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
+        print!("Handle report from worker {:?}", &job_results);
+        state.lock().await.process_results(job_results);
+        return Ok(warp::reply::json(&json!({ "Message": "Report received" })));
     }
 }
 

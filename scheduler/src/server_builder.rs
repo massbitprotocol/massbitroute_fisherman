@@ -29,7 +29,7 @@ pub struct ServerBuilder {
     scheduler_service: SchedulerService,
     processor_service: ProcessorService,
     scheduler_state: Arc<Mutex<SchedulerState>>,
-    processor_state: ProcessorState,
+    processor_state: Arc<Mutex<ProcessorState>>,
 }
 
 pub struct SchedulerServer {
@@ -215,11 +215,11 @@ impl SchedulerServer {
             .and(SchedulerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |job_result: JobResult| {
-                info!("#### Received request body {:?} ####", &job_result);
+            .and_then(move |job_results: Vec<JobResult>| {
+                info!("#### Received request body {:?} ####", &job_results);
                 let clone_service = service.clone();
                 let clone_state = state.clone();
-                async move { clone_service.process_report(job_result, clone_state).await }
+                async move { clone_service.process_report(job_results, clone_state).await }
             })
     }
 
@@ -261,7 +261,7 @@ impl ServerBuilder {
         self
     }
     pub fn with_processor_state(mut self, processor_state: ProcessorState) -> Self {
-        self.processor_state = processor_state;
+        self.processor_state = Arc::new(Mutex::new(processor_state));
         self
     }
     pub fn build(
@@ -275,7 +275,7 @@ impl ServerBuilder {
             scheduler_service: Arc::new(scheduler),
             processor_service: Arc::new(processor),
             scheduler_state: self.scheduler_state.clone(),
-            processor_state: Arc::new(Mutex::new(ProcessorState {})),
+            processor_state: self.processor_state.clone(),
         }
     }
 }
