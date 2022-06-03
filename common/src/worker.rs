@@ -4,6 +4,7 @@ use crate::{IPAddress, WorkerId};
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+use std::str::FromStr;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerInfo {
@@ -25,12 +26,18 @@ pub struct WorkerSpec {
     bandwidth: u32, //Bandwidth in megabytes/sec,
 }
 impl WorkerInfo {
-    pub fn new() -> Self {
+    pub fn new(worker_id: &str, worker_endpoint: &str, worker_ip: &str, zone: &str) -> Self {
+        let zone = match Zone::from_str(zone) {
+            Ok(zone) => zone,
+            Err(_) => {
+                panic!("Please enter worker zone!!!");
+            }
+        };
         WorkerInfo {
-            worker_id: "".to_string(),
-            worker_ip: "".to_string(),
-            url: "".to_string(),
-            zone: Default::default(),
+            worker_id: String::from(worker_id),
+            worker_ip: String::from(worker_ip),
+            url: String::from(worker_endpoint),
+            zone,
             worker_spec: WorkerSpec::default(),
             available_time_frame: None,
         }

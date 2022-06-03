@@ -9,7 +9,10 @@ use fisherman::server_builder::WebServerBuilder;
 use fisherman::server_config::AccessControl;
 use fisherman::services::{JobExecution, JobResultReporter, WebServiceBuilder};
 use fisherman::state::WorkerState;
-use fisherman::{ENVIRONMENT, FISHERMAN_ENDPOINT, SCHEDULER_ENDPOINT};
+use fisherman::{
+    ENVIRONMENT, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID, WORKER_IP,
+    WORKER_SERVICE_ENDPOINT, ZONE,
+};
 use futures_util::future::{join, join3};
 use log::{debug, info, warn};
 use reqwest::StatusCode;
@@ -40,13 +43,12 @@ async fn main() {
         let mut reporter = JobResultReporter::new(receiver, report_callback);
 
         let mut execution = JobExecution::new(sender, job_buffer.clone());
-        let socket_addr = FISHERMAN_ENDPOINT.as_str();
         let service = WebServiceBuilder::new().build();
         let access_control = AccessControl::default();
         // Create job process thread
         //let task_process_job = create_job_process_thread(receiver);
         let server = WebServerBuilder::default()
-            .with_entry_point(socket_addr)
+            .with_entry_point(WORKER_SERVICE_ENDPOINT.as_str())
             .with_access_control(access_control)
             .with_worker_state(WorkerState::new(job_buffer.clone()))
             .build(service);
@@ -88,16 +90,39 @@ fn create_job_process_thread(mut receiver: Receiver<Job>) -> JoinHandle<()> {
 */
 
 async fn try_register() -> Result<WorkerRegisterResult, anyhow::Error> {
+    let client_builder = reqwest::ClientBuilder::new();
+    let client = client_builder.danger_accept_invalid_certs(true).build()?;
+    let worker_info = WorkerInfo::new(
+        WORKER_ID.as_str(),
+        WORKER_ENDPOINT.as_str(),
+        WORKER_IP.as_str(),
+        ZONE.as_str(),
+    );
+    let body = serde_json::to_string(&worker_info)?;
     loop {
-        let res = register().await;
-        info!("Register result: {:?}", res);
-        match res {
-            Ok(res) => return Ok(res),
-            Err(err) => {
-                info!("error: {:?}", err);
-                if &*ENVIRONMENT == "local" {
-                    break;
+        let scheduler_url = SCHEDULER_ENDPOINT.as_str();
+        let clone_client = client.clone();
+        let clone_body = body.clone();
+        debug!("Register worker to scheduler {}", scheduler_url);
+        let request_builder = clone_client
+            .post(scheduler_url)
+            .header("content-type", "application/json")
+            .body(clone_body);
+        debug!("request_builder: {:?}", request_builder);
+        let response = request_builder.send().await?;
+        match response.status() {
+            StatusCode::OK => match response.json::<WorkerRegisterResult>().await {
+                Ok(parsed) => return Ok(parsed),
+                Err(err) => {
+                    info!("Error: {:?}", err);
+                    if &*ENVIRONMENT == "local" {
+                        return Err(anyhow!("{:?}", &err));
+                    }
                 }
+            },
+            _ => {
+                let text = response.text().await?;
+                debug!("Cannot register worker with message {}", &text);
             }
         }
         sleep(Duration::from_millis(1000));
@@ -108,7 +133,12 @@ async fn try_register() -> Result<WorkerRegisterResult, anyhow::Error> {
 async fn register() -> Result<WorkerRegisterResult, anyhow::Error> {
     let client_builder = reqwest::ClientBuilder::new();
     let client = client_builder.danger_accept_invalid_certs(true).build()?;
-    let worker_info = WorkerInfo::new();
+    let worker_info = WorkerInfo::new(
+        WORKER_ID.as_str(),
+        WORKER_ENDPOINT.as_str(),
+        WORKER_IP.as_str(),
+        ZONE.as_str(),
+    );
     let scheduler_url = SCHEDULER_ENDPOINT.as_str();
     let request_builder = client
         .post(scheduler_url.to_string())

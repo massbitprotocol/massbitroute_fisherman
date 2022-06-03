@@ -1,7 +1,8 @@
 use crate::models::providers::ProviderStorage;
 use crate::state::{ProcessorState, SchedulerState};
+use anyhow::Error;
 use common::component::ComponentInfo;
-use common::worker::WorkerInfo;
+use common::worker::{WorkerInfo, WorkerRegisterResult};
 use log::log;
 use serde_json::json;
 use std::sync::Arc;
@@ -21,14 +22,23 @@ impl SchedulerService {
         scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
         log::debug!("Handle register worker request from {:?}", &worker_info);
-        scheduler_state
+        match scheduler_state
             .lock()
             .await
             .register_worker(worker_info)
-            .await;
-        return Ok(warp::reply::json(
-            &json!({ "Message": "Worker registered" }),
-        ));
+            .await
+        {
+            Ok(result) => {
+                return Ok(warp::reply::json(&result));
+            }
+            Err(err) => {
+                let result = WorkerRegisterResult {
+                    worker_id: "".to_string(),
+                    report_callback: "".to_string(),
+                };
+                return Ok(warp::reply::json(&result));
+            }
+        }
     }
     pub async fn pause_worker(
         &self,
