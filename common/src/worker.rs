@@ -3,9 +3,7 @@ use crate::models::TimeFrames;
 use crate::{IPAddress, WorkerId};
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fmt::Display;
-use std::hash::Hash;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerInfo {
@@ -47,15 +45,15 @@ impl Into<Body> for WorkerInfo {
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerRegisterResult {
-    worker_id: String,
-    result: String,
+    pub worker_id: String,
+    pub report_callback: String,
 }
 
 impl WorkerRegisterResult {
-    pub fn new() -> Self {
+    pub fn new(worker_id: String, report_callback: String) -> Self {
         WorkerRegisterResult {
-            worker_id: "".to_string(),
-            result: "".to_string(),
+            worker_id,
+            report_callback,
         }
     }
 }
