@@ -34,6 +34,8 @@ lazy_static! {
     pub static ref DATABASE_URL: String = env::var("DATABASE_URL").unwrap_or(String::from(
         "postgres://fisherman:FishermanCodelight123@35.193.163.173:5432/massbit-fisherman"
     ));
+    pub static ref SIGNER_PHRASE: String =
+        env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
     pub static ref CONFIG_DIR: String =
         env::var("CONFIG_DIR").unwrap_or(String::from("resource/task_config"));
 }
