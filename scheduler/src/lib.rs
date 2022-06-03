@@ -16,6 +16,7 @@ pub mod service;
 pub mod state;
 pub const JOB_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds
+
 lazy_static! {
     pub static ref COMPONENT_NAME: String = String::from("[Scheduler]");
     pub static ref SCHEDULER_ENDPOINT: String =
@@ -31,4 +32,6 @@ lazy_static! {
     pub static ref DATABASE_URL: String = env::var("DATABASE_URL").unwrap_or(String::from(
         "postgres://fisherman:FishermanCodelight123@35.193.163.173:5432/massbit-fisherman"
     ));
+    pub static ref PING_CONFIG_PATH: String =
+        env::var("PING_CONFIG_PATH").unwrap_or(String::from("resource/task_config/ping.json"));
 }

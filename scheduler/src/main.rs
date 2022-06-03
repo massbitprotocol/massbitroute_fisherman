@@ -28,25 +28,23 @@ use std::time::Duration;
 use tokio::sync::{mpsc, Mutex};
 use tokio::task;
 
-embed_migrations!("./migrations");
-
 #[tokio::main]
 async fn main() {
     // Load env file
     dotenv::dotenv().ok();
     let _res = init_logger(&String::from("Fisherman Scheduler"));
     let matches = create_scheduler_app().get_matches();
-    let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
-    let connection_pool = r2d2::Pool::builder()
-        .max_size(*CONNECTION_POOL_SIZE)
-        .build(manager)
-        .expect("Can not create connection pool");
-    if let Ok(conn) = &connection_pool.get() {
-        match embedded_migrations::run(conn) {
-            Ok(res) => log::info!("Finished embedded_migration {:?}", &res),
-            Err(err) => log::info!("{:?}", &err),
-        };
-    }
+    // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
+    // let connection_pool = r2d2::Pool::builder()
+    //     .max_size(*CONNECTION_POOL_SIZE)
+    //     .build(manager)
+    //     .expect("Can not create connection pool");
+    // if let Ok(conn) = &connection_pool.get() {
+    //     match embedded_migrations::run(conn) {
+    //         Ok(res) => log::info!("Finished embedded_migration {:?}", &res),
+    //         Err(err) => log::info!("{:?}", &err),
+    //     };
+    // }
     let db_conn = match get_sea_db_connection(DATABASE_URL.as_str()).await {
         Ok(con) => con,
         Err(_) => {

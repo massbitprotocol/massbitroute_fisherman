@@ -17,6 +17,7 @@ pub type WorkerId = String;
 pub type IPAddress = String;
 pub type Node = ComponentInfo;
 pub type Gateway = ComponentInfo;
+pub type Timestamp = u128;
 
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;
