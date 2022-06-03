@@ -1,16 +1,17 @@
-pub mod job;
+pub mod executor;
+pub mod models;
 pub mod server_builder;
 pub mod server_config;
-pub mod service;
+pub mod services;
 pub mod state;
-
 use dotenv;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use std::env;
 
 //pub const CONFIG_FILE: &str = "config_check_component.json";
-
+pub const JOB_EXECUTOR_PERIOD: u64 = 10; //In seconds
+pub const JOB_RESULT_REPORTER_PERIOD: u64 = 10; //In seconds
 lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String = env::var("SCHEDULER_ENDPOINT")
         .unwrap_or(String::from("https://scheduler.massbitroute.net"));
