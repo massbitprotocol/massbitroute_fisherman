@@ -4,8 +4,8 @@ pub mod job_manage;
 pub mod logger;
 pub mod models;
 pub mod task_spawn;
+pub mod tasks;
 pub mod worker;
-
 use crate::component::ComponentInfo;
 
 pub type BlockChainType = String;

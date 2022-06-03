@@ -53,8 +53,8 @@ async fn main() {
     };
     let arc_conn = Arc::new(db_conn);
     //Get worker infos
-    let worker_service = WorkerService::new(arc_conn.clone());
-    let all_workers = worker_service.get_all().await;
+    let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
+    let all_workers = worker_service.clone().get_all().await;
     let config = Config::load(SCHEDULER_CONFIG.as_str());
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
     let provider_storage = Arc::new(Mutex::new(ProviderStorage::default()));
@@ -64,6 +64,7 @@ async fn main() {
 
     let scheduler_state = SchedulerState::new(
         arc_conn.clone(),
+        worker_service,
         worker_infos.clone(),
         provider_storage.clone(),
     );
