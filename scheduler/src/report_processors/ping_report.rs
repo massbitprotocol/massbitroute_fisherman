@@ -1,16 +1,19 @@
+use crate::report_processors::adapters::{get_report_adapters, Appender};
 use crate::report_processors::ReportProcessor;
 use common::job_manage::JobResult;
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
-use std::pin::pin;
 use std::sync::Arc;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct PingReportProcessor {}
+pub struct PingReportProcessor {
+    report_adapters: Vec<Arc<dyn Appender>>,
+}
 
 impl PingReportProcessor {
     pub fn new() -> Self {
-        PingReportProcessor {}
+        let report_adapters = get_report_adapters();
+        PingReportProcessor { report_adapters }
     }
 }
 impl ReportProcessor for PingReportProcessor {
