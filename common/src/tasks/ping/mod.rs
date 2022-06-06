@@ -14,14 +14,18 @@ pub enum CallPingError {
 }
 
 impl CallPingError {
-    pub fn get_message(err: &CallPingError) -> String {
-        match err {
+    pub fn get_message(&self) -> String {
+        match self {
             CallPingError::BuildError(message)
             | CallPingError::SendError(message)
             | CallPingError::GetBodyError(message) => message.to_string(),
         }
     }
-    pub fn get_code(err: &CallPingError) -> u32 {
-        err as u32
+    pub fn get_code(&self) -> u32 {
+        match self {
+            CallPingError::BuildError(_) => 1u32,
+            CallPingError::SendError(_) => 2u32,
+            CallPingError::GetBodyError(_) => 3u32,
+        }
     }
 }

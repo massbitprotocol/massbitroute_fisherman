@@ -16,7 +16,7 @@ use tokio::time::sleep;
 pub struct PingExecutor {}
 
 impl PingResponse {
-    pub fn new_error(error_code: u8, message: &str) -> Self {
+    pub fn new_error(error_code: u32, message: &str) -> Self {
         PingResponse {
             response_time: 0,
             response_body: "".to_string(),
@@ -68,11 +68,14 @@ impl PingExecutor {
 impl TaskExecutor for PingExecutor {
     async fn execute(&self, job: &Job, sender: Sender<JobResult>) -> Result<(), Error> {
         debug!("TaskPing execute for job {:?}", &job);
+        let executor = self.clone();
+        let job = job.clone();
         task_spawn::spawn(async move {
             let mut responses = Vec::new();
             for count in 0..job.repeat_number {
-                info!("**Do ping {}**", count);
-                let res = self.call_ping(job).await;
+                info!("** Do ping {} **", count);
+                let res = executor.call_ping(&job).await;
+                info!("Ping result {:?}", res);
                 let res = match res {
                     Ok(res) => res,
                     Err(err) => err.into(),
@@ -82,10 +85,12 @@ impl TaskExecutor for PingExecutor {
             }
 
             let ping_result = JobPingResult {
-                job: Default::default(),
+                job,
                 response_timestamp: get_current_time(),
-                responses: vec![],
+                responses,
             };
+            let res = sender.send(JobResult::Ping(ping_result)).await;
+            debug!("send res: {:?}", res);
         });
         Ok(())
     }

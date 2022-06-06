@@ -3,6 +3,7 @@ use crate::JOB_EXECUTOR_PERIOD;
 use common::job_manage::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
 use common::tasks::get_eth_executors;
+use log::info;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
@@ -28,13 +29,14 @@ impl JobExecution {
         loop {
             let next_job = self.job_buffers.lock().await.pop_job();
             if let Some(job) = next_job {
+                info!("Execute job: {:?}", job);
                 for executor in self.executors.iter() {
                     let sender = self.sender.clone();
                     executor.execute(&job, sender).await;
                 }
+            } else {
+                sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD));
             }
-
-            sleep(Duration::from_secs(JOB_EXECUTOR_PERIOD))
         }
     }
 }

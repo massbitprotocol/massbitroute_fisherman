@@ -9,8 +9,8 @@ use serde::Deserialize;
 use std::env;
 use uuid::Uuid;
 //pub const CONFIG_FILE: &str = "config_check_component.json";
-pub const JOB_EXECUTOR_PERIOD: u64 = 10; //In seconds
-pub const JOB_RESULT_REPORTER_PERIOD: u64 = 10; //In seconds
+pub const JOB_EXECUTOR_PERIOD: u64 = 1000; //In milliseconds
+pub const JOB_RESULT_REPORTER_PERIOD: u64 = 2000; //In milliseconds
 
 lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String = env::var("SCHEDULER_ENDPOINT")
