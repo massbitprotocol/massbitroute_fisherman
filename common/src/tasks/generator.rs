@@ -9,10 +9,13 @@ use crate::ComponentInfo;
 use std::sync::Arc;
 
 pub trait TaskApplicant: Sync + Send {
+    fn can_apply(&self, component: &ComponentInfo) -> bool;
     fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error>;
 }
-
-pub fn get_eth_task_genrators(config_dir: &str) -> Vec<Arc<dyn TaskApplicant>> {
+/*
+ * Todo: can add config to load required task for each phase: verification or regular
+ */
+pub fn get_verification_tasks(config_dir: &str) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
     result.push(Arc::new(GatewayBenchmark::new()));
     result.push(Arc::new(NodeBenchmark::new()));
@@ -22,8 +25,12 @@ pub fn get_eth_task_genrators(config_dir: &str) -> Vec<Arc<dyn TaskApplicant>> {
     result
 }
 
-pub fn get_dot_task_generators() -> Vec<Arc<dyn TaskApplicant>> {
+pub fn get_regular_tasks(config_dir: &str) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
-
+    result.push(Arc::new(GatewayBenchmark::new()));
+    result.push(Arc::new(NodeBenchmark::new()));
+    result.push(Arc::new(TaskGWNodeConnection::new()));
+    result.push(Arc::new(TaskLatestBlock::new()));
+    result.push(Arc::new(PingGenerator::new(config_dir)));
     result
 }

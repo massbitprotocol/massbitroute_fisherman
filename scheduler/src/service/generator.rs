@@ -18,7 +18,8 @@ use tokio::sync::Mutex;
 pub struct JobGenerator {
     providers: Arc<Mutex<ProviderStorage>>,
     worker_infos: Arc<Mutex<WorkerInfoStorage>>,
-    tasks: Vec<Arc<dyn TaskApplicant>>,
+    verification_tasks: Vec<Arc<dyn TaskApplicant>>,
+    regular_tasks: Vec<Arc<dyn TaskApplicant>>,
     assignments: Arc<Mutex<AssignmentBuffer>>,
 }
 
@@ -31,7 +32,8 @@ impl JobGenerator {
         JobGenerator {
             providers,
             worker_infos,
-            tasks: get_eth_task_genrators(CONFIG_DIR.as_str()),
+            verification_tasks: get_eth_verification_tasks(CONFIG_DIR.as_str()),
+            regular_tasks: get_eth_regular_task(CONFIG_DIR.as_str()),
             assignments,
         }
     }
@@ -61,20 +63,22 @@ impl JobGenerator {
             .await;
 
         for node in nodes.iter() {
-            for task in self.tasks.iter() {
-                match task.apply(node) {
-                    Ok(mut jobs) => {
-                        if jobs.len() > 0 {
-                            log::debug!("Create {:?} jobs for node {:?}", jobs.len(), &node);
-                            if let Some(current_jobs) = gen_jobs.get_mut(&node.zone) {
-                                current_jobs.append(&mut jobs);
-                            } else {
-                                gen_jobs.insert(node.zone.clone(), jobs);
+            for task in self.verification_tasks.iter() {
+                if task.can_apply(node) {
+                    match task.apply(node) {
+                        Ok(mut jobs) => {
+                            if jobs.len() > 0 {
+                                log::debug!("Create {:?} jobs for node {:?}", jobs.len(), &node);
+                                if let Some(current_jobs) = gen_jobs.get_mut(&node.zone) {
+                                    current_jobs.append(&mut jobs);
+                                } else {
+                                    gen_jobs.insert(node.zone.clone(), jobs);
+                                }
                             }
                         }
-                    }
-                    Err(err) => {
-                        log::error!("Error: {:?}", &err);
+                        Err(err) => {
+                            log::error!("Error: {:?}", &err);
+                        }
                     }
                 }
             }
@@ -87,20 +91,22 @@ impl JobGenerator {
             .pop_gateways_for_verifications()
             .await;
         for gw in gateways.iter() {
-            for task in self.tasks.iter() {
-                match task.apply(gw) {
-                    Ok(mut jobs) => {
-                        if jobs.len() > 0 {
-                            log::debug!("Create {:?} jobs for gateway {:?}", jobs.len(), &gw);
-                            if let Some(current_jobs) = gen_jobs.get_mut(&gw.zone) {
-                                current_jobs.append(&mut jobs);
-                            } else {
-                                gen_jobs.insert(gw.zone.clone(), jobs);
+            for task in self.verification_tasks.iter() {
+                if task.can_apply(gw) {
+                    match task.apply(gw) {
+                        Ok(mut jobs) => {
+                            if jobs.len() > 0 {
+                                log::debug!("Create {:?} jobs for gateway {:?}", jobs.len(), &gw);
+                                if let Some(current_jobs) = gen_jobs.get_mut(&gw.zone) {
+                                    current_jobs.append(&mut jobs);
+                                } else {
+                                    gen_jobs.insert(gw.zone.clone(), jobs);
+                                }
                             }
                         }
-                    }
-                    Err(err) => {
-                        log::error!("Error: {:?}", &err);
+                        Err(err) => {
+                            log::error!("Error: {:?}", &err);
+                        }
                     }
                 }
             }

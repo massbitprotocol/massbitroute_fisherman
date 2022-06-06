@@ -5,7 +5,7 @@ use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Default)]
 pub struct PingReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
 }

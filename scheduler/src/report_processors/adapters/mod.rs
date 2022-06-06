@@ -1,5 +1,6 @@
 use crate::report_processors::adapters::csv_appender::CsvAppender;
 use serde_json::{Map, Value};
+use std::fmt::Debug;
 use std::sync::Arc;
 
 pub mod csv_appender;
