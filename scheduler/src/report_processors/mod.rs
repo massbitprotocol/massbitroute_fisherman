@@ -1,9 +1,12 @@
+pub mod adapters;
+pub mod channel;
 pub mod dot;
 pub mod eth;
 pub mod ping_report;
 
 use crate::report_processors::benchamark::BenchmarkReportProcessor;
 use crate::report_processors::ping_report::PingReportProcessor;
+pub use channel::ReportChannel;
 use common::job_manage::JobResult;
 pub use dot::*;
 pub use eth::*;
