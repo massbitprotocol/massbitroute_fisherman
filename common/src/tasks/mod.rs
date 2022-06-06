@@ -5,7 +5,6 @@ pub mod generator;
 pub mod ping;
 
 pub use executor::get_eth_executors;
-pub use generator::get_eth_task_genrators;
 use log::error;
 use serde::de::DeserializeOwned;
 

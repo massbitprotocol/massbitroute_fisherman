@@ -65,7 +65,7 @@ impl ProviderStorage {
         let nodes = self.nodes.lock().await;
         for node in nodes.iter() {
             if task.can_apply(node) {
-                let mut jobs = task.apply(&node)?;
+                let mut jobs = task.apply(node)?;
                 result.append(&mut jobs);
             }
         }
@@ -73,7 +73,7 @@ impl ProviderStorage {
         let gateways = self.gateways.lock().await;
         for gw in gateways.iter() {
             if task.can_apply(gw) {
-                let mut jobs = task.apply(&node)?;
+                let mut jobs = task.apply(gw)?;
                 result.append(&mut jobs);
             }
         }
