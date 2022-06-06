@@ -116,13 +116,16 @@ async fn try_register() -> Result<WorkerRegisterResult, anyhow::Error> {
                 Err(err) => {
                     info!("Error: {:?}", err);
                     if &*ENVIRONMENT == "local" {
-                        return Err(anyhow!("{:?}", &err));
+                        return Ok(WorkerRegisterResult::default());
                     }
                 }
             },
             _ => {
                 let text = response.text().await?;
                 debug!("Cannot register worker with message {}", &text);
+                if &*ENVIRONMENT == "local" {
+                    return Ok(WorkerRegisterResult::default());
+                }
             }
         }
         sleep(Duration::from_millis(1000));

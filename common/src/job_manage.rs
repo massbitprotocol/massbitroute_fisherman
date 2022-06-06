@@ -47,7 +47,6 @@ pub struct Job {
     pub repeat_number: u32,
     pub interval: Timestamp,
     pub header: HashMap<String, String>,
-    pub callback_url: Url, //For fisherman call to send job result
     pub job_detail: Option<JobDetail>,
     pub running_mode: JobRunningMode,
     pub config: Option<Config>,
@@ -142,7 +141,7 @@ pub struct PingResponse {
     pub response_time: Timestamp,
     pub response_body: String,
     pub http_code: u16,
-    pub error_code: u8,
+    pub error_code: u32,
     pub message: String,
 }
 
@@ -153,8 +152,8 @@ impl From<CallPingError> for PingResponse {
             | CallPingError::SendError(message)
             | CallPingError::GetBodyError(message) => message.to_string(),
         };
-        let error_code = error as u32;
-        PingResponse::new_error(error_code as u8, message.as_str())
+        let error_code = error;
+        PingResponse::new_error(error_code.get_code(), message.as_str())
     }
 }
 

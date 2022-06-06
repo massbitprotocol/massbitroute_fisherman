@@ -24,22 +24,18 @@ impl WebService {
         state: Arc<Mutex<WorkerState>>,
     ) -> Result<impl Reply, Rejection> {
         info!("Handle jobs {:?}", &jobs);
-        let mut job_ids = vec![];
-        for job in jobs.iter() {
-            // Create list id for return
-            let job_id = job.job_id.clone();
-            job_ids.push(job_id);
-
-            // push job into queue
-            // {
-            //     info!("Push jobs {:?} in to queue", &job.job_id);
-            //     let mut lock_state = self.job_queue.lock().unwrap();
-            //     lock_state.job_queue.send(job).await;
-            //     info!("Jobs queue: {:?}", lock_state.);
-            // }
-            //self.job_queue.send(job).await;
+        let mut job_ids = jobs
+            .iter()
+            .map(|job| {
+                // Create list id for return
+                job.job_id.clone()
+            })
+            .collect();
+        {
+            let mut lock = state.lock().await;
+            lock.push_jobs(jobs).await;
         }
-        state.lock().await.push_jobs(jobs);
+
         //serde_json::to_string(jds);
         let res = JobHandleResponse::new(job_ids);
         let res = warp::reply::json(&res);
