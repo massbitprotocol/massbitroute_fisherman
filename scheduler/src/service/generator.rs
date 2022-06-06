@@ -4,8 +4,7 @@ use crate::models::workers::{Worker, WorkerInfoStorage};
 use crate::{CONFIG_DIR, JOB_GENERATOR_PERIOD};
 use common::component::{ComponentInfo, Zone};
 use common::job_manage::Job;
-use common::tasks::generator::TaskApplicant;
-use common::tasks::get_eth_task_genrators;
+use common::tasks::generator::{get_regular_tasks, get_verification_tasks, TaskApplicant};
 use common::worker::WorkerInfo;
 use common::{ComponentId, WorkerId};
 use std::collections::HashMap;
@@ -32,8 +31,8 @@ impl JobGenerator {
         JobGenerator {
             providers,
             worker_infos,
-            verification_tasks: get_eth_verification_tasks(CONFIG_DIR.as_str()),
-            regular_tasks: get_eth_regular_task(CONFIG_DIR.as_str()),
+            verification_tasks: get_verification_tasks(CONFIG_DIR.as_str()),
+            regular_tasks: get_regular_tasks(CONFIG_DIR.as_str()),
             assignments,
         }
     }
@@ -136,7 +135,7 @@ impl JobGenerator {
         self.assignments.lock().await.add_assignments(assignments);
     }
     pub async fn generate_regular_jobs(&mut self) {
-        for task in self.tasks.iter() {
+        for task in self.regular_tasks.iter() {
             self.providers
                 .lock()
                 .await

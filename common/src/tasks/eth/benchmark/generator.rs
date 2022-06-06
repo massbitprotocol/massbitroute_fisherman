@@ -16,6 +16,10 @@ impl NodeBenchmark {
     }
 }
 impl TaskApplicant for NodeBenchmark {
+    fn can_apply(&self, component: &ComponentInfo) -> bool {
+        true
+    }
+
     fn apply(&self, node: &Node) -> Result<Vec<Job>, anyhow::Error> {
         Ok(Vec::new())
     }
@@ -29,6 +33,10 @@ impl GatewayBenchmark {
     }
 }
 impl TaskApplicant for GatewayBenchmark {
+    fn can_apply(&self, component: &ComponentInfo) -> bool {
+        true
+    }
+
     fn apply(&self, gateway: &Gateway) -> Result<Vec<Job>, anyhow::Error> {
         Ok(Vec::new())
     }

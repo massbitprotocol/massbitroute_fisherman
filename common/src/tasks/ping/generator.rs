@@ -39,6 +39,10 @@ struct PingConfig {
 impl LoadConfig<PingConfig> for PingConfig {}
 
 impl TaskApplicant for PingGenerator {
+    fn can_apply(&self, component: &ComponentInfo) -> bool {
+        true
+    }
+
     fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};

@@ -21,6 +21,10 @@ impl TaskGWNodeConnection {
     }
 }
 impl TaskApplicant for TaskGWNodeConnection {
+    fn can_apply(&self, component: &ComponentInfo) -> bool {
+        true
+    }
+
     fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error> {
         let vec = Vec::default();
         Ok(vec)

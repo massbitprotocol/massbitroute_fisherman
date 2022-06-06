@@ -25,6 +25,10 @@ impl TaskRandomBlock {
 }
 
 impl TaskApplicant for TaskRandomBlock {
+    fn can_apply(&self, component: &ComponentInfo) -> bool {
+        true
+    }
+
     fn apply(&self, node: &Node) -> Result<Vec<Job>, Error> {
         let vec = Vec::default();
         Ok(vec)
