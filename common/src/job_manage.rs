@@ -41,7 +41,9 @@ pub enum ComponentType {
 pub struct Job {
     pub job_id: JobId,
     pub component_id: ComponentId,
-    pub priority: u32, //Fist priority is 1
+    pub priority: u32,          //Fist priority is 1
+    pub expected_runtime: u128, //timestamp in millisecond Default 0, job is executed if only expected_runtime <= current timestamp
+    pub parallelable: bool,     //Job can be executed parallel with other jobs
     pub time_out: Timestamp,
     pub start_deadline: Timestamp,
     pub component_url: Url,

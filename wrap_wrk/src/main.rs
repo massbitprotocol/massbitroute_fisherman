@@ -43,7 +43,7 @@ fn main() {
 
     //assert!(output.status.success());
 }
-
+/*
 #[test]
 fn run_dapi() {
     let total_request = 1000000;
@@ -82,3 +82,4 @@ fn run_dapi() {
 
     info!("report: {:?}", report)
 }
+*/

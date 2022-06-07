@@ -10,6 +10,7 @@ use sea_orm::{entity::*, query::*};
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
+    pub active: i32,
     pub worker_id: String,
     pub worker_ip: String,
     pub url: String,

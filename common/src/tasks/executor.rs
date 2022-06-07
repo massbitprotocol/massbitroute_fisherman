@@ -6,10 +6,15 @@ use tokio::sync::mpsc::Sender;
 
 #[async_trait]
 pub trait TaskExecutor: Sync + Send {
-    async fn execute(&self, job: &Job, sender: Sender<JobResult>) -> Result<(), anyhow::Error>;
+    async fn execute(
+        &self,
+        job: &Job,
+        result_sender: Sender<JobResult>,
+        newjob_sender: Sender<Job>,
+    ) -> Result<(), anyhow::Error>;
 }
 
-pub fn get_eth_executors() -> Vec<Arc<dyn TaskExecutor>> {
+pub fn get_executors() -> Vec<Arc<dyn TaskExecutor>> {
     let mut result: Vec<Arc<dyn TaskExecutor>> = Default::default();
     result.push(Arc::new(PingExecutor::new()));
     result

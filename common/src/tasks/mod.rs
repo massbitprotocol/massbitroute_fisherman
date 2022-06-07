@@ -6,7 +6,7 @@ pub mod ping;
 
 use crate::job_manage::JobRole;
 use crate::Timestamp;
-pub use executor::get_eth_executors;
+pub use executor::get_executors;
 use log::{error, info};
 use serde::de::DeserializeOwned;
 use serde_json::Value;

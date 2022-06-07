@@ -71,7 +71,12 @@ impl PingExecutor {
 
 #[async_trait]
 impl TaskExecutor for PingExecutor {
-    async fn execute(&self, job: &Job, sender: Sender<JobResult>) -> Result<(), Error> {
+    async fn execute(
+        &self,
+        job: &Job,
+        result_sender: Sender<JobResult>,
+        newjob_sender: Sender<Job>,
+    ) -> Result<(), Error> {
         debug!("TaskPing execute for job {:?}", &job);
         let executor = self.clone();
         let job = job.clone();
@@ -93,7 +98,7 @@ impl TaskExecutor for PingExecutor {
             response_timestamp: get_current_time(),
             responses,
         };
-        let res = sender.send(JobResult::Ping(ping_result)).await;
+        let res = result_sender.send(JobResult::Ping(ping_result)).await;
         debug!("send res: {:?}", res);
         Ok(())
     }

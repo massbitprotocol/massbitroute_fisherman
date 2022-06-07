@@ -45,7 +45,12 @@ impl BenchmarkExecutor {
 
 #[async_trait]
 impl TaskExecutor for BenchmarkExecutor {
-    async fn execute(&self, job: &Job, sender: Sender<JobResult>) -> Result<(), Error> {
+    async fn execute(
+        &self,
+        job: &Job,
+        result_sender: Sender<JobResult>,
+        newjob_sender: Sender<Job>,
+    ) -> Result<(), Error> {
         debug!("TaskBenchmark execute for job {:?}", &job);
         let executor = self.clone();
         let job = job.clone();
