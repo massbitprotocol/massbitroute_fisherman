@@ -30,9 +30,13 @@ impl PingGenerator {
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 struct PingConfig {
+    #[serde(default)]
     ping_success_ratio_threshold: f32,
+    #[serde(default)]
     ping_sample_number: u32,
+    #[serde(default)]
     ping_request_response: String,
+    #[serde(default)]
     ping_timeout_ms: Timestamp,
 }
 
