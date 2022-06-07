@@ -6,7 +6,9 @@ pub mod models;
 pub mod task_spawn;
 pub mod tasks;
 pub mod worker;
+
 use crate::component::ComponentInfo;
+use lazy_static::lazy_static;
 
 pub type BlockChainType = String;
 pub type NetworkType = String;
@@ -21,3 +23,9 @@ pub type Timestamp = u128;
 
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;
+pub use std::env;
+
+lazy_static! {
+    pub static ref BENCHMARK_WRK_PATH: String =
+        env::var("BENCHMARK_WRK_PATH").expect("There is no env var BENCHMARK_WRK_PATH");
+}
