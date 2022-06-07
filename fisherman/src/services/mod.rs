@@ -1,6 +1,5 @@
 pub mod execution;
 pub mod reporter;
-pub mod thread;
 pub mod webservice;
 
 pub use execution::JobExecution;

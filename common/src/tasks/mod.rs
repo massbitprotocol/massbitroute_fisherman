@@ -4,15 +4,10 @@ pub mod executor;
 pub mod generator;
 pub mod ping;
 
-<<<<<<< Updated upstream
 use crate::job_manage::JobRole;
 use crate::Timestamp;
-pub use executor::get_eth_executors;
-use log::{error, info};
-=======
 pub use executor::get_executors;
-use log::error;
->>>>>>> Stashed changes
+use log::{error, info};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::collections::HashMap;

@@ -26,10 +26,10 @@ struct Runner {
     thread: JoinHandle<()>,
 }
 
-impl Runner {
-    fn new(id: usize) -> Runner {
-        let thread = tokio::spawn(|| {});
-
-        Runner { id, thread }
-    }
-}
+// impl Runner {
+//     fn new(id: usize) -> Runner {
+//         let thread = tokio::spawn(|| {});
+//
+//         Runner { id, thread }
+//     }
+// }

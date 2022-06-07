@@ -31,8 +31,8 @@ lazy_static! {
         env::var("WORKER_IP").unwrap_or(String::from("127.0.0.1"));
     pub static ref BENCHMARK_WRK_PATH: String =
         env::var("BENCHMARK_WRK_PATH").unwrap_or("./".to_string());
-    pub static ref MAX_THREAD_COUNTER: usize = env::var("MAX_THREAD_COUNTER")
-        .unwrap_or(16);
+    pub static ref MAX_THREAD_COUNTER: usize = env::var("MAX_THREAD_COUNTER").map_or(4, |val|{ val.parse::<usize>().unwrap_or(4)});
+        //.unwrap_or(Strin"4").parse::<usize>().unwrap();
     pub static ref LOCAL_IP: String = local_ip_address::local_ip().unwrap().to_string();
     pub static ref HASH_TEST_20K: String = "95c5679435a0a714918dc92b546dc0ba".to_string();
     //pub(crate) static ref CONFIG: Config = get_config();
