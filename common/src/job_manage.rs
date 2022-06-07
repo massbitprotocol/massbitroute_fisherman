@@ -263,3 +263,24 @@ pub struct Config {
     pub accepted_low_latency_percent: f32,
     pub skip_benchmark: bool,
 }
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum JobRole {
+    Verification,
+    Fisherman,
+}
+
+impl Default for JobRole {
+    fn default() -> Self {
+        JobRole::Verification
+    }
+}
+
+impl ToString for JobRole {
+    fn to_string(&self) -> String {
+        match self {
+            JobRole::Verification => "verification".to_string(),
+            JobRole::Fisherman => "fisherman".to_string(),
+        }
+    }
+}
