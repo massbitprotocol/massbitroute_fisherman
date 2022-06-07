@@ -1,0 +1,24 @@
+{
+  "default": {
+    "benchmark_thread": 5,
+    "benchmark_connection": 5,
+    "benchmark_duration": "15s",
+    "benchmark_rate": 80,
+    "benchmark_script": "./massbit.lua",
+    "benchmark_wrk_path": "./wrk",
+
+    "success_percent_threshold": 80,
+    "response_time_threshold_ms": 500,
+    "accepted_low_latency_percent": 0.95
+  },
+  "verification": {
+  },
+  "fisherman": {
+  },
+  "gateway": {
+    "response_time_threshold_ms": 800
+  },
+  "node": {
+    "response_time_threshold_ms": 500
+  }
+}

@@ -3,8 +3,8 @@ use crate::models::providers::ProviderStorage;
 use crate::models::workers::{Worker, WorkerInfoStorage};
 use crate::{CONFIG_DIR, JOB_GENERATOR_PERIOD};
 use common::component::{ComponentInfo, Zone};
-use common::job_manage::Job;
-use common::tasks::generator::{get_regular_tasks, get_verification_tasks, TaskApplicant};
+use common::job_manage::{Job, JobRole};
+use common::tasks::generator::{get_tasks, TaskApplicant};
 use common::worker::WorkerInfo;
 use common::{ComponentId, WorkerId};
 use std::collections::HashMap;
@@ -31,8 +31,8 @@ impl JobGenerator {
         JobGenerator {
             providers,
             worker_infos,
-            verification_tasks: get_verification_tasks(CONFIG_DIR.as_str()),
-            regular_tasks: get_regular_tasks(CONFIG_DIR.as_str()),
+            verification_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Verification),
+            regular_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Fisherman),
             assignments,
         }
     }

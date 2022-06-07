@@ -81,7 +81,7 @@ impl TaskExecutor for PingExecutor {
                     Err(err) => err.into(),
                 };
                 responses.push(res);
-                sleep(Duration::from_millis(1000));
+                sleep(Duration::from_millis(job.interval as u64));
             }
 
             let ping_result = JobPingResult {

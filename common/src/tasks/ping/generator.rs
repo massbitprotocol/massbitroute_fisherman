@@ -1,4 +1,4 @@
-use crate::job_manage::{Job, JobDetail, JobPing};
+use crate::job_manage::{Job, JobDetail, JobPing, JobRole};
 use crate::tasks::generator::TaskApplicant;
 use crate::tasks::LoadConfig;
 use crate::{ComponentInfo, Timestamp};
@@ -18,9 +18,9 @@ pub struct PingGenerator {
 }
 
 impl PingGenerator {
-    pub fn new(config_dir: &str) -> Self {
+    pub fn new(config_dir: &str, role: &JobRole) -> Self {
         PingGenerator {
-            config: PingConfig::load_config(format!("{}/ping.json", config_dir).as_str()),
+            config: PingConfig::load_config(format!("{}/ping.json", config_dir).as_str(), role),
         }
     }
     pub fn get_url(&self, component: &ComponentInfo) -> String {
