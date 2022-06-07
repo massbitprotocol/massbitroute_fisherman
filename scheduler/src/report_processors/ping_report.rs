@@ -1,6 +1,6 @@
 use crate::report_processors::adapters::{get_report_adapters, Appender};
 use crate::report_processors::ReportProcessor;
-use common::job_manage::JobResult;
+use common::job_manage::{JobPingResult, JobResult};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -28,7 +28,12 @@ impl ReportProcessor for PingReportProcessor {
     fn process_jobs(&self, reports: Vec<JobResult>, db_connection: Arc<DatabaseConnection>) {
         for report in reports {
             match report {
-                JobResult::Ping(ping_result) => {}
+                JobResult::Ping(ping_result) => {
+                    for response in ping_result.responses {
+                        println!("{:?}", &response);
+                    }
+                    //println!("{:?}", &ping_result);
+                }
                 _ => {}
             }
         }

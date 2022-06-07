@@ -21,9 +21,15 @@ impl ProcessorState {
     }
     pub fn process_results(&mut self, job_results: Vec<JobResult>) -> Result<(), anyhow::Error> {
         let mut map_processor_reports = HashMap::<usize, Vec<JobResult>>::new();
-        for report in job_results.into_iter() {
+        for report in job_results.iter() {
             for (ind, processor) in self.processors.iter().enumerate() {
-                if processor.can_apply(&report) {}
+                if processor.can_apply(&report) {
+                    if let Some(mut list) = map_processor_reports.get_mut(&ind) {
+                        list.push(report.clone())
+                    } else {
+                        map_processor_reports.insert(ind.clone(), vec![report.clone()]);
+                    }
+                }
             }
         }
         for (ind, jobs) in map_processor_reports {

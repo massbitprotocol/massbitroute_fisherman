@@ -75,6 +75,7 @@ impl TaskExecutor for PingExecutor {
         debug!("TaskPing execute for job {:?}", &job);
         let executor = self.clone();
         let job = job.clone();
+<<<<<<< Updated upstream
         let mut responses = Vec::new();
         for count in 0..job.repeat_number {
             info!("** Do ping {} **", count);
@@ -95,6 +96,32 @@ impl TaskExecutor for PingExecutor {
         };
         let res = sender.send(JobResult::Ping(ping_result)).await;
         debug!("send res: {:?}", res);
+=======
+        debug!("Spawn thread for job execution");
+        task_spawn::spawn(async move {
+            let mut responses = Vec::new();
+            for count in 0..job.repeat_number {
+                info!("** Do ping {} **", count);
+                let res = executor.call_ping(&job).await;
+                info!("Ping result {:?}", res);
+                let res = match res {
+                    Ok(res) => res,
+                    Err(err) => err.into(),
+                };
+                responses.push(res);
+                sleep(Duration::from_millis(1000));
+            }
+
+            let ping_result = JobPingResult {
+                job,
+                response_timestamp: get_current_time(),
+                responses,
+            };
+            let res = sender.send(JobResult::Ping(ping_result)).await;
+            debug!("send res: {:?}", res);
+        })
+        .await;
+>>>>>>> Stashed changes
         Ok(())
     }
 }

@@ -17,9 +17,13 @@ impl WorkerService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         WorkerService { db }
     }
-    pub async fn get_all(&self) -> Vec<WorkerInfo> {
+    pub async fn get_active(&self) -> Vec<WorkerInfo> {
         let mut res = Vec::new();
-        if let Ok(workers) = workers::Entity::find().all(self.db.as_ref()).await {
+        if let Ok(workers) = workers::Entity::find()
+            .filter(workers::Column::Active.eq(1))
+            .all(self.db.as_ref())
+            .await
+        {
             for model in workers.iter() {
                 res.push(WorkerInfo::from(model))
             }
