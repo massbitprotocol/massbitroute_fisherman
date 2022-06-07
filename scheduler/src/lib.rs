@@ -23,7 +23,7 @@ lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String =
         env::var("SCHEDULER_ENDPOINT").unwrap_or(String::from("0.0.0.0:3031"));
     pub static ref REPORT_CALLBACK: String =
-        env::var("REPORT_CALLBACK").unwrap_or(String::from("http://192.168.1.30:3031/report"));
+        env::var("REPORT_CALLBACK").unwrap_or(String::from("http://127.0.0.1:3031/report"));
     pub static ref SCHEDULER_CONFIG: String =
         env::var("SCHEDULER_CONFIG").unwrap_or(String::from("config_fisherman.json"));
     pub static ref CONNECTION_POOL_SIZE: u32 = env::var("CONNECTION_POOL_SIZE")
@@ -32,9 +32,7 @@ lazy_static! {
         .unwrap_or(20);
     pub static ref PORTAL_AUTHORIZATION: String =
         env::var("PORTAL_AUTHORIZATION").expect("There is no env var PORTAL_AUTHORIZATION");
-    pub static ref DATABASE_URL: String = env::var("DATABASE_URL").unwrap_or(String::from(
-        "postgres://fisherman:FishermanCodelight123@35.193.163.173:5432/massbit-fisherman"
-    ));
+    pub static ref DATABASE_URL: String = env::var("DATABASE_URL").unwrap();
     pub static ref REPORT_DIR: String =
         env::var("REPORT_DIR").expect("There is no env var REPORT_DIR");
     pub static ref SIGNER_PHRASE: String =

@@ -135,8 +135,8 @@ pub struct JobCancelResult {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobPingResult {
     pub job: Job,
-    pub response_timestamp: Timestamp, //Time to get response
-    pub responses: Vec<PingResponse>,
+    //pub response_timestamp: Timestamp, //Time to get response
+    pub response: PingResponse,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -214,7 +214,7 @@ impl JobResult {
         match job.job_detail.as_ref().unwrap() {
             JobDetail::Ping(_) => JobResult::Ping(JobPingResult {
                 job: job.clone(),
-                response_timestamp: current_timestamp,
+                //response_timestamp: current_timestamp,
                 ..Default::default()
             }),
             JobDetail::Compound(_) => JobResult::Compound(JobCompoundResult {
