@@ -1,5 +1,0 @@
-requests
-waitress
-setuptools
-Flask
-redis

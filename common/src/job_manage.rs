@@ -7,7 +7,7 @@ use std::hash::Hash;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::time::{sleep, Duration};
 
-use crate::component::ComponentInfo;
+use crate::component::{ComponentInfo, ComponentType};
 use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
 use crate::tasks::eth::CallBenchmarkError;
@@ -32,11 +32,7 @@ pub enum JobType {
     // perform benchmark checking
     BENCHMARK,
 }
-#[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
-pub enum ComponentType {
-    NODE,
-    GATEWAY,
-}
+
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Job {
     pub job_id: JobId,
@@ -115,13 +111,14 @@ pub struct JobCompound {
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobBenchmark {
-    connection: u32,
-    thread: u32,
-    rate: u32,            // Requests/sec
-    duration: Timestamp,  // Time to perform benchmark in ms
-    timeout: Timestamp,   // Timeout foreach request
-    script: String,       // Name of .lua script
-    histograms: Vec<u32>, // List of expected percentile,
+    pub component_type: ComponentType,
+    pub chain_type: BlockChainType,
+    pub connection: u32,
+    pub thread: u32,
+    pub rate: u32,            // Requests/sec
+    pub duration: Timestamp,  // Time to perform benchmark in ms
+    pub script: String,       // Name of .lua script
+    pub histograms: Vec<u32>, // List of expected percentile,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]

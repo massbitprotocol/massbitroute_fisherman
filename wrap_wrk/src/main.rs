@@ -3,6 +3,7 @@ use bytesize::ByteSize;
 use log::info;
 use logger::core::init_logger;
 use std::env::current_dir;
+use std::path::Component;
 use std::process::Command;
 use std::str::FromStr;
 use std::time::Duration;
@@ -37,7 +38,7 @@ fn main() {
         wrk_dir.to_string(),
         latency_threshold_ms,
     );
-    let report = wrk.run();
+    let report = wrk.run(&"node".to_string(), &"".to_string(), &"eth".to_string());
 
     info!("report: {:?}", report)
 
