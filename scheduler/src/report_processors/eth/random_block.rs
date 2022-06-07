@@ -14,7 +14,10 @@ impl RandomBlockReportProcessor {
 }
 impl ReportProcessor for RandomBlockReportProcessor {
     fn can_apply(&self, report: &JobResult) -> bool {
-        true
+        match report {
+            JobResult::Benchmark(_) => true,
+            _ => false,
+        }
     }
 
     fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {

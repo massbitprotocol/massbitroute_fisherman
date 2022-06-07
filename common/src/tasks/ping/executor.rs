@@ -78,28 +78,24 @@ impl TaskExecutor for PingExecutor {
         newjob_sender: Sender<Job>,
     ) -> Result<(), Error> {
         debug!("TaskPing execute for job {:?}", &job);
-        let executor = self.clone();
-        let job = job.clone();
-        let mut responses = Vec::new();
-        for count in 0..job.repeat_number {
-            info!("** Do ping {} **", count);
-            let res = executor.call_ping(&job).await;
-            info!("Ping result {:?}", res);
-            let res = match res {
-                Ok(res) => res,
-                Err(err) => err.into(),
-            };
-            responses.push(res);
-            sleep(Duration::from_millis(job.interval as u64));
-        }
-
+        let res = self.call_ping(job).await;
+        let response = match res {
+            Ok(res) => res,
+            Err(err) => err.into(),
+        };
+        debug!("Ping result {:?}", &response);
         let ping_result = JobPingResult {
-            job,
-            response_timestamp: get_current_time(),
-            responses,
+            job: job.clone(),
+            //response_timestamp: get_current_time(),
+            response,
         };
         let res = result_sender.send(JobResult::Ping(ping_result)).await;
         debug!("send res: {:?}", res);
+        let mut job = job.clone();
+        if job.repeat_number > 0 {
+            job.repeat_number = job.repeat_number - 1;
+            newjob_sender.send(job).await;
+        }
         Ok(())
     }
 }

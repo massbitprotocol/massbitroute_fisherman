@@ -1,9 +1,10 @@
 use crate::models::job::JobBuffer;
-use crate::{JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER};
+use crate::{JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD};
 use common::job_manage::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
 use common::tasks::get_executors;
 use log::{debug, info};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
@@ -21,6 +22,7 @@ pub struct JobExecution {
     executors: Vec<Arc<dyn TaskExecutor>>,
     //Runtime for parallelable jobs
     runtime: Runtime,
+    thread_counter: Arc<AtomicUsize>,
 }
 
 impl JobExecution {
@@ -30,6 +32,8 @@ impl JobExecution {
 
         let runtime = Builder::new_multi_thread()
             .worker_threads(*MAX_THREAD_COUNTER)
+            .enable_time()
+            .enable_io()
             .build()
             .unwrap();
         JobExecution {
@@ -39,6 +43,7 @@ impl JobExecution {
             job_buffers,
             executors,
             runtime,
+            thread_counter: Arc::new(AtomicUsize::new(0)),
         }
     }
     pub async fn run(&mut self) {
@@ -46,21 +51,29 @@ impl JobExecution {
         loop {
             while let Some(next_job) = self.job_buffers.lock().await.pop_job() {
                 info!("Execute job: {:?}", &next_job);
+                let rt_handle = self.runtime.handle();
+
                 if next_job.parallelable {
-                    let rt_handle = self.runtime.handle();
                     for executor in self.executors.iter() {
                         let result_sender = self.result_sender.clone();
                         let job_sender = self.job_sender.clone();
                         let clone_executor = executor.clone();
                         let clone_job = next_job.clone();
+                        let counter = self.thread_counter.clone();
+                        counter.fetch_add(1, Ordering::SeqCst);
                         rt_handle.spawn(async move {
                             debug!("Execute job on a worker thread");
                             clone_executor
                                 .execute(&clone_job, result_sender, job_sender)
                                 .await;
+                            counter.fetch_sub(1, Ordering::SeqCst);
                         });
                     }
                 } else {
+                    //wait until all task in  parallelable runtime pool is terminated
+                    while self.thread_counter.load(Ordering::Relaxed) > 0 {
+                        sleep(Duration::from_millis(*WAITING_TIME_FOR_EXECUTING_THREAD))
+                    }
                     for executor in self.executors.iter() {
                         let result_sender = self.result_sender.clone();
                         let job_sender = self.job_sender.clone();

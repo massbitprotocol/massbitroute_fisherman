@@ -18,7 +18,10 @@ impl PingReportProcessor {
 }
 impl ReportProcessor for PingReportProcessor {
     fn can_apply(&self, report: &JobResult) -> bool {
-        true
+        match report {
+            JobResult::Ping(_) => true,
+            _ => false,
+        }
     }
 
     fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {
@@ -29,9 +32,7 @@ impl ReportProcessor for PingReportProcessor {
         for report in reports {
             match report {
                 JobResult::Ping(ping_result) => {
-                    for response in ping_result.responses {
-                        println!("{:?}", &response);
-                    }
+                    println!("{:?}", &ping_result.response);
                     //println!("{:?}", &ping_result);
                 }
                 _ => {}

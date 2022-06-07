@@ -51,6 +51,7 @@ impl TaskApplicant for PingGenerator {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};
         let mut job = Job::new(JobDetail::Ping(job_ping));
+        job.parallelable = true;
         job.component_url = self.get_url(component);
         job.time_out = self.config.ping_timeout_ms;
         job.repeat_number = self.config.ping_sample_number;
