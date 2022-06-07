@@ -1,5 +1,7 @@
 use common::job_manage::Job;
+use common::Timestamp;
 use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct JobBuffer {
     jobs: Vec<Job>,
@@ -34,7 +36,7 @@ impl JobBuffer {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::SystemTime::UNIX_EPOCH)
             .expect("Unix time doesn't go backwards; qed")
-            .as_millis();
+            .as_millis() as Timestamp;
         let first_expected_time = self
             .jobs
             .first()

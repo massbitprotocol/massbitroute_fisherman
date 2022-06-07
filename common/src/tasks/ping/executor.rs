@@ -1,9 +1,9 @@
 use crate::job_manage::{Job, JobPingResult, JobResult, PingResponse};
 use crate::logger::helper::message;
+use crate::task_spawn;
 use crate::tasks::executor::TaskExecutor;
 use crate::tasks::get_current_time;
 use crate::tasks::ping::CallPingError;
-use crate::{task_spawn, Timestamp};
 use anyhow::Error;
 use async_trait::async_trait;
 use log::{debug, info};
@@ -46,7 +46,7 @@ impl PingExecutor {
         let resp = self
             .client
             .get(job.component_url.as_str())
-            .timeout(Duration::from_millis(job.time_out as u64))
+            .timeout(Duration::from_millis(job.timeout as u64))
             .send()
             .await
             .map_err(|err| CallPingError::SendError(format!("{}", err)))?;
@@ -59,7 +59,7 @@ impl PingExecutor {
         let response_time = now.elapsed();
 
         let ping_result = PingResponse {
-            response_time: response_time.as_millis(),
+            response_time: response_time.as_millis() as i64,
             response_body,
             http_code,
             error_code: 0,
