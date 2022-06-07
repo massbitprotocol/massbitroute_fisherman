@@ -5,6 +5,7 @@ pub mod generator;
 pub mod ping;
 
 use crate::job_manage::JobRole;
+use crate::Timestamp;
 pub use executor::get_eth_executors;
 use log::{error, info};
 use serde::de::DeserializeOwned;
@@ -16,6 +17,7 @@ use std::iter::Map;
 const DEFAULT_KEY: &str = "default";
 const VERIFICATION_KEY: &str = "verification";
 const FISHERMAN_KEY: &str = "fisherman";
+
 pub trait LoadConfig<T: DeserializeOwned + Default + Debug> {
     fn load_config(path: &str, role: &JobRole) -> T {
         let json = std::fs::read_to_string(path).unwrap();
@@ -31,4 +33,11 @@ pub trait LoadConfig<T: DeserializeOwned + Default + Debug> {
         info!("Loaded config: {:#?} for role: {:?}", default_config, role);
         default_config
     }
+}
+
+fn get_current_time() -> Timestamp {
+    std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .expect("Unix time doesn't go backwards; qed")
+        .as_millis()
 }

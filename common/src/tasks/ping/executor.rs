@@ -1,19 +1,23 @@
 use crate::job_manage::{Job, JobPingResult, JobResult, PingResponse};
 use crate::logger::helper::message;
 use crate::tasks::executor::TaskExecutor;
+use crate::tasks::get_current_time;
 use crate::tasks::ping::CallPingError;
 use crate::{task_spawn, Timestamp};
 use anyhow::Error;
 use async_trait::async_trait;
 use log::{debug, info};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fmt::format;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct PingExecutor {}
+#[derive(Clone, Debug, Default)]
+pub struct PingExecutor {
+    client: Client,
+}
 
 impl PingResponse {
     pub fn new_error(error_code: u32, message: &str) -> Self {
@@ -29,19 +33,20 @@ impl PingResponse {
 
 impl PingExecutor {
     pub fn new() -> Self {
-        PingExecutor {}
+        PingExecutor {
+            client: reqwest::Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .unwrap(),
+        }
     }
     pub async fn call_ping(&self, job: &Job) -> Result<PingResponse, CallPingError> {
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .timeout(Duration::from_millis(job.time_out as u64))
-            .build()
-            .map_err(|err| CallPingError::BuildError(format!("{}", err)))?;
-
         // Measure response_time
         let now = Instant::now();
-        let resp = client
+        let resp = self
+            .client
             .get(job.component_url.as_str())
+            .timeout(Duration::from_millis(job.time_out as u64))
             .send()
             .await
             .map_err(|err| CallPingError::SendError(format!("{}", err)))?;
@@ -70,35 +75,26 @@ impl TaskExecutor for PingExecutor {
         debug!("TaskPing execute for job {:?}", &job);
         let executor = self.clone();
         let job = job.clone();
-        task_spawn::spawn(async move {
-            let mut responses = Vec::new();
-            for count in 0..job.repeat_number {
-                info!("** Do ping {} **", count);
-                let res = executor.call_ping(&job).await;
-                info!("Ping result {:?}", res);
-                let res = match res {
-                    Ok(res) => res,
-                    Err(err) => err.into(),
-                };
-                responses.push(res);
-                sleep(Duration::from_millis(job.interval as u64));
-            }
-
-            let ping_result = JobPingResult {
-                job,
-                response_timestamp: get_current_time(),
-                responses,
+        let mut responses = Vec::new();
+        for count in 0..job.repeat_number {
+            info!("** Do ping {} **", count);
+            let res = executor.call_ping(&job).await;
+            info!("Ping result {:?}", res);
+            let res = match res {
+                Ok(res) => res,
+                Err(err) => err.into(),
             };
-            let res = sender.send(JobResult::Ping(ping_result)).await;
-            debug!("send res: {:?}", res);
-        });
+            responses.push(res);
+            sleep(Duration::from_millis(job.interval as u64));
+        }
+
+        let ping_result = JobPingResult {
+            job,
+            response_timestamp: get_current_time(),
+            responses,
+        };
+        let res = sender.send(JobResult::Ping(ping_result)).await;
+        debug!("send res: {:?}", res);
         Ok(())
     }
-}
-
-fn get_current_time() -> Timestamp {
-    std::time::SystemTime::now()
-        .duration_since(std::time::SystemTime::UNIX_EPOCH)
-        .expect("Unix time doesn't go backwards; qed")
-        .as_millis()
 }
