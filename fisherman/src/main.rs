@@ -37,7 +37,10 @@ async fn main() {
         worker_id,
     }) = try_register().await
     {
-        log::info!("Successfully register worker {:?}", &worker_id);
+        info!(
+            "Successfully register worker {}, report_callback: {}",
+            &worker_id, report_callback
+        );
         let (sender, mut receiver): (Sender<JobResult>, Receiver<JobResult>) = channel(1024);
         let job_buffer = Arc::new(Mutex::new(JobBuffer::new()));
         let mut reporter = JobResultReporter::new(receiver, report_callback);
@@ -100,7 +103,7 @@ async fn try_register() -> Result<WorkerRegisterResult, anyhow::Error> {
     );
     let body = serde_json::to_string(&worker_info)?;
     loop {
-        let scheduler_url = SCHEDULER_ENDPOINT.as_str();
+        let scheduler_url = format!("{}/worker/register", SCHEDULER_ENDPOINT.as_str());
         let clone_client = client.clone();
         let clone_body = body.clone();
         debug!("Register worker to scheduler {}", scheduler_url);
@@ -108,8 +111,13 @@ async fn try_register() -> Result<WorkerRegisterResult, anyhow::Error> {
             .post(scheduler_url)
             .header("content-type", "application/json")
             .body(clone_body);
-        debug!("request_builder: {:?}", request_builder);
-        let response = request_builder.send().await?;
+        debug!("Register worker request builder: {:?}", request_builder);
+        let response = request_builder.send().await;
+        if response.is_err() {
+            sleep(Duration::from_millis(2000));
+            continue;
+        }
+        let response = response.unwrap();
         match response.status() {
             StatusCode::OK => match response.json::<WorkerRegisterResult>().await {
                 Ok(parsed) => return Ok(parsed),
@@ -128,7 +136,7 @@ async fn try_register() -> Result<WorkerRegisterResult, anyhow::Error> {
                 }
             }
         }
-        sleep(Duration::from_millis(1000));
+        sleep(Duration::from_millis(2000));
     }
     Err(anyhow!("Cannot register worker"))
 }

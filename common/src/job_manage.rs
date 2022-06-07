@@ -10,6 +10,7 @@ use tokio::time::{sleep, Duration};
 use crate::component::ComponentInfo;
 use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
+use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::ping::CallPingError;
 use crate::{BlockChainType, ComponentId, JobId, NetworkType};
 use serde::{Deserialize, Serialize};
@@ -147,13 +148,7 @@ pub struct PingResponse {
 
 impl From<CallPingError> for PingResponse {
     fn from(error: CallPingError) -> Self {
-        let message = match error.clone() {
-            CallPingError::BuildError(message)
-            | CallPingError::SendError(message)
-            | CallPingError::GetBodyError(message) => message.to_string(),
-        };
-        let error_code = error;
-        PingResponse::new_error(error_code.get_code(), message.as_str())
+        PingResponse::new_error(error.get_code(), error.get_message().as_str())
     }
 }
 
@@ -167,12 +162,25 @@ pub struct JobCompoundResult {
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobBenchmarkResult {
-    job: Job,
-    response_timestamp: Timestamp, //Time to get response
-    request_rate: f32,
-    transfer_rate: f32,   //KB
-    average_latency: f32, //In ms
-    histograms: HashMap<u32, f32>,
+    pub job: Job,
+    pub response_timestamp: Timestamp, //Time to get response
+    pub responses: BenchmarkResponse,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct BenchmarkResponse {
+    pub request_rate: f32,
+    pub transfer_rate: f32,   //KB
+    pub average_latency: f32, //In ms
+    pub histograms: HashMap<u32, f32>,
+    pub error_code: u32,
+    pub message: String,
+}
+
+impl From<CallBenchmarkError> for BenchmarkResponse {
+    fn from(error: CallBenchmarkError) -> Self {
+        BenchmarkResponse::new_error(error.get_code(), error.get_message().as_str())
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -262,4 +270,25 @@ pub struct Config {
     pub gateway_response_time_threshold_ms: f32,
     pub accepted_low_latency_percent: f32,
     pub skip_benchmark: bool,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum JobRole {
+    Verification,
+    Fisherman,
+}
+
+impl Default for JobRole {
+    fn default() -> Self {
+        JobRole::Verification
+    }
+}
+
+impl ToString for JobRole {
+    fn to_string(&self) -> String {
+        match self {
+            JobRole::Verification => "verification".to_string(),
+            JobRole::Fisherman => "fisherman".to_string(),
+        }
+    }
 }
