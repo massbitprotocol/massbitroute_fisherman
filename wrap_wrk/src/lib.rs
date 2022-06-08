@@ -18,10 +18,10 @@ pub struct DetailedPercentileSpectrum {
 
 impl WrkBenchmark {
     pub fn build(
-        thread: i32,
-        connection: i32,
+        thread: u32,
+        connection: u32,
         duration: String,
-        rate: i32,
+        rate: u32,
         dapi_url: String,
         token: String,
         host: String,
@@ -41,10 +41,15 @@ impl WrkBenchmark {
             script,
             wrk_path,
             current_dir,
-            latency_threshold_ms: latency_threshold_ms,
+            latency_threshold_ms,
         }
     }
-    pub fn run(&mut self,provider_type: &String,path: &String, chain_type: &String) -> Result<WrkReport, Error> {
+    pub fn run(
+        &mut self,
+        provider_type: &String,
+        path: &String,
+        chain_type: &String,
+    ) -> Result<String, Error> {
         info!("current_dir: {}", self.current_dir);
         info!("wrk_path: {}", self.wrk_path);
         info!("script: {}", self.script);
@@ -73,6 +78,7 @@ impl WrkBenchmark {
         info!("stdout: {}", stdout);
         info!("stderr: {}", stderr);
 
+        Ok(stdout)
         //         let stdout = "thread addr: 34.142.136.135:443
         // thread addr: 34.142.136.135:443
         // thread addr: 34.142.136.135:443
@@ -165,7 +171,7 @@ impl WrkBenchmark {
         //         .to_string();
 
         //assert!(output.status.success());
-        self.get_report(&stdout, 500f32)
+        //self.get_report(&stdout, 500f32)
     }
 
     fn parse_string_duration(time: &String) -> Option<Duration> {
@@ -376,10 +382,10 @@ impl WrkBenchmark {
 
 #[derive(Clone, Debug, Default)]
 pub struct WrkBenchmark {
-    thread: i32,
-    connection: i32,
+    thread: u32,
+    connection: u32,
     duration: String,
-    rate: i32,
+    rate: u32,
     dapi_url: String,
     token: String,
     host: String,

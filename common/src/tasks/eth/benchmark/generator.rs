@@ -3,41 +3,65 @@
  */
 
 use crate::component::ComponentInfo;
-use crate::job_manage::Job;
+use crate::job_manage::{Job, JobBenchmark, JobDetail, JobRole};
 use crate::tasks::generator::TaskApplicant;
-use crate::{Gateway, Node};
+use crate::tasks::LoadConfig;
+use crate::Timestamp;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-pub struct NodeBenchmark {}
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct BenchmarkGenerator {
+    config: BenchmarkConfig,
+}
 
-impl NodeBenchmark {
-    pub fn new() -> Self {
-        NodeBenchmark {}
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+struct BenchmarkConfig {
+    benchmark_thread: u32,
+    benchmark_connection: u32,
+    benchmark_duration: Timestamp,
+    benchmark_rate: u32,
+    script: String,
+    histograms: Vec<u32>,
+}
+
+impl LoadConfig<BenchmarkConfig> for BenchmarkConfig {}
+
+impl BenchmarkGenerator {
+    pub fn new(config_dir: &str, role: &JobRole) -> Self {
+        BenchmarkGenerator {
+            config: BenchmarkConfig::load_config(
+                format!("{}/benchmark.json", config_dir).as_str(),
+                role,
+            ),
+        }
+    }
+    pub fn get_url(&self, component: &ComponentInfo) -> String {
+        format!("https://{}/_ping", component.ip)
     }
 }
-impl TaskApplicant for NodeBenchmark {
+impl TaskApplicant for BenchmarkGenerator {
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }
 
-    fn apply(&self, node: &Node) -> Result<Vec<Job>, anyhow::Error> {
-        Ok(Vec::new())
-    }
-}
-
-pub struct GatewayBenchmark {}
-
-impl GatewayBenchmark {
-    pub fn new() -> Self {
-        GatewayBenchmark {}
-    }
-}
-impl TaskApplicant for GatewayBenchmark {
-    fn can_apply(&self, component: &ComponentInfo) -> bool {
-        true
-    }
-
-    fn apply(&self, gateway: &Gateway) -> Result<Vec<Job>, anyhow::Error> {
-        Ok(Vec::new())
+    fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error> {
+        log::debug!("TaskPing apply for component {:?}", component);
+        let job_benchmark = JobBenchmark {
+            component_type: component.component_type.clone(),
+            chain_type: component.blockchain.clone(),
+            connection: self.config.benchmark_connection,
+            thread: self.config.benchmark_thread,
+            rate: self.config.benchmark_rate,
+            duration: self.config.benchmark_duration,
+            script: self.config.script.clone(),
+            histograms: self.config.histograms.clone(),
+        };
+        let mut job = Job::new(JobDetail::Benchmark(job_benchmark));
+        job.component_url = self.get_url(component);
+        job.time_out = Default::default();
+        job.repeat_number = Default::default();
+        let vec = vec![job];
+        Ok(vec)
     }
 }
