@@ -24,9 +24,12 @@ impl From<&Job> for jobs::ActiveModel {
             job_id: Set(job.job_id.to_owned()),
             component_id: Set(job.component_id.to_owned()),
             priority: Set(job.priority),
-            expected_runtime: Set(job.expected_runtime),
+            expected_runtime: Set(job.expected_runtime as i64),
             parallelable: Set(job.parallelable),
-            timeout: Set(job.timeout),
+            timeout: Set(job.timeout as i64),
+            //job_detail: Set(job
+            //    .job_detail
+            //    .map(|detail| serde_json::to_value(detail).ok())),
             ..Default::default()
         }
     }

@@ -41,8 +41,8 @@ pub struct Job {
     pub parallelable: bool,          //Job can be executed parallel with other jobs
     pub timeout: Timestamp,
     pub component_url: Url,
-    pub repeat_number: i32,
-    pub interval: Timestamp,
+    pub repeat_number: i32,  //0-don't repeat
+    pub interval: Timestamp, //
     pub header: HashMap<String, String>,
     pub job_detail: Option<JobDetail>,
 }
@@ -53,16 +53,20 @@ impl From<&Job> for reqwest::Body {
     }
 }
 impl Job {
-    pub fn new(job_detail: JobDetail) -> Self {
+    pub fn new(component: &ComponentInfo, job_detail: JobDetail) -> Self {
         let uuid = Uuid::new_v4();
         Job {
             job_id: uuid.to_string(),
+            component_id: component.id.clone(),
             priority: 1,
-            repeat_number: 1,
+            expected_runtime: 0,
+            repeat_number: 0,
             timeout: DEFAULT_JOB_TIMEOUT,
             interval: DEFAULT_JOB_INTERVAL,
+            header: Default::default(),
             job_detail: Some(job_detail),
-            ..Default::default()
+            parallelable: false,
+            component_url: "".to_string(),
         }
     }
 }
@@ -182,7 +186,7 @@ impl JobResult {
         let current_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
-            .as_millis() as i64;
+            .as_millis();
         match job.job_detail.as_ref().unwrap() {
             JobDetail::Ping(_) => JobResult::Ping(JobPingResult {
                 job: job.clone(),
