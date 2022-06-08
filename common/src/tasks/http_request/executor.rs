@@ -48,7 +48,7 @@ impl RpcRequestExecutor {
         let response_time = now.elapsed();
 
         let ping_result = JobRpcResponse {
-            response_time: response_time.as_millis(),
+            response_time: response_time.as_millis() as i64,
             response_body,
             http_code,
             error_code: 0,

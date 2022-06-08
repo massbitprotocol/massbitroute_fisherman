@@ -191,12 +191,12 @@ impl JobResult {
             }),
             JobDetail::Compound(_) => JobResult::Compound(JobCompoundResult {
                 job: job.clone(),
-                response_timestamp: current_timestamp,
+                response_timestamp: current_timestamp as i64,
                 ..Default::default()
             }),
             JobDetail::Benchmark(_) => JobResult::Benchmark(JobBenchmarkResult {
                 job: job.clone(),
-                response_timestamp: current_timestamp,
+                response_timestamp: current_timestamp as i64,
                 ..Default::default()
             }),
         }
