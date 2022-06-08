@@ -1,8 +1,9 @@
-use crate::job_manage::{Job, JobDetail, JobResult};
+use crate::job_manage::{Job, JobResult};
 use crate::logger::helper::message;
 use crate::task_spawn;
 use crate::tasks::executor::TaskExecutor;
-use crate::tasks::ping::{CallPingError, JobPingResult, PingResponse};
+use crate::tasks::ping::{CallPingError, JobPingResult};
+use crate::tasks::rpc_request::{JobRpcResponse, JobRpcResult, RpcRequestError};
 use crate::util::get_current_time;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -15,20 +16,20 @@ use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 
 #[derive(Clone, Debug, Default)]
-pub struct PingExecutor {
+pub struct RpcRequestExecutor {
     client: Client,
 }
 
-impl PingExecutor {
+impl RpcRequestExecutor {
     pub fn new() -> Self {
-        PingExecutor {
+        RpcRequestExecutor {
             client: reqwest::Client::builder()
                 .danger_accept_invalid_certs(true)
                 .build()
                 .unwrap(),
         }
     }
-    pub async fn call_ping(&self, job: &Job) -> Result<PingResponse, CallPingError> {
+    pub async fn call_ping(&self, job: &Job) -> Result<JobRpcResponse, RpcRequestError> {
         // Measure response_time
         let now = Instant::now();
         let resp = self
@@ -37,16 +38,16 @@ impl PingExecutor {
             .timeout(Duration::from_millis(job.timeout as u64))
             .send()
             .await
-            .map_err(|err| CallPingError::SendError(format!("{}", err)))?;
+            .map_err(|err| RpcRequestError::SendError(format!("{}", err)))?;
         let http_code = resp.status().as_u16();
         let response_body = resp
             .text()
             .await
-            .map_err(|err| CallPingError::GetBodyError(format!("{}", err)))?;
+            .map_err(|err| RpcRequestError::GetBodyError(format!("{}", err)))?;
 
         let response_time = now.elapsed();
 
-        let ping_result = PingResponse {
+        let ping_result = JobRpcResponse {
             response_time: response_time.as_millis(),
             response_body,
             http_code,
@@ -58,7 +59,7 @@ impl PingExecutor {
 }
 
 #[async_trait]
-impl TaskExecutor for PingExecutor {
+impl TaskExecutor for RpcRequestExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         debug!("TaskPing execute for job {:?}", &job);
         let res = self.call_ping(job).await;
@@ -66,24 +67,18 @@ impl TaskExecutor for PingExecutor {
             Ok(res) => res,
             Err(err) => err.into(),
         };
-        debug!("Ping result {:?}", &response);
-        let ping_result = JobPingResult {
+        debug!("Rpc result {:?}", &response);
+        let result = JobRpcResult {
             job: job.clone(),
             //response_timestamp: get_current_time(),
             response,
         };
-        let res = result_sender.send(JobResult::Ping(ping_result)).await;
+        let res = result_sender.send(JobResult::RpcRequest(result)).await;
         debug!("send res: {:?}", res);
-
         Ok(())
     }
+
     fn can_apply(&self, job: &Job) -> bool {
-        return match job.job_detail.as_ref() {
-            None => false,
-            Some(job_detail) => match job_detail {
-                JobDetail::Ping(_) => true,
-                _ => false,
-            },
-        };
+        true
     }
 }

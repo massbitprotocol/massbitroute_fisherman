@@ -1,0 +1,34 @@
+{
+  "default": {
+    "name": "http_request",
+    "phase": ["verification", "regular"],
+    "url_template": "",
+    "method": "get",
+    "headers": {},
+    "body": ""
+  },
+  "tasks": [
+    {
+      "name": "ping",
+      "request_type": "http",
+      "http_method": "get",
+      "url_template": "https://{{component_ip}}/_ping"
+    },
+    {
+      "name": "latest_block",
+      "type": "rpc",
+      "http_method": "post",
+      "url_template": "https://{{component_ip}}/",
+      "headers": {},
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "eth_getBlockByNumber",
+        "params": [
+          "latest",
+          true
+        ],
+        "id": 1
+      }
+    }
+  ]
+}

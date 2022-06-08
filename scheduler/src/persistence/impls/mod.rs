@@ -1,8 +1,9 @@
 use crate::persistence::seaorm::{jobs, workers};
-use common::job_manage::Job;
+use common::job_manage::{Job, JobDetail};
 use common::worker::WorkerInfo;
 use core::default::Default;
 use sea_orm::ActiveValue::Set;
+use serde_json::{Error, Value};
 
 impl From<&WorkerInfo> for workers::ActiveModel {
     fn from(worker: &WorkerInfo) -> Self {
@@ -20,16 +21,22 @@ impl From<&WorkerInfo> for workers::ActiveModel {
 
 impl From<&Job> for jobs::ActiveModel {
     fn from(job: &Job) -> Self {
+        let job_detail = match &job.job_detail {
+            None => None,
+            Some(detail) => match serde_json::to_value(detail) {
+                Ok(value) => Some(value),
+                Err(_) => None,
+            },
+        };
         jobs::ActiveModel {
             job_id: Set(job.job_id.to_owned()),
+            job_name: Set(job.job_name.to_owned()),
             component_id: Set(job.component_id.to_owned()),
             priority: Set(job.priority),
             expected_runtime: Set(job.expected_runtime as i64),
             parallelable: Set(job.parallelable),
             timeout: Set(job.timeout as i64),
-            //job_detail: Set(job
-            //    .job_detail
-            //    .map(|detail| serde_json::to_value(detail).ok())),
+            job_detail: Set(job_detail),
             ..Default::default()
         }
     }

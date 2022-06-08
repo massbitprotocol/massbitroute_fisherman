@@ -10,8 +10,12 @@ use tokio::time::{sleep, Duration};
 use crate::component::{ComponentInfo, ComponentType};
 use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
+use crate::tasks::command::{JobCommand, JobCommandResponse, JobCommandResult};
+use crate::tasks::compound::JobCompound;
 use crate::tasks::eth::CallBenchmarkError;
-use crate::tasks::ping::CallPingError;
+use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
+use crate::tasks::ping::{CallPingError, JobPingResult};
+use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
 use crate::{BlockChainType, ComponentId, JobId, NetworkType, Timestamp};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
@@ -35,6 +39,7 @@ pub enum JobType {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Job {
     pub job_id: JobId,
+    pub job_name: String,
     pub component_id: ComponentId,
     pub priority: i32,               //Fist priority is 1
     pub expected_runtime: Timestamp, //timestamp in millisecond Default 0, job is executed if only expected_runtime <= current timestamp
@@ -53,10 +58,11 @@ impl From<&Job> for reqwest::Body {
     }
 }
 impl Job {
-    pub fn new(component: &ComponentInfo, job_detail: JobDetail) -> Self {
+    pub fn new(job_name: String, component: &ComponentInfo, job_detail: JobDetail) -> Self {
         let uuid = Uuid::new_v4();
         Job {
             job_id: uuid.to_string(),
+            job_name,
             component_id: component.id.clone(),
             priority: 1,
             expected_runtime: 0,
@@ -83,12 +89,6 @@ pub struct JobCancel {
 pub struct JobPing {}
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct JobCompound {
-    pub check_steps: Vec<CheckStep>,
-    pub base_endpoints: HashMap<BlockChainType, HashMap<NetworkType, Vec<EndpointInfo>>>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobBenchmark {
     pub component_type: ComponentType,
     pub chain_type: BlockChainType,
@@ -108,27 +108,6 @@ pub struct JobCancelResult {
      */
     job_id: JobId,
     status: String,
-}
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct JobPingResult {
-    pub job: Job,
-    //pub response_timestamp: Timestamp, //Time to get response
-    pub response: PingResponse,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct PingResponse {
-    pub response_time: Timestamp,
-    pub response_body: String,
-    pub http_code: u16,
-    pub error_code: u32,
-    pub message: String,
-}
-
-impl From<CallPingError> for PingResponse {
-    fn from(error: CallPingError) -> Self {
-        PingResponse::new_error(error.get_code(), error.get_message().as_str())
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -164,16 +143,22 @@ impl From<CallBenchmarkError> for BenchmarkResponse {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum JobDetail {
-    // perform ping check
-    Ping(JobPing),
+    HttpRequest(JobHttpRequest),
+    RpcRequest(JobRpcRequest),
+    Command(JobCommand),
     // Perform some request to node/gateway
     Compound(JobCompound),
+    // perform ping check
+    Ping(JobPing),
     // perform benchmark checking
     Benchmark(JobBenchmark),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum JobResult {
+    HttpRequest(JobHttpResult),
+    RpcRequest(JobRpcResult),
+    Command(JobCommandResult),
     // perform ping check
     Ping(JobPingResult),
     // Perform some request to node/gateway
@@ -189,6 +174,16 @@ impl JobResult {
             .expect("Time went backwards")
             .as_millis();
         match job.job_detail.as_ref().unwrap() {
+            JobDetail::HttpRequest(rpc) => {
+                JobResult::HttpRequest(JobHttpResult::new(job.clone(), JobHttpResponse::default()))
+            }
+            JobDetail::RpcRequest(rpc) => {
+                JobResult::RpcRequest(JobRpcResult::new(job.clone(), JobRpcResponse::default()))
+            }
+            JobDetail::Command(rpc) => JobResult::Command(JobCommandResult::new(
+                job.clone(),
+                JobCommandResponse::default(),
+            )),
             JobDetail::Ping(_) => JobResult::Ping(JobPingResult {
                 job: job.clone(),
                 //response_timestamp: current_timestamp,

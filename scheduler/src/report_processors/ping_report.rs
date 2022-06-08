@@ -1,6 +1,6 @@
 use crate::report_processors::adapters::{get_report_adapters, Appender};
 use crate::report_processors::ReportProcessor;
-use common::job_manage::{JobPingResult, JobResult};
+use common::job_manage::JobResult;
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use std::sync::Arc;
