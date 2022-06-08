@@ -4,7 +4,8 @@ use crate::job_manage::{
 use crate::logger::helper::message;
 use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::executor::TaskExecutor;
-use crate::{task_spawn, Timestamp, BENCHMARK_WRK_PATH};
+use crate::util::get_current_time;
+use crate::{task_spawn, Timestamp};
 use anyhow::Error;
 use async_trait::async_trait;
 use bytesize::ByteSize;
@@ -21,11 +22,11 @@ use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
 use wrap_wrk::{WrkBenchmark, WrkReport};
 
-const WRK_NAME: &str = "wrk";
+const WRK_NAME: &str = "./wrk";
 
 #[derive(Clone, Debug, Default)]
 pub struct BenchmarkExecutor {
-    client: Client,
+    benchmark_wrk_path: String,
 }
 
 #[derive(Debug)]
@@ -49,9 +50,9 @@ impl BenchmarkResponse {
 }
 
 impl BenchmarkExecutor {
-    pub fn new() -> Self {
+    pub fn new(benchmark_wrk_path: &str) -> Self {
         BenchmarkExecutor {
-            client: Default::default(),
+            benchmark_wrk_path: benchmark_wrk_path.to_string(),
         }
     }
     pub async fn call_benchmark(&self, job: &Job) -> Result<BenchmarkResponse, CallBenchmarkError> {
@@ -84,8 +85,9 @@ impl BenchmarkExecutor {
                     chain_type,
                     component_type,
                     histograms,
+                    url_path,
                 } = job_detail;
-                let duration = format!("{}ms", duration);
+                let duration = format!("{}s", duration / 1000u128);
                 let mut benchmark = WrkBenchmark::build(
                     thread,
                     connection,
@@ -96,12 +98,11 @@ impl BenchmarkExecutor {
                     host.clone(),
                     script,
                     WRK_NAME.to_string(),
-                    BENCHMARK_WRK_PATH.clone().to_string(),
+                    self.benchmark_wrk_path.clone(),
                     Default::default(),
                 );
 
-                let stdout =
-                    benchmark.run(&component_type.to_string(), &"".to_string(), &chain_type);
+                let stdout = benchmark.run(&component_type.to_string(), &url_path, &chain_type);
                 if let Ok(stdout) = stdout {
                     return self
                         .get_result(&stdout, &histograms)
@@ -238,16 +239,33 @@ impl BenchmarkExecutor {
 
 #[async_trait]
 impl TaskExecutor for BenchmarkExecutor {
-    async fn execute(
-        &self,
-        job: &Job,
-        result_sender: Sender<JobResult>,
-        newjob_sender: Sender<Job>,
-    ) -> Result<(), Error> {
+    async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         debug!("TaskBenchmark execute for job {:?}", &job);
-        let executor = self.clone();
-        let job = job.clone();
+        let res = self.call_benchmark(job).await;
+        let response = match res {
+            Ok(res) => res,
+            Err(err) => err.into(),
+        };
+        let current_time = get_current_time();
+        debug!("Benchmark result {:?}", &response);
+        // Send result
+        let result = JobBenchmarkResult {
+            job: job.clone(),
+            response_timestamp: current_time,
+            responses: response,
+        };
+        let res = result_sender.send(JobResult::Benchmark(result)).await;
+        debug!("send res: {:?}", res);
 
         Ok(())
+    }
+    fn can_apply(&self, job: &Job) -> bool {
+        return match job.job_detail.as_ref() {
+            None => false,
+            Some(job_detail) => match job_detail {
+                JobDetail::Benchmark(_) => true,
+                _ => false,
+            },
+        };
     }
 }
