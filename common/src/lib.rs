@@ -19,7 +19,7 @@ pub type WorkerId = String;
 pub type IPAddress = String;
 pub type Node = ComponentInfo;
 pub type Gateway = ComponentInfo;
-pub type Timestamp = u128; //Store as second
+pub type Timestamp = i64; //Store as second
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;
 pub use std::env;

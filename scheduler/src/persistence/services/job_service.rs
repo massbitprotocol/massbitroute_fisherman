@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use common::component::Zone;
 use common::job_manage::Job;
 use common::worker::WorkerInfo;
-use log::{error, log};
+use log::{debug, error, log};
 use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use std::str::FromStr;
@@ -24,6 +24,8 @@ impl JobService {
             .map(|job| jobs::ActiveModel::from(job))
             .collect::<Vec<jobs::ActiveModel>>();
         let length = records.len();
+        debug!("save_jobs records:{:?}", records);
+
         match jobs::Entity::insert_many(records)
             .exec(self.db.as_ref())
             .await
