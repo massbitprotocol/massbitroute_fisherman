@@ -98,6 +98,7 @@ pub struct JobBenchmark {
     pub duration: Timestamp,  // Time to perform benchmark in ms
     pub script: String,       // Name of .lua script
     pub histograms: Vec<u32>, // List of expected percentile,
+    pub url_path: String,     // URL path for benchmark
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]

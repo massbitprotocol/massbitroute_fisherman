@@ -1,4 +1,4 @@
-use crate::job_manage::{Job, JobResult};
+use crate::job_manage::{Job, JobDetail, JobResult};
 use crate::logger::helper::message;
 use crate::task_spawn;
 use crate::tasks::executor::TaskExecutor;
@@ -59,12 +59,7 @@ impl PingExecutor {
 
 #[async_trait]
 impl TaskExecutor for PingExecutor {
-    async fn execute(
-        &self,
-        job: &Job,
-        result_sender: Sender<JobResult>,
-        newjob_sender: Sender<Job>,
-    ) -> Result<(), Error> {
+    async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         debug!("TaskPing execute for job {:?}", &job);
         let res = self.call_ping(job).await;
         let response = match res {
@@ -79,12 +74,16 @@ impl TaskExecutor for PingExecutor {
         };
         let res = result_sender.send(JobResult::Ping(ping_result)).await;
         debug!("send res: {:?}", res);
-        let mut job = job.clone();
-        if job.repeat_number > 0 {
-            job.expected_runtime = get_current_time() + job.interval;
-            job.repeat_number = job.repeat_number - 1;
-            newjob_sender.send(job).await;
-        }
+
         Ok(())
+    }
+    fn can_apply(&self, job: &Job) -> bool {
+        return match job.job_detail.as_ref() {
+            None => false,
+            Some(job_detail) => match job_detail {
+                JobDetail::Ping(_) => true,
+                _ => false,
+            },
+        };
     }
 }

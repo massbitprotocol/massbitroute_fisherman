@@ -60,12 +60,7 @@ impl RpcRequestExecutor {
 
 #[async_trait]
 impl TaskExecutor for RpcRequestExecutor {
-    async fn execute(
-        &self,
-        job: &Job,
-        result_sender: Sender<JobResult>,
-        newjob_sender: Sender<Job>,
-    ) -> Result<(), Error> {
+    async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         debug!("TaskPing execute for job {:?}", &job);
         let res = self.call_ping(job).await;
         let response = match res {
@@ -81,5 +76,9 @@ impl TaskExecutor for RpcRequestExecutor {
         let res = result_sender.send(JobResult::RpcRequest(result)).await;
         debug!("send res: {:?}", res);
         Ok(())
+    }
+
+    fn can_apply(&self, job: &Job) -> bool {
+        true
     }
 }

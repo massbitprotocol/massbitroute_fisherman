@@ -2,10 +2,11 @@
   "default": {
     "benchmark_thread": 5,
     "benchmark_connection": 5,
-    "benchmark_duration": 20000,
+    "benchmark_duration": 15000,
     "benchmark_rate": 80,
     "script": "massbit.lua",
-    "histograms": [90,95,99,100]
+    "histograms": [90,95,99,100],
+    "url_path":"/ping"
   },
   "fisherman": {
     "benchmark_thread": 5,
@@ -13,6 +14,7 @@
     "benchmark_duration": 15000,
     "benchmark_rate": 50,
     "script": "massbit.lua",
-    "histograms": [90,95,99,100]
+    "histograms": [90,95,99,100],
+    "url_path":"/ping"
   }
 }

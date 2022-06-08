@@ -92,10 +92,10 @@ struct HttpRequestJobConfig {
     body: serde_json::Value,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+/*#[derive(Clone, Serialize, Deserialize, Debug, Default)]
 struct HttpRequestGeneratorConfig {
     #[serde(with = "serde_with::json::nested")]
     tasks: Vec<HttpRequestJobConfig>,
     #[serde(default)]
     default: HttpRequestJobConfig,
-}
+}*/

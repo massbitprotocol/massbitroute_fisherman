@@ -53,6 +53,8 @@ impl WrkBenchmark {
         info!("current_dir: {}", self.current_dir);
         info!("wrk_path: {}", self.wrk_path);
         info!("script: {}", self.script);
+        info!("dapi_url: {}", self.dapi_url);
+        info!("path: {}", path);
         let output = Command::new(&self.wrk_path)
             .current_dir(&self.current_dir)
             .arg(format!("--latency"))

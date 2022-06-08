@@ -1,5 +1,7 @@
 use crate::models::job::JobBuffer;
-use crate::{JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD};
+use crate::{
+    BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
+};
 use common::job_manage::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
 use common::tasks::get_executors;
@@ -27,7 +29,7 @@ pub struct JobExecution {
 
 impl JobExecution {
     pub fn new(result_sender: Sender<JobResult>, job_buffers: Arc<Mutex<JobBuffer>>) -> Self {
-        let executors = get_executors();
+        let executors = get_executors(BENCHMARK_WRK_PATH.as_str());
         let (job_sender, mut job_receiver): (Sender<Job>, Receiver<Job>) = channel(1024);
 
         let runtime = Builder::new_multi_thread()
@@ -55,6 +57,9 @@ impl JobExecution {
 
                 if next_job.parallelable {
                     for executor in self.executors.iter() {
+                        if !executor.can_apply(&next_job) {
+                            continue;
+                        }
                         let result_sender = self.result_sender.clone();
                         let job_sender = self.job_sender.clone();
                         let clone_executor = executor.clone();
@@ -63,9 +68,9 @@ impl JobExecution {
                         counter.fetch_add(1, Ordering::SeqCst);
                         rt_handle.spawn(async move {
                             debug!("Execute job on a worker thread");
-                            clone_executor
-                                .execute(&clone_job, result_sender, job_sender)
-                                .await;
+                            clone_executor.execute(&clone_job, result_sender).await;
+                            clone_executor.generate_new_job(&clone_job, job_sender);
+                            //Fixme: Program will hang if it panic before fetch_sub is executed.
                             counter.fetch_sub(1, Ordering::SeqCst);
                         });
                     }
@@ -75,10 +80,15 @@ impl JobExecution {
                         sleep(Duration::from_millis(*WAITING_TIME_FOR_EXECUTING_THREAD))
                     }
                     for executor in self.executors.iter() {
+                        let can_apply = executor.can_apply(&next_job);
+                        if !can_apply {
+                            continue;
+                        }
                         let result_sender = self.result_sender.clone();
                         let job_sender = self.job_sender.clone();
-                        debug!("Execute job o main execution thread");
-                        executor.execute(&next_job, result_sender, job_sender).await;
+                        debug!("Execute job on main execution thread");
+                        executor.execute(&next_job, result_sender).await;
+                        executor.generate_new_job(&next_job, job_sender).await;
                     }
                 }
             }

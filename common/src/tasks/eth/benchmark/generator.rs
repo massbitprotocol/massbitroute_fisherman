@@ -23,6 +23,7 @@ struct BenchmarkConfig {
     benchmark_rate: u32,
     script: String,
     histograms: Vec<u32>,
+    url_path: String,
 }
 
 impl LoadConfig<BenchmarkConfig> for BenchmarkConfig {}
@@ -56,6 +57,7 @@ impl TaskApplicant for BenchmarkGenerator {
             duration: self.config.benchmark_duration,
             script: self.config.script.clone(),
             histograms: self.config.histograms.clone(),
+            url_path: self.config.url_path.clone(),
         };
         let mut job = Job::new(
             String::new(),
