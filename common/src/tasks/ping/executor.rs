@@ -2,12 +2,12 @@ use crate::job_manage::{Job, JobPingResult, JobResult, PingResponse};
 use crate::logger::helper::message;
 use crate::task_spawn;
 use crate::tasks::executor::TaskExecutor;
-use crate::tasks::get_current_time;
 use crate::tasks::ping::CallPingError;
+use crate::util::get_current_time;
 use anyhow::Error;
 use async_trait::async_trait;
 use log::{debug, info};
-use reqwest::Client;
+use reqwest::{get, Client};
 use serde::{Deserialize, Serialize};
 use std::fmt::format;
 use std::time::{Duration, Instant};
@@ -59,7 +59,7 @@ impl PingExecutor {
         let response_time = now.elapsed();
 
         let ping_result = PingResponse {
-            response_time: response_time.as_millis() as i64,
+            response_time: response_time.as_millis(),
             response_body,
             http_code,
             error_code: 0,
@@ -93,6 +93,7 @@ impl TaskExecutor for PingExecutor {
         debug!("send res: {:?}", res);
         let mut job = job.clone();
         if job.repeat_number > 0 {
+            job.expected_runtime = get_current_time() + job.interval;
             job.repeat_number = job.repeat_number - 1;
             newjob_sender.send(job).await;
         }

@@ -57,10 +57,8 @@ impl TaskApplicant for BenchmarkGenerator {
             script: self.config.script.clone(),
             histograms: self.config.histograms.clone(),
         };
-        let mut job = Job::new(JobDetail::Benchmark(job_benchmark));
+        let mut job = Job::new(component, JobDetail::Benchmark(job_benchmark));
         job.component_url = self.get_url(component);
-        job.time_out = Default::default();
-        job.repeat_number = Default::default();
         let vec = vec![job];
         Ok(vec)
     }
