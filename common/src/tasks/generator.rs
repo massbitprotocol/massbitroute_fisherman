@@ -4,6 +4,7 @@
  */
 use crate::job_manage::{Job, JobRole};
 use crate::tasks::eth::*;
+use crate::tasks::http_request::HttpRequestGenerator;
 use crate::tasks::ping::generator::PingGenerator;
 use crate::ComponentInfo;
 use std::sync::Arc;
@@ -18,6 +19,9 @@ pub trait TaskApplicant: Sync + Send {
 
 pub fn get_tasks(config_dir: &str, role: JobRole) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
+    if let Ok(http_request) = HttpRequestGenerator::new(config_dir) {
+        result.push(Arc::new(http_request));
+    }
     result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
     result.push(Arc::new(TaskGWNodeConnection::new()));
     result.push(Arc::new(TaskLatestBlock::new()));

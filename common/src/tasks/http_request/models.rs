@@ -7,8 +7,12 @@ use thiserror::Error;
 pub struct JobHttpRequest {}
 
 impl JobHttpRequest {
-    pub fn get_component_url(&self, component: &ComponentInfo) -> String {
-        String::new()
+    pub fn get_component_url(
+        &self,
+        config: &HttpRequestJobConfig,
+        component: &ComponentInfo,
+    ) -> String {
+        config.url_template.clone()
     }
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -77,22 +81,25 @@ impl From<HttpRequestError> for JobHttpResponse {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-struct HttpRequestJobConfig {
+pub struct HttpRequestJobConfig {
     #[serde(default)]
-    name: String,
+    pub name: String,
     #[serde(default)]
-    request_type: String,
+    pub request_type: String,
     #[serde(default)]
-    http_method: String,
+    pub http_method: String,
     #[serde(default)]
-    phases: Vec<String>,
+    pub phases: Vec<String>,
     #[serde(default)]
-    url_template: Timestamp,
-    headers: serde_json::Map<String, serde_json::Value>,
-    body: serde_json::Value,
+    pub url_template: String,
+    #[serde(default)]
+    pub request_timeout: Timestamp,
+    pub repeat_number: i32,
+    pub headers: serde_json::Map<String, serde_json::Value>,
+    pub body: serde_json::Value,
 }
 
-/*#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+/*#[derive(Clone, Serialize, Deserialize, Debug, Defaul)]
 struct HttpRequestGeneratorConfig {
     #[serde(with = "serde_with::json::nested")]
     tasks: Vec<HttpRequestJobConfig>,

@@ -5,6 +5,7 @@
     "url_template": "",
     "method": "get",
     "headers": {},
+    "repeat_number": 0,
     "body": ""
   },
   "tasks": [
@@ -12,7 +13,9 @@
       "name": "ping",
       "request_type": "http",
       "http_method": "get",
-      "url_template": "https://{{component_ip}}/_ping"
+      "repeat_number": 10,
+      "url_template": "https://{{component_ip}}/_ping",
+      "condition" : "{{node_type}}=='node'&& blockchain=='eth'"
     },
     {
       "name": "latest_block",
