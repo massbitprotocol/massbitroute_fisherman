@@ -72,8 +72,6 @@ impl BenchmarkExecutor {
             .unwrap_or(&Default::default())
             .to_string();
         match job_detail {
-            JobDetail::Ping(_) => {}
-            JobDetail::Compound(_) => {}
             JobDetail::Benchmark(job_detail) => {
                 let JobBenchmark {
                     thread,
@@ -108,6 +106,7 @@ impl BenchmarkExecutor {
                         .map_err(|err| CallBenchmarkError::ParseResultError(format!("{:?}", err)));
                 }
             }
+            _ => {}
         }
 
         return Err(CallBenchmarkError::GetJobInfoError(format!(

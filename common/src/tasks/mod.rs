@@ -1,9 +1,12 @@
+pub mod command;
+pub mod compound;
 pub mod dot;
 pub mod eth;
 pub mod executor;
 pub mod generator;
+pub mod http_request;
 pub mod ping;
-
+pub mod rpc_request;
 use crate::job_manage::JobRole;
 use crate::Timestamp;
 pub use executor::get_executors;
