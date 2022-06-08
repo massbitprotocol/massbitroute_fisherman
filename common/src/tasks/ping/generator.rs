@@ -4,6 +4,7 @@ use crate::tasks::LoadConfig;
 use crate::{ComponentInfo, Timestamp};
 use anyhow::Error;
 use async_trait::async_trait;
+
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::vec;
@@ -33,7 +34,7 @@ struct PingConfig {
     #[serde(default)]
     ping_success_ratio_threshold: f32,
     #[serde(default)]
-    ping_sample_number: u32,
+    ping_sample_number: i32,
     #[serde(default)]
     ping_request_response: String,
     #[serde(default)]
@@ -53,7 +54,7 @@ impl TaskApplicant for PingGenerator {
         let mut job = Job::new(JobDetail::Ping(job_ping));
         job.parallelable = true;
         job.component_url = self.get_url(component);
-        job.time_out = self.config.ping_timeout_ms;
+        job.timeout = self.config.ping_timeout_ms;
         job.repeat_number = self.config.ping_sample_number;
         let vec = vec![job];
         Ok(vec)

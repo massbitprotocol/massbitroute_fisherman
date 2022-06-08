@@ -1,6 +1,7 @@
 use crate::models::jobs::{AssignmentBuffer, JobAssignment};
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::{Worker, WorkerInfoStorage};
+use crate::persistence::services::JobService;
 use crate::{CONFIG_DIR, JOB_GENERATOR_PERIOD};
 use common::component::{ComponentInfo, Zone};
 use common::job_manage::{Job, JobRole};
@@ -19,6 +20,7 @@ pub struct JobGenerator {
     worker_infos: Arc<Mutex<WorkerInfoStorage>>,
     verification_tasks: Vec<Arc<dyn TaskApplicant>>,
     regular_tasks: Vec<Arc<dyn TaskApplicant>>,
+    job_service: Arc<JobService>,
     assignments: Arc<Mutex<AssignmentBuffer>>,
 }
 
@@ -26,6 +28,7 @@ impl JobGenerator {
     pub fn new(
         providers: Arc<Mutex<ProviderStorage>>,
         worker_infos: Arc<Mutex<WorkerInfoStorage>>,
+        job_service: Arc<JobService>,
         assignments: Arc<Mutex<AssignmentBuffer>>,
     ) -> Self {
         JobGenerator {
@@ -33,6 +36,7 @@ impl JobGenerator {
             worker_infos,
             verification_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Verification),
             regular_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Fisherman),
+            job_service,
             assignments,
         }
     }
@@ -110,13 +114,15 @@ impl JobGenerator {
                 }
             }
         }
-        //Store jobs to db
-        self.store_jobs(&gen_jobs).await;
         //Distribute job to workers
         self.assign_jobs(&gen_jobs).await;
+        //Store jobs to db
+        self.store_jobs(&gen_jobs).await;
     }
     pub async fn store_jobs(&self, map_jobs: &HashMap<Zone, Vec<Job>>) {
-        for (zone, jobs) in map_jobs.iter() {}
+        for (zone, jobs) in map_jobs.iter() {
+            self.job_service.save_jobs(jobs).await;
+        }
     }
     pub async fn assign_jobs(&self, map_jobs: &HashMap<Zone, Vec<Job>>) {
         let mut assignments = Vec::default();

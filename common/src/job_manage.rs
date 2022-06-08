@@ -12,13 +12,12 @@ use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
 use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::ping::CallPingError;
-use crate::{BlockChainType, ComponentId, JobId, NetworkType};
+use crate::{BlockChainType, ComponentId, JobId, NetworkType, Timestamp};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
-type Url = String;
-type Timestamp = u128;
+pub type Url = String;
 
 const DEFAULT_JOB_INTERVAL: Timestamp = 1000;
 const DEFAULT_JOB_TIMEOUT: Timestamp = 5000;
@@ -37,38 +36,15 @@ pub enum JobType {
 pub struct Job {
     pub job_id: JobId,
     pub component_id: ComponentId,
-    pub priority: u32,          //Fist priority is 1
-    pub expected_runtime: u128, //timestamp in millisecond Default 0, job is executed if only expected_runtime <= current timestamp
-    pub parallelable: bool,     //Job can be executed parallel with other jobs
-    pub time_out: Timestamp,
-    pub start_deadline: Timestamp,
+    pub priority: i32,               //Fist priority is 1
+    pub expected_runtime: Timestamp, //timestamp in millisecond Default 0, job is executed if only expected_runtime <= current timestamp
+    pub parallelable: bool,          //Job can be executed parallel with other jobs
+    pub timeout: Timestamp,
     pub component_url: Url,
-    pub repeat_number: u32,
+    pub repeat_number: i32,
     pub interval: Timestamp,
     pub header: HashMap<String, String>,
     pub job_detail: Option<JobDetail>,
-    pub running_mode: JobRunningMode,
-    pub config: Option<Config>,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub enum JobRunningMode {
-    Endless(EndlessMode),
-    Finite(FiniteMode),
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct FiniteMode {}
-
-impl Default for JobRunningMode {
-    fn default() -> Self {
-        JobRunningMode::Finite { 0: FiniteMode {} }
-    }
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct EndlessMode {
-    report_interval: u32, // Number of results before report
 }
 
 impl From<&Job> for reqwest::Body {
@@ -83,10 +59,9 @@ impl Job {
             job_id: uuid.to_string(),
             priority: 1,
             repeat_number: 1,
-            time_out: DEFAULT_JOB_TIMEOUT,
+            timeout: DEFAULT_JOB_TIMEOUT,
             interval: DEFAULT_JOB_INTERVAL,
             job_detail: Some(job_detail),
-            running_mode: JobRunningMode::Finite(FiniteMode {}),
             ..Default::default()
         }
     }
@@ -207,7 +182,7 @@ impl JobResult {
         let current_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
-            .as_millis();
+            .as_millis() as i64;
         match job.job_detail.as_ref().unwrap() {
             JobDetail::Ping(_) => JobResult::Ping(JobPingResult {
                 job: job.clone(),

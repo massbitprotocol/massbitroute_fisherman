@@ -21,8 +21,8 @@ use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
 use scheduler::{CONNECTION_POOL_SIZE, DATABASE_URL, SCHEDULER_CONFIG, SCHEDULER_ENDPOINT};
 
-use scheduler::seaorm::get_sea_db_connection;
-use scheduler::seaorm::services::worker_service::WorkerService;
+use scheduler::persistence::services::WorkerService;
+use scheduler::persistence::services::{get_sea_db_connection, JobService};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, Mutex};
@@ -54,6 +54,7 @@ async fn main() {
     let arc_conn = Arc::new(db_conn);
     //Get worker infos
     let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
+    let job_service = Arc::new(JobService::new(arc_conn.clone()));
     let all_workers = worker_service.clone().get_active().await;
     let config = Config::load(SCHEDULER_CONFIG.as_str());
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
@@ -76,6 +77,7 @@ async fn main() {
     let mut job_generator = JobGenerator::new(
         provider_storage.clone(),
         worker_infos.clone(),
+        job_service,
         assigment_buffer.clone(),
     );
     let mut job_delivery = JobDelivery::new(worker_infos.clone(), assigment_buffer.clone());

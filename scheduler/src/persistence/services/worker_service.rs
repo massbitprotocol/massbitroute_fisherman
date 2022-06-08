@@ -1,5 +1,5 @@
-use crate::seaorm::workers;
-use crate::seaorm::workers::Model;
+use crate::persistence::seaorm::workers;
+use crate::persistence::seaorm::workers::Model;
 use anyhow::anyhow;
 use common::component::Zone;
 use common::worker::WorkerInfo;

@@ -3,7 +3,7 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "jobs")]
+#[sea_orm(table_name = "workers")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
@@ -12,6 +12,9 @@ pub struct Model {
     pub specification: Option<Json>,
     #[sea_orm(column_type = "Text", nullable)]
     pub description: Option<String>,
+    pub worker_id: String,
+    pub worker_ip: String,
+    pub active: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

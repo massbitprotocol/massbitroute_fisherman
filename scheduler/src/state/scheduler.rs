@@ -1,7 +1,7 @@
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
-use crate::seaorm::services::worker_service::WorkerService;
-use crate::seaorm::workers;
+use crate::persistence::seaorm::workers;
+use crate::persistence::services::WorkerService;
 use crate::REPORT_CALLBACK;
 use common::component::ComponentInfo;
 use common::worker::{WorkerInfo, WorkerRegisterResult};
