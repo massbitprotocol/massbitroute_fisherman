@@ -85,7 +85,7 @@ impl BenchmarkExecutor {
                     histograms,
                     url_path,
                 } = job_detail;
-                let duration = format!("{}s", duration / 1000u128);
+                let duration = format!("{}s", duration / 1000i64);
                 let mut benchmark = WrkBenchmark::build(
                     thread,
                     connection,
