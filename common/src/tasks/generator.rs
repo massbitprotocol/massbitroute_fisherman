@@ -22,7 +22,12 @@ pub fn get_tasks(config_dir: &str, role: JobRole) -> Vec<Arc<dyn TaskApplicant>>
     if let Ok(http_request) = HttpRequestGenerator::new(config_dir) {
         result.push(Arc::new(http_request));
     }
-    result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
+    match role {
+        JobRole::Verification => {
+            result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
+        }
+        _ => {}
+    }
     result.push(Arc::new(TaskGWNodeConnection::new()));
     result.push(Arc::new(TaskLatestBlock::new()));
     result.push(Arc::new(PingGenerator::new(config_dir, &role)));
