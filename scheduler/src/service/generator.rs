@@ -35,7 +35,7 @@ impl JobGenerator {
             providers,
             worker_infos,
             verification_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Verification),
-            regular_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Fisherman),
+            regular_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Regular),
             job_service,
             assignments,
         }

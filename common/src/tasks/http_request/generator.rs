@@ -1,12 +1,14 @@
 use crate::tasks::generator::TaskApplicant;
 use crate::tasks::LoadConfig;
 use crate::{ComponentInfo, Timestamp};
-use anyhow::Error;
+use anyhow::{Context, Error};
 use async_trait::async_trait;
 
 use crate::job_manage::{Job, JobDetail, JobRole};
+use crate::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use crate::tasks::rpc_request::JobRpcRequest;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Map, Value};
 use std::sync::Arc;
 use std::vec;
 use tokio::sync::mpsc::Sender;
@@ -15,53 +17,60 @@ use tokio::sync::mpsc::Sender;
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
  */
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct RpcRequestGenerator {
-    config: RpcRequestConfig,
+pub struct HttpRequestGenerator {
+    root_config: serde_json::Map<String, serde_json::Value>,
+    task_configs: Vec<HttpRequestJobConfig>,
 }
 
-impl RpcRequestGenerator {
-    pub fn new(config_dir: &str, role: &JobRole) -> Self {
-        RpcRequestGenerator {
-            config: RpcRequestConfig::load_config(
-                format!("{}/rpcrequest.json", config_dir).as_str(),
-                role,
-            ),
+impl HttpRequestGenerator {
+    pub fn new(config_dir: &str) -> Result<Self, anyhow::Error> {
+        let path = format!("{}/rpcrequest.json", config_dir);
+        let json_content = std::fs::read_to_string(path.as_str())?;
+        let mut configs: Map<String, serde_json::Value> = serde_json::from_str(&*json_content)?;
+        let mut task_configs = Vec::new();
+        let default = configs["default"].as_object().unwrap();
+        let mut tasks = configs["tasks"].as_array().unwrap();
+        for config in tasks.iter() {
+            let mut map_config = serde_json::Map::from(default.clone());
+            let mut task_config = config.as_object().unwrap().clone();
+            map_config.append(&mut task_config);
+            let value = serde_json::Value::Object(map_config);
+            println!("{:?}", &value);
+            let http_request_config: HttpRequestJobConfig = serde_json::from_value(value)?;
+            task_configs.push(http_request_config);
         }
+        Ok(HttpRequestGenerator {
+            root_config: configs,
+            task_configs,
+        })
     }
     pub fn get_url(&self, component: &ComponentInfo) -> String {
         format!("https://{}/_ping", component.ip)
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-struct RpcRequestConfig {
-    #[serde(default)]
-    ping_success_ratio_threshold: f32,
-    #[serde(default)]
-    ping_sample_number: i32,
-    #[serde(default)]
-    ping_request_response: String,
-    #[serde(default)]
-    ping_timeout_ms: Timestamp,
-}
-
-impl LoadConfig<RpcRequestConfig> for RpcRequestConfig {}
-
-impl TaskApplicant for RpcRequestGenerator {
+impl TaskApplicant for HttpRequestGenerator {
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }
 
     fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
-        log::debug!("TaskPing apply for component {:?}", component);
-        let detail = JobRpcRequest {};
-        let comp_url = detail.get_component_url(component);
-        let mut job = Job::new(String::new(), component, JobDetail::RpcRequest(detail));
-        job.parallelable = true;
-        job.component_url = comp_url;
-        job.timeout = self.config.ping_timeout_ms;
-        job.repeat_number = self.config.ping_sample_number;
-        let vec = vec![job];
-        Ok(vec)
+        log::debug!("Http Request apply for component {:?}", component);
+        let mut jobs = Vec::new();
+        for config in self.task_configs.iter() {
+            let detail = JobHttpRequest {};
+            let comp_url = detail.get_component_url(config, component);
+            let mut job = Job::new(
+                config.name.clone(),
+                component,
+                JobDetail::HttpRequest(detail),
+            );
+            job.parallelable = true;
+            job.component_url = comp_url;
+            job.timeout = config.request_timeout;
+            job.repeat_number = config.repeat_number;
+            jobs.push(job);
+        }
+        Ok(jobs)
     }
 }

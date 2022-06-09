@@ -262,7 +262,7 @@ pub struct Config {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum JobRole {
     Verification,
-    Fisherman,
+    Regular,
 }
 
 impl Default for JobRole {
@@ -275,7 +275,7 @@ impl ToString for JobRole {
     fn to_string(&self) -> String {
         match self {
             JobRole::Verification => "verification".to_string(),
-            JobRole::Fisherman => "fisherman".to_string(),
+            JobRole::Regular => "fisherman".to_string(),
         }
     }
 }

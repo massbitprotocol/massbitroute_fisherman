@@ -19,17 +19,11 @@ pub trait ReportProcessor: Sync + Send {
     fn process_jobs(&self, report: Vec<JobResult>, db_connection: Arc<DatabaseConnection>);
 }
 
-pub fn get_eth_report_processors() -> Vec<Arc<dyn ReportProcessor>> {
+pub fn get_report_processors() -> Vec<Arc<dyn ReportProcessor>> {
     let mut result: Vec<Arc<dyn ReportProcessor>> = Default::default();
     result.push(Arc::new(PingReportProcessor::new()));
     result.push(Arc::new(BenchmarkReportProcessor::new()));
     result.push(Arc::new(LatestBlockReportProcessor::new()));
     result.push(Arc::new(RandomBlockReportProcessor::new()));
-    result
-}
-
-pub fn get_dot_report_processors() -> Vec<Arc<dyn ReportProcessor>> {
-    let mut result: Vec<Arc<dyn ReportProcessor>> = Default::default();
-
     result
 }
