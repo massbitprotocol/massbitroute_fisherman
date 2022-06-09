@@ -69,7 +69,9 @@ impl JobExecution {
                         rt_handle.spawn(async move {
                             debug!("Execute job on a worker thread");
                             clone_executor.execute(&clone_job, result_sender).await;
-                            clone_executor.generate_new_job(&clone_job, job_sender);
+                            clone_executor
+                                .generate_new_job(&clone_job, job_sender)
+                                .await;
                             //Fixme: Program will hang if it panic before fetch_sub is executed.
                             counter.fetch_sub(1, Ordering::SeqCst);
                         });

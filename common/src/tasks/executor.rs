@@ -3,6 +3,7 @@ use crate::tasks::eth::benchmark::executor::BenchmarkExecutor;
 use crate::tasks::ping::executor::PingExecutor;
 use crate::util::get_current_time;
 use async_trait::async_trait;
+use log::{debug, info};
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 
@@ -18,6 +19,7 @@ pub trait TaskExecutor: Sync + Send {
         if job.repeat_number > 0 {
             job.expected_runtime = get_current_time() + job.interval;
             job.repeat_number = job.repeat_number - 1;
+            debug!("Schedule new repeat job: {:?}", job);
             newjob_sender.send(job).await;
         }
     }
