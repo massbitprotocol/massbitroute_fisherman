@@ -36,6 +36,7 @@ impl CallPingError {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobPingResult {
     pub job: Job,
+    pub worker_id: String,
     //pub response_timestamp: Timestamp, //Time to get response
     pub response: PingResponse,
 }

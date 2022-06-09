@@ -1,5 +1,6 @@
 use crate::report_processors::adapters::{get_report_adapters, Appender};
 use crate::report_processors::ReportProcessor;
+use async_trait::async_trait;
 use common::job_manage::JobResult;
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
@@ -11,11 +12,11 @@ pub struct PingReportProcessor {
 }
 
 impl PingReportProcessor {
-    pub fn new() -> Self {
-        let report_adapters = get_report_adapters();
+    pub fn new(report_adapters: Vec<Arc<dyn Appender>>) -> Self {
         PingReportProcessor { report_adapters }
     }
 }
+#[async_trait]
 impl ReportProcessor for PingReportProcessor {
     fn can_apply(&self, report: &JobResult) -> bool {
         match report {
@@ -24,19 +25,23 @@ impl ReportProcessor for PingReportProcessor {
         }
     }
 
-    fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {
+    async fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {
         todo!()
     }
 
-    fn process_jobs(&self, reports: Vec<JobResult>, db_connection: Arc<DatabaseConnection>) {
+    async fn process_jobs(&self, reports: Vec<JobResult>, db_connection: Arc<DatabaseConnection>) {
+        let mut ping_results = Vec::new();
         for report in reports {
             match report {
-                JobResult::Ping(ping_result) => {
-                    println!("{:?}", &ping_result.response);
+                JobResult::Ping(result) => {
+                    ping_results.push(result);
                     //println!("{:?}", &ping_result);
                 }
                 _ => {}
             }
+        }
+        for adapter in self.report_adapters.iter() {
+            adapter.append_ping_results(&ping_results);
         }
     }
 }

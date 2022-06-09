@@ -4,7 +4,7 @@ use common::worker::WorkerInfo;
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use warp::{Rejection, Reply};
+use warp::{Buf, Rejection, Reply};
 
 #[derive(Default)]
 pub struct ProcessorService {}
@@ -19,7 +19,7 @@ impl ProcessorService {
         state: Arc<Mutex<ProcessorState>>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle report from worker {:?}", &job_results);
-        state.lock().await.process_results(job_results);
+        state.lock().await.process_results(job_results).await;
         return Ok(warp::reply::json(&json!({ "Message": "Report received" })));
     }
 }

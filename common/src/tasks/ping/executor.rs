@@ -1,9 +1,9 @@
 use crate::job_manage::{Job, JobDetail, JobResult};
 use crate::logger::helper::message;
-use crate::task_spawn;
 use crate::tasks::executor::TaskExecutor;
 use crate::tasks::ping::{CallPingError, JobPingResult, PingResponse};
 use crate::util::get_current_time;
+use crate::{task_spawn, WorkerId};
 use anyhow::Error;
 use async_trait::async_trait;
 use log::{debug, info};
@@ -16,12 +16,14 @@ use tokio::time::sleep;
 
 #[derive(Clone, Debug, Default)]
 pub struct PingExecutor {
+    worker_id: WorkerId,
     client: Client,
 }
 
 impl PingExecutor {
-    pub fn new() -> Self {
+    pub fn new(worker_id: WorkerId) -> Self {
         PingExecutor {
+            worker_id,
             client: reqwest::Client::builder()
                 .danger_accept_invalid_certs(true)
                 .build()
@@ -69,7 +71,7 @@ impl TaskExecutor for PingExecutor {
         debug!("Ping result {:?}", &response);
         let ping_result = JobPingResult {
             job: job.clone(),
-            //response_timestamp: get_current_time(),
+            worker_id: self.worker_id.clone(),
             response,
         };
         let res = result_sender.send(JobResult::Ping(ping_result)).await;

@@ -3,22 +3,17 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "jobs")]
+#[sea_orm(table_name = "job_result_pings")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i32,
+    pub id: i64,
     pub job_id: String,
-    pub component_id: String,
-    pub header: Option<Json>,
-    pub job_detail: Option<Json>,
-    pub priority: i32,
-    pub expected_runtime: i64,
-    pub parallelable: bool,
-    pub timeout: i64,
-    pub component_url: String,
-    pub repeat_number: i32,
-    pub interval: i64,
-    pub job_name: String,
+    pub worker_id: String,
+    pub provider_id: String,
+    pub provider_type: String,
+    pub execution_timestamp: i64,
+    pub recorded_timestamp: i64,
+    pub response_time: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

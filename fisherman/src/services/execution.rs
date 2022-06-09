@@ -1,6 +1,7 @@
 use crate::models::job::JobBuffer;
 use crate::{
     BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
+    WORKER_ID,
 };
 use common::job_manage::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
@@ -29,7 +30,7 @@ pub struct JobExecution {
 
 impl JobExecution {
     pub fn new(result_sender: Sender<JobResult>, job_buffers: Arc<Mutex<JobBuffer>>) -> Self {
-        let executors = get_executors(BENCHMARK_WRK_PATH.as_str());
+        let executors = get_executors(WORKER_ID.as_str().to_string(), BENCHMARK_WRK_PATH.as_str());
         let (job_sender, mut job_receiver): (Sender<Job>, Receiver<Job>) = channel(1024);
 
         let runtime = Builder::new_multi_thread()

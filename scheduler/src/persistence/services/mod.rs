@@ -1,3 +1,4 @@
+pub mod job_result_service;
 pub mod job_service;
 pub mod worker_service;
 

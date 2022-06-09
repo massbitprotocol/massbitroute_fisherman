@@ -41,17 +41,3 @@ impl JobService {
         }
     }
 }
-/*
-let apple = fruit::ActiveModel {
-name: Set("Apple".to_owned()),
-..Default::default()
-};
-
-let orange = fruit::ActiveModel {
-name: Set("Orange".to_owned()),
-..Default::default()
-};
-
-let res: InsertResult = Fruit::insert_many(vec![apple, orange]).exec(db).await?;
-assert_eq!(res.last_insert_id, 30)
- */

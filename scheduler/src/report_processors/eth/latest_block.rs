@@ -1,4 +1,5 @@
 use crate::report_processors::ReportProcessor;
+use async_trait::async_trait;
 use common::job_manage::JobResult;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -12,16 +13,17 @@ impl LatestBlockReportProcessor {
         LatestBlockReportProcessor {}
     }
 }
+#[async_trait]
 impl ReportProcessor for LatestBlockReportProcessor {
     fn can_apply(&self, report: &JobResult) -> bool {
         true
     }
 
-    fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {
+    async fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {
         todo!()
     }
 
-    fn process_jobs(&self, report: Vec<JobResult>, db_connection: Arc<DatabaseConnection>) {
+    async fn process_jobs(&self, report: Vec<JobResult>, db_connection: Arc<DatabaseConnection>) {
         todo!()
     }
 }
