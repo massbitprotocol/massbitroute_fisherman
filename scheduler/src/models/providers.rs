@@ -19,15 +19,21 @@ pub struct ProviderStorage {
 }
 
 impl ProviderStorage {
-    pub async fn add_node(&mut self, node: ComponentInfo) {
-        match node.component_type {
+    pub async fn update_components_list(
+        &mut self,
+        component_type: ComponentType,
+        components: Vec<ComponentInfo>,
+    ) {
+        match component_type {
             ComponentType::Node => {
                 log::debug!("Add node to verification queue");
-                self.nodes.lock().await.push(node);
+                let mut lock = self.nodes.lock().await;
+                *lock = components;
             }
             ComponentType::Gateway => {
                 log::debug!("Add gateway to verification queue");
-                self.gateways.lock().await.push(node);
+                let mut lock = self.gateways.lock().await;
+                *lock = components;
             }
         }
     }
