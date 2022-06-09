@@ -4,7 +4,7 @@ use common::component::{ComponentInfo, ComponentType, Zone};
 use common::job_manage::Job;
 use common::tasks::generator::TaskApplicant;
 use common::ComponentId;
-use log::log;
+use log::{debug, log};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -19,15 +19,21 @@ pub struct ProviderStorage {
 }
 
 impl ProviderStorage {
-    pub async fn add_node(&mut self, node: ComponentInfo) {
-        match node.component_type {
+    pub async fn update_components_list(
+        &mut self,
+        component_type: ComponentType,
+        components: Vec<ComponentInfo>,
+    ) {
+        match component_type {
             ComponentType::Node => {
                 log::debug!("Add node to verification queue");
-                self.nodes.lock().await.push(node);
+                let mut lock = self.nodes.lock().await;
+                *lock = components;
             }
             ComponentType::Gateway => {
                 log::debug!("Add gateway to verification queue");
-                self.gateways.lock().await.push(node);
+                let mut lock = self.gateways.lock().await;
+                *lock = components;
             }
         }
     }
@@ -61,12 +67,12 @@ impl ProviderStorage {
         task: Arc<dyn TaskApplicant>,
     ) -> Result<Vec<Job>, anyhow::Error> {
         //For nodes
-        let mut result = Vec::default();
+        let mut jobs_list = Vec::default();
         let nodes = self.nodes.lock().await;
         for node in nodes.iter() {
             if task.can_apply(node) {
                 let mut jobs = task.apply(node)?;
-                result.append(&mut jobs);
+                jobs_list.append(&mut jobs);
             }
         }
         //For gateways
@@ -74,10 +80,11 @@ impl ProviderStorage {
         for gw in gateways.iter() {
             if task.can_apply(gw) {
                 let mut jobs = task.apply(gw)?;
-                result.append(&mut jobs);
+                jobs_list.append(&mut jobs);
             }
         }
-        Ok(result)
+        debug!("Regular jobs_list: {:?}", jobs_list);
+        Ok(jobs_list)
     }
     /*
      * Count nodes in verification queue to check available worker

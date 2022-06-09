@@ -1,7 +1,6 @@
 use anyhow::Error;
 use bytesize::ByteSize;
 use log::info;
-use logger::core::init_logger;
 use std::env::current_dir;
 use std::path::Component;
 use std::process::Command;
@@ -10,7 +9,7 @@ use std::time::Duration;
 use wrap_wrk::WrkBenchmark;
 
 fn main() {
-    let _res = init_logger(&String::from("CheckComponent"));
+    //let _res = init_logger(&String::from("CheckComponent"));
     //println!("Log output: {}", res); // Print log output type
 
     let thread = 20;
