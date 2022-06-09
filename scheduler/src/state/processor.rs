@@ -1,4 +1,4 @@
-use crate::report_processors::{get_eth_report_processors, ReportProcessor};
+use crate::report_processors::{get_report_processors, ReportProcessor};
 use common::job_manage::JobResult;
 use diesel::PgArrayExpressionMethods;
 use sea_orm::DatabaseConnection;
@@ -13,7 +13,7 @@ pub struct ProcessorState {
 
 impl ProcessorState {
     pub fn new(connection: Arc<DatabaseConnection>) -> ProcessorState {
-        let processors = get_eth_report_processors();
+        let processors = get_report_processors();
         ProcessorState {
             connection,
             processors,
