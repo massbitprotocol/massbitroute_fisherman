@@ -5,7 +5,7 @@ use crate::logger::helper::message;
 use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::executor::TaskExecutor;
 use crate::util::get_current_time;
-use crate::{task_spawn, Timestamp};
+use crate::{task_spawn, Timestamp, WorkerId};
 use anyhow::Error;
 use async_trait::async_trait;
 use bytesize::ByteSize;
@@ -26,6 +26,7 @@ const WRK_NAME: &str = "./wrk";
 
 #[derive(Clone, Debug, Default)]
 pub struct BenchmarkExecutor {
+    worker_id: WorkerId,
     benchmark_wrk_path: String,
 }
 
@@ -50,8 +51,9 @@ impl BenchmarkResponse {
 }
 
 impl BenchmarkExecutor {
-    pub fn new(benchmark_wrk_path: &str) -> Self {
+    pub fn new(worker_id: WorkerId, benchmark_wrk_path: &str) -> Self {
         BenchmarkExecutor {
+            worker_id,
             benchmark_wrk_path: benchmark_wrk_path.to_string(),
         }
     }
@@ -250,8 +252,9 @@ impl TaskExecutor for BenchmarkExecutor {
         // Send result
         let result = JobBenchmarkResult {
             job: job.clone(),
+            worker_id: self.worker_id.clone(),
             response_timestamp: current_time,
-            responses: response,
+            response,
         };
         let res = result_sender.send(JobResult::Benchmark(result)).await;
         debug!("send res: {:?}", res);

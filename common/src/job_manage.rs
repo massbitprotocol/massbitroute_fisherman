@@ -12,11 +12,11 @@ use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
 use crate::tasks::command::{JobCommand, JobCommandResponse, JobCommandResult};
 use crate::tasks::compound::JobCompound;
-use crate::tasks::eth::CallBenchmarkError;
+use crate::tasks::eth::{CallBenchmarkError, JobLatestBlockResult};
 use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
 use crate::tasks::ping::{CallPingError, JobPingResult};
 use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
-use crate::{BlockChainType, ComponentId, JobId, NetworkType, Timestamp};
+use crate::{component, BlockChainType, ComponentId, JobId, NetworkType, Timestamp, WorkerId};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
@@ -41,6 +41,7 @@ pub struct Job {
     pub job_id: JobId,
     pub job_name: String,
     pub component_id: ComponentId,
+    pub component_type: ComponentType,
     pub priority: i32,               //Fist priority is 1
     pub expected_runtime: Timestamp, //timestamp in millisecond Default 0, job is executed if only expected_runtime <= current timestamp
     pub parallelable: bool,          //Job can be executed parallel with other jobs
@@ -64,6 +65,7 @@ impl Job {
             job_id: uuid.to_string(),
             job_name,
             component_id: component.id.clone(),
+            component_type: component.component_type.clone(),
             priority: 1,
             expected_runtime: 0,
             repeat_number: 0,
@@ -121,8 +123,9 @@ pub struct JobCompoundResult {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobBenchmarkResult {
     pub job: Job,
+    pub worker_id: WorkerId,
     pub response_timestamp: Timestamp, //Time to get response
-    pub responses: BenchmarkResponse,
+    pub response: BenchmarkResponse,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -174,10 +177,11 @@ pub enum JobResult {
     Command(JobCommandResult),
     // perform ping check
     Ping(JobPingResult),
-    // Perform some request to node/gateway
-    Compound(JobCompoundResult),
+    LatestBlock(JobLatestBlockResult),
     // perform benchmark checking
     Benchmark(JobBenchmarkResult),
+    // Perform some request to node/gateway
+    Compound(JobCompoundResult),
 }
 
 impl JobResult {

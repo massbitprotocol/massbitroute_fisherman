@@ -1,16 +1,45 @@
 use crate::report_processors::adapters::csv_appender::CsvAppender;
+use crate::report_processors::adapters::postgres_appender::PostgresAppender;
+use async_trait::async_trait;
+use common::job_manage::JobBenchmarkResult;
+use common::tasks::eth::JobLatestBlockResult;
+use common::tasks::ping::JobPingResult;
+use sea_orm::DatabaseConnection;
 use serde_json::{Map, Value};
 use std::fmt::Debug;
 use std::sync::Arc;
-
 pub mod csv_appender;
+pub mod postgres_appender;
 
+#[async_trait]
 pub trait Appender: Sync + Send {
-    fn append(&self, channel: String, report: &Map<String, Value>) -> Result<(), anyhow::Error>;
+    async fn append(
+        &self,
+        channel: String,
+        report: &Map<String, Value>,
+    ) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
+    async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
+    async fn append_latest_block_results(
+        &self,
+        result: &Vec<JobLatestBlockResult>,
+    ) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
+    async fn append_benchmark_results(
+        &self,
+        result: &Vec<JobBenchmarkResult>,
+    ) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
 }
 
-pub fn get_report_adapters() -> Vec<Arc<dyn Appender>> {
+pub fn get_report_adapters(connection: Arc<DatabaseConnection>) -> Vec<Arc<dyn Appender>> {
     let mut result: Vec<Arc<dyn Appender>> = Default::default();
     result.push(Arc::new(CsvAppender::new()));
+    result.push(Arc::new(PostgresAppender::new(connection.clone())));
     result
 }

@@ -2,6 +2,7 @@ use crate::job_manage::{Job, JobResult};
 use crate::tasks::eth::benchmark::executor::BenchmarkExecutor;
 use crate::tasks::ping::executor::PingExecutor;
 use crate::util::get_current_time;
+use crate::WorkerId;
 use async_trait::async_trait;
 use log::{debug, info};
 use std::sync::Arc;
@@ -26,9 +27,12 @@ pub trait TaskExecutor: Sync + Send {
     fn can_apply(&self, job: &Job) -> bool;
 }
 
-pub fn get_executors(benchmark_wrk_path: &str) -> Vec<Arc<dyn TaskExecutor>> {
+pub fn get_executors(worker_id: WorkerId, benchmark_wrk_path: &str) -> Vec<Arc<dyn TaskExecutor>> {
     let mut result: Vec<Arc<dyn TaskExecutor>> = Default::default();
-    result.push(Arc::new(PingExecutor::new()));
-    result.push(Arc::new(BenchmarkExecutor::new(benchmark_wrk_path)));
+    result.push(Arc::new(PingExecutor::new(worker_id.clone())));
+    result.push(Arc::new(BenchmarkExecutor::new(
+        worker_id.clone(),
+        benchmark_wrk_path,
+    )));
     result
 }

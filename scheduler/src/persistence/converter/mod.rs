@@ -1,5 +1,8 @@
-use crate::persistence::seaorm::{job_result_pings, jobs, workers};
-use common::job_manage::{Job, JobDetail};
+use crate::persistence::seaorm::{
+    job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs, workers,
+};
+use common::job_manage::{Job, JobBenchmarkResult, JobDetail};
+use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
 use common::worker::WorkerInfo;
 use core::default::Default;
@@ -71,13 +74,60 @@ impl From<&JobPingResult> for job_result_pings::ActiveModel {
         job_result_pings::ActiveModel {
             job_id: Set(result.job.job_id.to_owned()),
             //job_name: Set(result.job.job_name.to_owned()),
-            worker_id: Set(result.re.component_id.to_owned()),
+            worker_id: Set(result.worker_id.to_owned()),
             provider_id: Set(result.job.component_id.to_owned()),
-            priority: Set(job.priority),
-            expected_runtime: Set(job.expected_runtime as i64),
-            parallelable: Set(job.parallelable),
-            timeout: Set(job.timeout as i64),
-            job_detail: Set(job_detail),
+            provider_type: Set(result.job.component_type.to_string()),
+            response_time: Set(result.response.response_time as i64),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&JobBenchmarkResult> for job_result_benchmarks::ActiveModel {
+    fn from(result: &JobBenchmarkResult) -> Self {
+        job_result_benchmarks::ActiveModel {
+            job_id: Set(result.job.job_id.to_owned()),
+            //job_name: Set(result.job.job_name.to_owned()),
+            worker_id: Set(result.worker_id.to_owned()),
+            provider_id: Set(result.job.component_id.to_owned()),
+            provider_type: Set(result.job.component_type.to_string()),
+            request_rate: Set(result.response.request_rate as f64),
+            transfer_rate: Set(result.response.transfer_rate as f64),
+            average_latency: Set(result.response.average_latency as f64),
+            histogram90: Set(result
+                .response
+                .histograms
+                .get(&90)
+                .map(|val| val.clone())
+                .unwrap_or(0_f32) as f64),
+            histogram95: Set(result
+                .response
+                .histograms
+                .get(&95)
+                .map(|val| val.clone())
+                .unwrap_or(0_f32) as f64),
+            histogram99: Set(result
+                .response
+                .histograms
+                .get(&99)
+                .map(|val| val.clone())
+                .unwrap_or(0_f32) as f64),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
+    fn from(result: &JobLatestBlockResult) -> Self {
+        job_result_latest_blocks::ActiveModel {
+            job_id: Set(result.job.job_id.to_owned()),
+            //job_name: Set(result.job.job_name.to_owned()),
+            worker_id: Set(result.worker_id.to_owned()),
+            provider_id: Set(result.job.component_id.to_owned()),
+            provider_type: Set(result.job.component_type.to_string()),
+            block_chain: Set(String::new()),
+            block_number: Set(result.response.block_number as i64),
+            block_timestamp: Set(result.response.block_timestamp as i64),
             ..Default::default()
         }
     }

@@ -3,6 +3,9 @@
 pub mod prelude;
 
 pub mod job_assignments;
+pub mod job_result_benchmarks;
+pub mod job_result_latest_blocks;
+pub mod job_result_pings;
 pub mod jobs;
 pub mod providers;
 pub mod workers;

@@ -13,13 +13,16 @@ pub struct ProcessorState {
 
 impl ProcessorState {
     pub fn new(connection: Arc<DatabaseConnection>) -> ProcessorState {
-        let processors = get_report_processors();
+        let processors = get_report_processors(connection.clone());
         ProcessorState {
             connection,
             processors,
         }
     }
-    pub fn process_results(&mut self, job_results: Vec<JobResult>) -> Result<(), anyhow::Error> {
+    pub async fn process_results(
+        &mut self,
+        job_results: Vec<JobResult>,
+    ) -> Result<(), anyhow::Error> {
         let mut map_processor_reports = HashMap::<usize, Vec<JobResult>>::new();
         for report in job_results.iter() {
             for (ind, processor) in self.processors.iter().enumerate() {
@@ -35,7 +38,7 @@ impl ProcessorState {
         for (ind, jobs) in map_processor_reports {
             let connection = self.connection.clone();
             if let Some(processor) = self.processors.get(ind) {
-                processor.process_jobs(jobs, connection);
+                processor.process_jobs(jobs, connection).await;
             };
         }
         Ok(())
