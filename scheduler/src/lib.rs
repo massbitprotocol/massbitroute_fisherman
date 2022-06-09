@@ -2,10 +2,12 @@
 extern crate diesel;
 extern crate diesel_migrations;
 
+use crate::server_config::Config;
 use dotenv;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use std::env;
+
 pub mod models;
 pub mod persistence;
 pub mod provider;
@@ -39,4 +41,9 @@ lazy_static! {
         env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
     pub static ref CONFIG_DIR: String =
         env::var("CONFIG_DIR").unwrap_or(String::from("resource/task_config"));
+    pub static ref URL_NODES_LIST: String =
+        env::var("URL_NODES_LIST").expect("There is no env var URL_NODES_LIST");
+    pub static ref URL_GATEWAYS_LIST: String =
+        env::var("URL_GATEWAYS_LIST").expect("There is no env var URL_GATEWAYS_LIST");
+    pub static ref CONFIG: Config = Config::load(SCHEDULER_CONFIG.as_str());
 }

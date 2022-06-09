@@ -19,7 +19,10 @@ use scheduler::service::delivery::JobDelivery;
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
-use scheduler::{CONNECTION_POOL_SIZE, DATABASE_URL, SCHEDULER_CONFIG, SCHEDULER_ENDPOINT};
+use scheduler::{
+    CONNECTION_POOL_SIZE, DATABASE_URL, SCHEDULER_CONFIG, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST,
+    URL_NODES_LIST,
+};
 
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
@@ -56,7 +59,6 @@ async fn main() {
     let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
     let job_service = Arc::new(JobService::new(arc_conn.clone()));
     let all_workers = worker_service.clone().get_active().await;
-    let config = Config::load(SCHEDULER_CONFIG.as_str());
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
     let provider_storage = Arc::new(Mutex::new(ProviderStorage::default()));
     log::debug!("Init with {:?} workers", all_workers.len());
@@ -69,8 +71,8 @@ async fn main() {
     //let (tx, mut rx) = mpsc::channel(1024);
 
     let mut provider_scanner = ProviderScanner::new(
-        config.url_list_nodes.clone(),
-        config.url_list_gateways.clone(),
+        URL_NODES_LIST.to_string(),
+        URL_GATEWAYS_LIST.to_string(),
         provider_storage.clone(),
         worker_infos.clone(),
     );

@@ -18,7 +18,7 @@ pub trait TaskApplicant: Sync + Send {
 
 pub fn get_tasks(config_dir: &str, role: JobRole) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
-    result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
+    //result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
     result.push(Arc::new(TaskGWNodeConnection::new()));
     result.push(Arc::new(TaskLatestBlock::new()));
     result.push(Arc::new(PingGenerator::new(config_dir, &role)));
