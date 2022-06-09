@@ -4,6 +4,7 @@ use common::worker::WorkerInfo;
 use core::default::Default;
 use log::debug;
 use sea_orm::ActiveValue::Set;
+use sea_orm::NotSet;
 use serde_json::{Error, Value};
 
 impl From<&WorkerInfo> for workers::ActiveModel {
@@ -33,6 +34,17 @@ impl From<&Job> for jobs::ActiveModel {
                 }
             },
         };
+        let header = match job.header.is_empty() {
+            true => NotSet,
+            false => match serde_json::to_value(job.header.to_owned()) {
+                Ok(value) => Set(Some(value)),
+                Err(err) => {
+                    debug!("err from job_detail: {:?}", err);
+                    NotSet
+                }
+            },
+        };
+
         debug!("from job_detail: {:?}", job_detail);
 
         jobs::ActiveModel {
@@ -44,7 +56,11 @@ impl From<&Job> for jobs::ActiveModel {
             parallelable: Set(job.parallelable),
             timeout: Set(job.timeout as i64),
             job_detail: Set(job_detail),
-            ..Default::default()
+            component_url: Set(job.component_url.to_owned()),
+            header,
+            interval: Set(job.interval),
+            repeat_number: Set(job.repeat_number),
+            id: NotSet,
         }
     }
 }

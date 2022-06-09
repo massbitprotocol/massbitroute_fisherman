@@ -51,7 +51,8 @@ impl TaskApplicant for PingGenerator {
     fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};
-        let mut job = Job::new("Ping".to_string(), component, JobDetail::Ping(job_ping));
+        let job_detail = JobDetail::Ping(job_ping);
+        let mut job = Job::new(job_detail.get_job_name(), component, job_detail);
         job.parallelable = true;
         job.component_url = self.get_url(component);
         job.timeout = self.config.ping_timeout_ms;
