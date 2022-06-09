@@ -1,5 +1,6 @@
-use crate::persistence::seaorm::{jobs, workers};
+use crate::persistence::seaorm::{job_result_pings, jobs, workers};
 use common::job_manage::{Job, JobDetail};
+use common::tasks::ping::JobPingResult;
 use common::worker::WorkerInfo;
 use core::default::Default;
 use log::debug;
@@ -39,6 +40,23 @@ impl From<&Job> for jobs::ActiveModel {
             job_id: Set(job.job_id.to_owned()),
             job_name: Set(job.job_name.to_owned()),
             component_id: Set(job.component_id.to_owned()),
+            priority: Set(job.priority),
+            expected_runtime: Set(job.expected_runtime as i64),
+            parallelable: Set(job.parallelable),
+            timeout: Set(job.timeout as i64),
+            job_detail: Set(job_detail),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<&JobPingResult> for job_result_pings::ActiveModel {
+    fn from(result: &JobPingResult) -> Self {
+        job_result_pings::ActiveModel {
+            job_id: Set(result.job.job_id.to_owned()),
+            //job_name: Set(result.job.job_name.to_owned()),
+            worker_id: Set(result.re.component_id.to_owned()),
+            provider_id: Set(result.job.component_id.to_owned()),
             priority: Set(job.priority),
             expected_runtime: Set(job.expected_runtime as i64),
             parallelable: Set(job.parallelable),
