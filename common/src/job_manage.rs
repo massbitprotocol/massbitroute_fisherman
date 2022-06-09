@@ -154,6 +154,19 @@ pub enum JobDetail {
     Benchmark(JobBenchmark),
 }
 
+impl JobDetail {
+    pub fn get_job_name(&self) -> String {
+        match self {
+            JobDetail::HttpRequest(_) => "HttpRequest".to_string(),
+            JobDetail::RpcRequest(_) => "RpcRequest".to_string(),
+            JobDetail::Command(_) => "Command".to_string(),
+            JobDetail::Compound(_) => "Compound".to_string(),
+            JobDetail::Ping(_) => "Ping".to_string(),
+            JobDetail::Benchmark(_) => "Benchmark".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum JobResult {
     HttpRequest(JobHttpResult),
