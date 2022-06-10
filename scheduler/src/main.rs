@@ -25,6 +25,7 @@ use scheduler::{
 };
 
 use scheduler::persistence::services::job_result_service::JobResultService;
+use scheduler::persistence::services::plan_service::PlanService;
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
 use scheduler::service::judgment::Judgment;
@@ -57,6 +58,7 @@ async fn main() {
         }
     };
     let arc_conn = Arc::new(db_conn);
+    let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
     //Get worker infos
     let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
     let job_service = Arc::new(JobService::new(arc_conn.clone()));
@@ -93,6 +95,7 @@ async fn main() {
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
     let scheduler_state = SchedulerState::new(
         arc_conn.clone(),
+        plan_service,
         worker_service,
         worker_infos.clone(),
         provider_storage.clone(),
