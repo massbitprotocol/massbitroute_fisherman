@@ -2,11 +2,12 @@ use crate::persistence::seaorm::plans;
 use crate::persistence::seaorm::plans::Model;
 use anyhow::anyhow;
 use common::component::Zone;
+use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::worker::WorkerInfo;
 use log::error;
-use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{Condition, DatabaseConnection};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -32,24 +33,23 @@ impl PlanService {
         }
         res
     }
-
-    pub async fn get_stored_worker(&self, worker_id: &str) -> Option<WorkerInfo> {
-        match schedulers::Entity::find()
-            .filter(schedulers::Column::WorkerId.eq(worker_id))
-            .all(self.db.as_ref())
-            .await
-        {
-            Ok(workers) => {
-                if workers.len() > 0 {
-                    workers.get(0).map(|val| WorkerInfo::from(val))
-                } else {
-                    None
-                }
-            }
-            Err(_) => None,
-        }
-    }
     */
+    // pub async fn get_plans(&self, statuses: Vec<PlanStatus>) -> Option<PlanEntity> {
+    //     let mut condition = Condition::any();
+    //     for status in statuses {
+    //         condition.add(plans::Column::Status.eq(status))
+    //     }
+    //
+    //     match plans::Entity::find()
+    //         .filter(condition)
+    //         .all(self.db.as_ref())
+    //         .await
+    //     {
+    //         Ok(plans) => Some(plans),
+    //         Err(_) => None,
+    //     }
+    // }
+
     pub async fn store_scheduler(&self, entity: &PlanEntity) -> Result<Model, anyhow::Error> {
         let sched = plans::ActiveModel::from(entity);
         match sched.insert(self.db.as_ref()).await {
@@ -67,7 +67,7 @@ impl From<&Model> for PlanEntity {
             finish_time: info.finish_time.clone(),
             result: info.result.clone(),
             message: info.message.clone(),
-            status: info.status.clone(),
+            status: PlanStatus::from_str(&*info.status).unwrap_or_default(),
             plan_id: info.plan_id.clone(),
             phase: info.phase.clone(),
         }

@@ -17,7 +17,7 @@ pub mod server_config;
 pub mod service;
 pub mod state;
 
-pub const JOB_GENERATOR_PERIOD: u64 = 10; //In seconds
+pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds
 pub const JUDGMENT_PERIOD: u64 = 10;
 lazy_static! {
