@@ -6,18 +6,18 @@ use common::models::PlanEntity;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
-pub struct BenchmarkJudgment {
+pub struct LatestBlockJudgment {
     result_service: Arc<JobResultService>,
 }
 
-impl BenchmarkJudgment {
+impl LatestBlockJudgment {
     pub fn new(result_service: Arc<JobResultService>) -> Self {
-        BenchmarkJudgment { result_service }
+        LatestBlockJudgment { result_service }
     }
 }
 
 #[async_trait]
-impl ReportCheck for BenchmarkJudgment {
+impl ReportCheck for LatestBlockJudgment {
     fn can_apply(&self) -> bool {
         todo!()
     }

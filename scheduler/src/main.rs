@@ -82,13 +82,14 @@ async fn main() {
         worker_infos.clone(),
     );
     let mut job_generator = JobGenerator::new(
+        arc_conn.clone(),
         plan_service.clone(),
         provider_storage.clone(),
         worker_infos.clone(),
         job_service,
         assigment_buffer.clone(),
     );
-    let mut judgment = Judgment::new(arc_conn.clone());
+    let mut judgment = Judgment::new(plan_service.clone(), arc_conn.clone());
     let mut job_delivery = JobDelivery::new(worker_infos.clone(), assigment_buffer.clone());
     let task_judgment = task::spawn(async move { judgment.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });

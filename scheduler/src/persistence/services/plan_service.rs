@@ -7,6 +7,7 @@ use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::worker::WorkerInfo;
 use log::error;
+use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};
 use std::str::FromStr;
@@ -78,6 +79,30 @@ impl PlanService {
         let sched = plans::ActiveModel::from(entity);
         match sched.insert(self.db.as_ref()).await {
             Ok(res) => Ok(res),
+            Err(err) => Err(anyhow!("{:?}", &err)),
+        }
+    }
+    pub async fn update_plans_as_generated(
+        &self,
+        plan_ids: Vec<String>,
+    ) -> Result<(), anyhow::Error> {
+        let mut condition = Condition::any();
+        for id in plan_ids {
+            condition.add(plans::Column::PlanId.eq(id.to_owned()))
+        }
+        match plans::Entity::update_many()
+            .col_expr(
+                plans::Column::Status,
+                Expr::value(PlanStatus::Generated.to_string()),
+            )
+            .filter(condition)
+            .exec(self.db.as_ref())
+            .await
+        {
+            Ok(res) => {
+                log::debug!("Update with result {:?}", &res);
+                Ok(())
+            }
             Err(err) => Err(anyhow!("{:?}", &err)),
         }
     }

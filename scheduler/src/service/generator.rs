@@ -11,6 +11,7 @@ use common::worker::WorkerInfo;
 use common::{task_spawn, ComponentId, WorkerId};
 use futures_util::future::join;
 use sea_orm::sea_query::IndexType::Hash;
+use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::sleep;
@@ -26,6 +27,7 @@ pub struct JobGenerator {
 
 #[derive(Default)]
 pub struct DetailJobGenerator {
+    db_conn: Arc<DatabaseConnection>,
     plan_service: Arc<PlanService>,
     providers: Arc<Mutex<ProviderStorage>>,
     worker_infos: Arc<Mutex<WorkerInfoStorage>>,
@@ -40,19 +42,23 @@ impl DetailJobGenerator {
      */
     pub async fn generate_verification_jobs(&mut self) {
         let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
-        let plans = self
+        let map_plans = self
             .plan_service
             .get_verification_plans()
             .await
             .and_then(|vec| {
-                let mut map = HashMap::<String, PlanEntity>::new();
+                let mut map = HashMap::<String, Vec<PlanEntity>>::new();
                 for entity in vec {
-                    map.insert(entity.plan_id.clone(), entity);
+                    if let Some(mut vec) = map.get_mut(&entity.provider_id) {
+                        vec.push(entity);
+                    } else {
+                        map.insert(entity.plan_id.clone(), vec![entity]);
+                    }
                 }
                 Ok(map)
             });
         //Generate jobs for nodes
-        if let Ok(plans) = plans.as_ref() {
+        if let Ok(plans) = map_plans.as_ref() {
             let nodes = self
                 .providers
                 .lock()
@@ -62,9 +68,12 @@ impl DetailJobGenerator {
 
             for node in nodes.iter() {
                 if let Some(plan) = plans.get(&node.id) {
+                    if plan.len() == 0 {
+                        return;
+                    }
                     for task in self.tasks.iter() {
                         if task.can_apply(node) {
-                            match task.apply(plan, node) {
+                            match task.apply(plan.get(0)?, node) {
                                 Ok(mut jobs) => {
                                     if jobs.len() > 0 {
                                         log::debug!(
@@ -129,8 +138,22 @@ impl DetailJobGenerator {
     }
 
     pub async fn store_jobs(&self, map_jobs: &HashMap<Zone, Vec<Job>>) {
+        let mut gen_plans = Vec::default();
+        let tnx = self.db_conn.begin().await?;
         for (zone, jobs) in map_jobs.iter() {
+            jobs.iter().for_each(|job| {
+                gen_plans.push(job.plan_id.clone());
+            });
             self.job_service.save_jobs(jobs).await;
+        }
+        self.plan_service.update_plans_as_generated(gen_plans);
+        match tnx.commit().await {
+            Ok(_) => {
+                log::debug!("Transaction commited successful")
+            }
+            Err(err) => {
+                log::debug!("Transaction commited with error {:?}", &err);
+            }
         }
     }
 
@@ -172,6 +195,7 @@ impl DetailJobGenerator {
 
 impl JobGenerator {
     pub fn new(
+        db_conn: Arc<DatabaseConnection>,
         plan_service: Arc<PlanService>,
         providers: Arc<Mutex<ProviderStorage>>,
         worker_infos: Arc<Mutex<WorkerInfoStorage>>,
@@ -179,6 +203,7 @@ impl JobGenerator {
         assignments: Arc<Mutex<AssignmentBuffer>>,
     ) -> Self {
         let verification = DetailJobGenerator {
+            db_conn: db_conn.clone(),
             plan_service: plan_service.clone(),
             providers: providers.clone(),
             worker_infos: worker_infos.clone(),
@@ -188,6 +213,7 @@ impl JobGenerator {
         };
 
         let regular = DetailJobGenerator {
+            db_conn,
             plan_service,
             providers,
             worker_infos,
