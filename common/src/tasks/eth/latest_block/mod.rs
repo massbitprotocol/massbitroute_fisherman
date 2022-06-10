@@ -6,6 +6,11 @@ pub use generator::TaskLatestBlock;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct JobLatestBlock {
+    pub assigned_at: Timestamp,
+    pub finished_at: Timestamp,
+}
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct JobLatestBlockResult {
     pub job: Job,
     pub worker_id: String,

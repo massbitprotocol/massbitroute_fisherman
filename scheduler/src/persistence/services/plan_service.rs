@@ -2,6 +2,7 @@ use crate::persistence::seaorm::plans;
 use crate::persistence::seaorm::plans::Model;
 use anyhow::anyhow;
 use common::component::Zone;
+use common::job_manage::JobRole;
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::worker::WorkerInfo;
@@ -34,23 +35,46 @@ impl PlanService {
         res
     }
     */
-    // pub async fn get_plans(&self, statuses: Vec<PlanStatus>) -> Option<PlanEntity> {
-    //     let mut condition = Condition::any();
-    //     for status in statuses {
-    //         condition.add(plans::Column::Status.eq(status))
-    //     }
-    //
-    //     match plans::Entity::find()
-    //         .filter(condition)
-    //         .all(self.db.as_ref())
-    //         .await
-    //     {
-    //         Ok(plans) => Some(plans),
-    //         Err(_) => None,
-    //     }
-    // }
-
-    pub async fn store_scheduler(&self, entity: &PlanEntity) -> Result<Model, anyhow::Error> {
+    pub async fn get_plans(
+        &self,
+        statuses: Vec<PlanStatus>,
+    ) -> Result<Vec<PlanEntity>, anyhow::Error> {
+        let mut condition = Condition::any();
+        for status in statuses {
+            condition.add(plans::Column::Status.eq(status))
+        }
+        let mut vec = Vec::default();
+        match plans::Entity::find()
+            .filter(condition)
+            .all(self.db.as_ref())
+            .await
+        {
+            Ok(entities) => {
+                for model in entities.iter() {
+                    vec.push(PlanEntity::from(model))
+                }
+                Ok(vec)
+            }
+            Err(err) => Err(err),
+        }
+    }
+    pub async fn get_verification_plans(&self) -> Result<Vec<PlanEntity>, anyhow::Error> {
+        match plans::Entity::find()
+            .filter(plans::Column::Phase.eq(JobRole::Verification.to_string()))
+            .all(self.db.as_ref())
+            .await
+        {
+            Ok(entities) => {
+                let mut vec = Vec::default();
+                for model in entities.iter() {
+                    vec.push(PlanEntity::from(model))
+                }
+                Ok(vec)
+            }
+            Err(err) => Err(err),
+        }
+    }
+    pub async fn store_plan(&self, entity: &PlanEntity) -> Result<Model, anyhow::Error> {
         let sched = plans::ActiveModel::from(entity);
         match sched.insert(self.db.as_ref()).await {
             Ok(res) => Ok(res),

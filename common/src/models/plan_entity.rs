@@ -10,7 +10,7 @@ pub struct PlanEntity {
     pub provider_id: String,
     pub request_time: Timestamp,
     pub finish_time: Option<Timestamp>,
-    pub result: Option<String>,
+    pub result: Option<String>, //success/failed/expired
     pub status: PlanStatus,
     pub message: Option<String>,
     pub phase: String,
@@ -36,6 +36,7 @@ impl PlanEntity {
 pub enum PlanStatus {
     Init,
     Generated,
+    Cancel,
     Finished,
 }
 
@@ -44,6 +45,7 @@ impl ToString for PlanStatus {
         match self {
             PlanStatus::Init => "Init".to_string(),
             PlanStatus::Generated => "Generated".to_string(),
+            PlanStatus::Cancel => "Cancel".to_string(),
             PlanStatus::Finished => "Finished".to_string(),
         }
     }
@@ -56,6 +58,7 @@ impl FromStr for PlanStatus {
         match s {
             "Init" => Ok(PlanStatus::Init),
             "Generated" => Ok(PlanStatus::Generated),
+            "Cancel" => Ok(PlanStatus::Cancel),
             "Finished" => Ok(PlanStatus::Finished),
             _ => Err(()),
         }

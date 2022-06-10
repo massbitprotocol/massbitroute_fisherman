@@ -4,6 +4,7 @@
 
 use crate::component::ComponentInfo;
 use crate::job_manage::{Job, JobBenchmark, JobDetail, JobRole};
+use crate::models::PlanEntity;
 use crate::tasks::generator::TaskApplicant;
 use crate::tasks::LoadConfig;
 use crate::Timestamp;
@@ -46,7 +47,11 @@ impl TaskApplicant for BenchmarkGenerator {
         true
     }
 
-    fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error> {
+    fn apply(
+        &self,
+        plan: &PlanEntity,
+        component: &ComponentInfo,
+    ) -> Result<Vec<Job>, anyhow::Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_benchmark = JobBenchmark {
             component_type: component.component_type.clone(),
@@ -60,7 +65,12 @@ impl TaskApplicant for BenchmarkGenerator {
             url_path: self.config.url_path.clone(),
         };
         let job_detail = JobDetail::Benchmark(job_benchmark);
-        let mut job = Job::new(job_detail.get_job_name(), component, job_detail);
+        let mut job = Job::new(
+            plan.plan_id.clone(),
+            job_detail.get_job_name(),
+            component,
+            job_detail,
+        );
         job.component_url = self.get_url(component);
         let vec = vec![job];
         Ok(vec)

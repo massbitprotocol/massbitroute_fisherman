@@ -4,6 +4,7 @@
 
 use crate::component::ComponentInfo;
 use crate::job_manage::Job;
+use crate::models::PlanEntity;
 use crate::tasks::generator::TaskApplicant;
 use crate::{Gateway, Node};
 use std::sync::Arc;
@@ -25,7 +26,11 @@ impl TaskApplicant for TaskGWNodeConnection {
         true
     }
 
-    fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error> {
+    fn apply(
+        &self,
+        plan: &PlanEntity,
+        component: &ComponentInfo,
+    ) -> Result<Vec<Job>, anyhow::Error> {
         let vec = Vec::default();
         Ok(vec)
     }

@@ -5,6 +5,7 @@ use anyhow::Error;
 use async_trait::async_trait;
 
 use crate::job_manage::{Job, JobDetail, JobRole};
+use crate::models::PlanEntity;
 use crate::tasks::rpc_request::JobRpcRequest;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -52,11 +53,16 @@ impl TaskApplicant for RpcRequestGenerator {
         true
     }
 
-    fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan: &PlanEntity, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let detail = JobRpcRequest {};
         let comp_url = detail.get_component_url(component);
-        let mut job = Job::new(String::new(), component, JobDetail::RpcRequest(detail));
+        let mut job = Job::new(
+            plan.plan_id.clone(),
+            String::new(),
+            component,
+            JobDetail::RpcRequest(detail),
+        );
         job.parallelable = true;
         job.component_url = comp_url;
         job.timeout = self.config.ping_timeout_ms;

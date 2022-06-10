@@ -82,6 +82,7 @@ async fn main() {
         worker_infos.clone(),
     );
     let mut job_generator = JobGenerator::new(
+        plan_service.clone(),
         provider_storage.clone(),
         worker_infos.clone(),
         job_service,
