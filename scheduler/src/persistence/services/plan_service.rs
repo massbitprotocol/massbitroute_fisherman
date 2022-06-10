@@ -7,6 +7,7 @@ use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::worker::WorkerInfo;
 use log::error;
+use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};
 use std::str::FromStr;
@@ -37,20 +38,24 @@ impl PlanService {
     */
     pub async fn get_plans(
         &self,
-        phase: &JobRole,
+        phase: &Option<JobRole>,
         statuses: &Vec<PlanStatus>,
     ) -> Result<Vec<PlanEntity>, anyhow::Error> {
-        let mut condition = Condition::all();
-        condition = condition.add(plans::Column::Phase.eq(phase.to_string()));
-
         let mut condition_status = Condition::any();
         for status in statuses {
             condition_status = condition_status.add(plans::Column::Status.eq(status.to_string()));
         }
-
-        if !statuses.is_empty() {
-            condition = condition.add(condition_status);
-        }
+        let mut condition = match phase {
+            None => condition_status,
+            Some(phase) => {
+                let mut condition = Condition::all();
+                condition = condition.add(plans::Column::Phase.eq(phase.to_string()));
+                if !statuses.is_empty() {
+                    condition = condition.add(condition_status);
+                }
+                condition
+            }
+        };
 
         let mut vec = Vec::default();
         match plans::Entity::find()
@@ -90,6 +95,30 @@ impl PlanService {
         let sched = plans::ActiveModel::from(entity);
         match sched.insert(self.db.as_ref()).await {
             Ok(res) => Ok(res),
+            Err(err) => Err(anyhow!("{:?}", &err)),
+        }
+    }
+    pub async fn update_plans_as_generated(
+        &self,
+        plan_ids: Vec<String>,
+    ) -> Result<(), anyhow::Error> {
+        let mut condition = Condition::any();
+        for id in plan_ids {
+            condition = condition.add(plans::Column::PlanId.eq(id.to_owned()));
+        }
+        match plans::Entity::update_many()
+            .col_expr(
+                plans::Column::Status,
+                Expr::value(PlanStatus::Generated.to_string()),
+            )
+            .filter(condition)
+            .exec(self.db.as_ref())
+            .await
+        {
+            Ok(res) => {
+                log::debug!("Update with result {:?}", &res);
+                Ok(())
+            }
             Err(err) => Err(anyhow!("{:?}", &err)),
         }
     }

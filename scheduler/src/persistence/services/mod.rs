@@ -2,9 +2,9 @@ pub mod job_result_service;
 pub mod job_service;
 pub mod plan_service;
 pub mod worker_service;
+pub use job_result_service::JobResultService;
 pub use job_service::JobService;
 pub use plan_service::PlanService;
-
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
 use std::time::Duration;
 pub use worker_service::WorkerService;
