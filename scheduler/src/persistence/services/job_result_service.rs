@@ -65,9 +65,8 @@ impl JobResultService {
                     if let Some(mut vec) = res.get_mut(&worker_id) {
                         vec.push(response_time);
                     } else {
-                        res.push(worker_id.clone(), response_time);
+                        res.insert(worker_id.clone(), vec![response_time]);
                     }
-                    res.push(JobPingResult::from(model))
                 }
                 Ok(res)
             }
@@ -137,7 +136,7 @@ impl JobResultService {
             Ok(results) => {
                 let mut res = Vec::new();
                 for model in results.iter() {
-                    res.push(JobBenchmarkResult::from(model))
+                    //res.push(JobBenchmarkResult::from(model))
                 }
                 Ok(res)
             }
@@ -156,7 +155,7 @@ impl JobResultService {
             Ok(results) => {
                 let mut res = Vec::new();
                 for model in results.iter() {
-                    res.push(JobLatestBlockResult::from(model))
+                    //res.push(JobLatestBlockResult::from(model))
                 }
                 Ok(res)
             }

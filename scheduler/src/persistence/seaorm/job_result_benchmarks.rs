@@ -22,6 +22,7 @@ pub struct Model {
     pub error_code: i32,
     pub message: String,
     pub response_time: i32,
+    pub plan_id: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

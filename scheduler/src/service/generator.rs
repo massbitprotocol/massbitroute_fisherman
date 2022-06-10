@@ -3,7 +3,7 @@ use crate::models::providers::ProviderStorage;
 use crate::models::workers::{Worker, WorkerInfoStorage};
 use crate::persistence::services::{JobService, PlanService};
 use crate::{CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use common::component::{ComponentInfo, Zone};
 use common::job_manage::{Job, JobRole};
 use common::models::plan_entity::PlanStatus;
@@ -77,7 +77,7 @@ impl DetailJobGenerator {
                     }
                     for task in self.tasks.iter() {
                         if task.can_apply(node) {
-                            match task.apply(plan.get(0)?, node) {
+                            match task.apply(plan.get(0).unwrap(), node) {
                                 Ok(mut jobs) => {
                                     if jobs.len() > 0 {
                                         log::debug!(
@@ -111,7 +111,7 @@ impl DetailJobGenerator {
                 if let Some(plan) = plans.get(&gw.id) {
                     for task in self.tasks.iter() {
                         if task.can_apply(gw) {
-                            match task.apply(plan, gw) {
+                            match task.apply(plan.get(0).unwrap(), gw) {
                                 Ok(mut jobs) => {
                                     if jobs.len() > 0 {
                                         log::debug!(
@@ -141,7 +141,10 @@ impl DetailJobGenerator {
         self.store_jobs(&gen_jobs).await;
     }
 
-    pub async fn store_jobs(&self, map_jobs: &HashMap<Zone, Vec<Job>>) {
+    pub async fn store_jobs(
+        &self,
+        map_jobs: &HashMap<Zone, Vec<Job>>,
+    ) -> Result<(), anyhow::Error> {
         let mut gen_plans = Vec::default();
         let tnx = self.db_conn.begin().await?;
         for (zone, jobs) in map_jobs.iter() {
@@ -153,10 +156,12 @@ impl DetailJobGenerator {
         self.plan_service.update_plans_as_generated(gen_plans);
         match tnx.commit().await {
             Ok(_) => {
-                log::debug!("Transaction commited successful")
+                log::debug!("Transaction commited successful");
+                Ok(())
             }
             Err(err) => {
                 log::debug!("Transaction commited with error {:?}", &err);
+                Err(anyhow!("{:?}", &err))
             }
         }
     }
@@ -186,7 +191,7 @@ impl DetailJobGenerator {
         // Read Schedule to check what schedule already init and generated
         let plans = self
             .plan_service
-            .get_plans(&JobRole::Regular, &vec![])
+            .get_plans(&Some(JobRole::Regular), &vec![])
             .await?;
         // Convert Plan vec to hashmap
         let mut plans: HashMap<ComponentId, PlanEntity> = plans

@@ -14,6 +14,7 @@ pub struct Model {
     pub execution_timestamp: i64,
     pub recorded_timestamp: i64,
     pub response_time: i64,
+    pub plan_id: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

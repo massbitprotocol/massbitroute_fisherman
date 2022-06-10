@@ -38,20 +38,24 @@ impl PlanService {
     */
     pub async fn get_plans(
         &self,
-        phase: &JobRole,
+        phase: &Option<JobRole>,
         statuses: &Vec<PlanStatus>,
     ) -> Result<Vec<PlanEntity>, anyhow::Error> {
-        let mut condition = Condition::all();
-        condition = condition.add(plans::Column::Phase.eq(phase.to_string()));
-
         let mut condition_status = Condition::any();
         for status in statuses {
             condition_status = condition_status.add(plans::Column::Status.eq(status.to_string()));
         }
-
-        if !statuses.is_empty() {
-            condition = condition.add(condition_status);
-        }
+        let mut condition = match phase {
+            None => condition_status,
+            Some(phase) => {
+                let mut condition = Condition::all();
+                condition = condition.add(plans::Column::Phase.eq(phase.to_string()));
+                if !statuses.is_empty() {
+                    condition = condition.add(condition_status);
+                }
+                condition
+            }
+        };
 
         let mut vec = Vec::default();
         match plans::Entity::find()
@@ -100,7 +104,7 @@ impl PlanService {
     ) -> Result<(), anyhow::Error> {
         let mut condition = Condition::any();
         for id in plan_ids {
-            condition.add(plans::Column::PlanId.eq(id.to_owned()))
+            condition = condition.add(plans::Column::PlanId.eq(id.to_owned()));
         }
         match plans::Entity::update_many()
             .col_expr(

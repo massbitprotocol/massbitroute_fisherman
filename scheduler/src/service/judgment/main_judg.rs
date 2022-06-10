@@ -29,7 +29,10 @@ impl Judgment {
     pub async fn run(&mut self) {
         loop {
             let plan_service = self.plan_service.clone();
-            if let Ok(plans) = plan_service.get_plans(vec![PlanStatus::Generated]).await {
+            if let Ok(plans) = plan_service
+                .get_plans(&None, &vec![PlanStatus::Generated])
+                .await
+            {
                 let now = Instant::now();
                 for plan in plans.iter() {
                     for judg in self.judgments.iter() {

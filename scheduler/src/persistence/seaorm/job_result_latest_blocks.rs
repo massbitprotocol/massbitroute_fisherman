@@ -17,6 +17,7 @@ pub struct Model {
     pub network: String,
     pub block_number: i64,
     pub block_timestamp: i64,
+    pub plan_id: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

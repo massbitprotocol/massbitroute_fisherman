@@ -23,9 +23,13 @@ impl ReportCheck for PingJudgment {
     }
 
     async fn apply(&self, plan: &PlanEntity) -> Result<u32, Error> {
-        self.result_service
+        if let Ok(responses) = self
+            .result_service
             .get_result_pings(plan.plan_id.as_str())
-            .await;
-        todo!()
+            .await
+        {
+            println!("{:?}", &responses);
+        }
+        Ok(0)
     }
 }
