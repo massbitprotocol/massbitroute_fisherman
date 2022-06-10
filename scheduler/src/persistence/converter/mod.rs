@@ -143,7 +143,7 @@ impl From<&PlanEntity> for plans::ActiveModel {
             finish_time: Set(entity.finish_time.to_owned()),
             result: Set(entity.result.to_owned()),
             message: Set(entity.message.to_owned()),
-            status: Set(entity.status.to_owned()),
+            status: Set(entity.status.to_string()),
             phase: Set(entity.phase.to_owned()),
             ..Default::default()
         }
