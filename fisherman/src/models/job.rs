@@ -1,7 +1,8 @@
 use common::job_manage::Job;
+use common::util::get_current_time;
 use common::Timestamp;
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
-
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct JobBuffer {
     jobs: Vec<Job>,
@@ -43,7 +44,16 @@ impl JobBuffer {
             .and_then(|job| Some(job.expected_runtime))
             .unwrap_or(0_128);
         if first_expected_time < current_time {
-            self.jobs.pop()
+            let job = self.jobs.pop();
+            if let Some(inner) = job.as_ref() {
+                let mut next_job = inner.clone();
+                if inner.repeat_number > 0 {
+                    next_job.expected_runtime = get_current_time() + inner.interval;
+                    next_job.repeat_number = next_job.repeat_number - 1;
+                    debug!("Schedule new repeat job: {:?}", next_job);
+                }
+            }
+            job
         } else {
             None
         }

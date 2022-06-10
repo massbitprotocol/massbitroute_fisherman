@@ -6,4 +6,5 @@ pub use super::job_result_latest_blocks::Entity as JobResultLatestBlocks;
 pub use super::job_result_pings::Entity as JobResultPings;
 pub use super::jobs::Entity as Jobs;
 pub use super::providers::Entity as Providers;
+pub use super::schedulers::Entity as Schedulers;
 pub use super::workers::Entity as Workers;
