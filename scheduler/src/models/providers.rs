@@ -62,30 +62,41 @@ impl ProviderStorage {
         res.append(&mut nodes);
         res
     }
-    pub async fn generate_regular_jobs(
-        &mut self,
-        task: Arc<dyn TaskApplicant>,
-    ) -> Result<Vec<Job>, anyhow::Error> {
-        //For nodes
-        let mut jobs_list = Vec::default();
-        let nodes = self.nodes.lock().await;
-        for node in nodes.iter() {
-            if task.can_apply(node) {
-                let mut jobs = task.apply(node)?;
-                jobs_list.append(&mut jobs);
-            }
-        }
-        //For gateways
-        let gateways = self.gateways.lock().await;
-        for gw in gateways.iter() {
-            if task.can_apply(gw) {
-                let mut jobs = task.apply(gw)?;
-                jobs_list.append(&mut jobs);
-            }
-        }
-        debug!("Regular jobs_list: {:?}", jobs_list);
-        Ok(jobs_list)
+
+    pub async fn clone_nodes_list(&mut self) -> Vec<ComponentInfo> {
+        let mut nodes = self.nodes.lock().await;
+        nodes.clone()
     }
+    pub async fn clone_gateways_list(&mut self) -> Vec<ComponentInfo> {
+        let mut gateways = self.gateways.lock().await;
+        gateways.clone()
+    }
+
+    // pub async fn generate_regular_jobs(
+    //     &mut self,
+    //     task: Arc<dyn TaskApplicant>,
+    // ) -> Result<Vec<Job>, anyhow::Error> {
+    //     //For nodes
+    //     let mut jobs_list = Vec::default();
+    //     let nodes = self.nodes.lock().await;
+    //     for node in nodes.iter() {
+    //         if task.can_apply(node) {
+    //             let mut jobs = task.apply(node)?;
+    //             jobs_list.append(&mut jobs);
+    //         }
+    //     }
+    //     //For gateways
+    //     let gateways = self.gateways.lock().await;
+    //     for gw in gateways.iter() {
+    //         if task.can_apply(gw) {
+    //             let mut jobs = task.apply(gw)?;
+    //             jobs_list.append(&mut jobs);
+    //         }
+    //     }
+    //     debug!("Regular jobs_list: {:?}", jobs_list);
+    //     Ok(jobs_list)
+    // }
+
     /*
      * Count nodes in verification queue to check available worker
      */
