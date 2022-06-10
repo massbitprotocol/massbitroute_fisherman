@@ -19,7 +19,7 @@ pub mod state;
 
 pub const JOB_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds
-
+pub const JUDGMENT_PERIOD: u64 = 10;
 lazy_static! {
     pub static ref COMPONENT_NAME: String = String::from("[Scheduler]");
     pub static ref SCHEDULER_ENDPOINT: String =

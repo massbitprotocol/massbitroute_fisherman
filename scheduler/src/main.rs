@@ -7,7 +7,7 @@ use common::logger::init_logger;
 use diesel::r2d2::ConnectionManager;
 use diesel::{r2d2, PgConnection};
 use diesel_migrations::embed_migrations;
-use futures_util::future::{join, join4};
+use futures_util::future::{join, join4, join5, join_all};
 use log::{debug, info, warn};
 use scheduler::models::jobs::AssignmentBuffer;
 use scheduler::models::providers::ProviderStorage;
@@ -24,8 +24,10 @@ use scheduler::{
     URL_NODES_LIST,
 };
 
+use scheduler::persistence::services::job_result_service::JobResultService;
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
+use scheduler::service::judgment::Judgment;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, Mutex};
@@ -59,6 +61,7 @@ async fn main() {
     let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
     let job_service = Arc::new(JobService::new(arc_conn.clone()));
     let all_workers = worker_service.clone().get_active().await;
+
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
     let provider_storage = Arc::new(Mutex::new(ProviderStorage::default()));
     log::debug!("Init with {:?} workers", all_workers.len());
@@ -82,8 +85,9 @@ async fn main() {
         job_service,
         assigment_buffer.clone(),
     );
+    let mut judgment = Judgment::new(arc_conn.clone());
     let mut job_delivery = JobDelivery::new(worker_infos.clone(), assigment_buffer.clone());
-    info!("Init http service ");
+    let task_judgment = task::spawn(async move { judgment.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
     let task_job_generator = task::spawn(async move { job_generator.run().await });
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
@@ -94,6 +98,7 @@ async fn main() {
         provider_storage.clone(),
     );
     let processor_state = ProcessorState::new(arc_conn.clone());
+    info!("Init http service ");
     let server = ServerBuilder::default()
         .with_entry_point(socket_addr)
         .with_access_control(access_control)
@@ -101,11 +106,12 @@ async fn main() {
         .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
     let task_serve = server.serve();
-    join4(
+    join5(
         task_provider_scanner,
         task_job_generator,
         task_job_delivery,
         task_serve,
+        task_judgment,
     )
     .await;
 }

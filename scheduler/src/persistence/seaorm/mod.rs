@@ -8,4 +8,5 @@ pub mod job_result_latest_blocks;
 pub mod job_result_pings;
 pub mod jobs;
 pub mod providers;
+pub mod schedulers;
 pub mod workers;

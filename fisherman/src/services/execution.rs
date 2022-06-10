@@ -6,6 +6,7 @@ use crate::{
 use common::job_manage::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
 use common::tasks::get_executors;
+use common::util::get_current_time;
 use log::{debug, info};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -70,9 +71,6 @@ impl JobExecution {
                         rt_handle.spawn(async move {
                             debug!("Execute job on a worker thread");
                             clone_executor.execute(&clone_job, result_sender).await;
-                            clone_executor
-                                .generate_new_job(&clone_job, job_sender)
-                                .await;
                             //Fixme: Program will hang if it panic before fetch_sub is executed.
                             counter.fetch_sub(1, Ordering::SeqCst);
                         });
@@ -91,7 +89,6 @@ impl JobExecution {
                         let job_sender = self.job_sender.clone();
                         debug!("Execute job on main execution thread");
                         executor.execute(&next_job, result_sender).await;
-                        executor.generate_new_job(&next_job, job_sender).await;
                     }
                 }
             }

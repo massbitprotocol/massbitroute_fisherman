@@ -15,15 +15,6 @@ pub trait TaskExecutor: Sync + Send {
         job: &Job,
         result_sender: Sender<JobResult>,
     ) -> Result<(), anyhow::Error>;
-    async fn generate_new_job(&self, job: &Job, newjob_sender: Sender<Job>) {
-        let mut job = job.clone();
-        if job.repeat_number > 0 {
-            job.expected_runtime = get_current_time() + job.interval;
-            job.repeat_number = job.repeat_number - 1;
-            debug!("Schedule new repeat job: {:?}", job);
-            newjob_sender.send(job).await;
-        }
-    }
     fn can_apply(&self, job: &Job) -> bool;
 }
 
