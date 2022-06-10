@@ -1,9 +1,13 @@
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::seaorm::workers;
+use crate::persistence::services::plan_service::PlanService;
 use crate::persistence::services::WorkerService;
 use crate::REPORT_CALLBACK;
 use common::component::ComponentInfo;
+use common::job_manage::JobRole;
+use common::models::PlanEntity;
+use common::util::get_current_time;
 use common::worker::{WorkerInfo, WorkerRegisterResult};
 use sea_orm::ActiveModelTrait;
 use sea_orm::DatabaseConnection;
@@ -13,6 +17,7 @@ use tokio::sync::Mutex;
 #[derive(Clone, Default)]
 pub struct SchedulerState {
     connection: Arc<DatabaseConnection>,
+    plan_service: Arc<PlanService>,
     worker_service: Arc<WorkerService>,
     worker_pool: Arc<Mutex<WorkerInfoStorage>>,
     providers: Arc<Mutex<ProviderStorage>>,
@@ -21,12 +26,14 @@ pub struct SchedulerState {
 impl SchedulerState {
     pub fn new(
         connection: Arc<DatabaseConnection>,
+        plan_service: Arc<PlanService>,
         worker_service: Arc<WorkerService>,
         worker_pool: Arc<Mutex<WorkerInfoStorage>>,
         providers: Arc<Mutex<ProviderStorage>>,
     ) -> SchedulerState {
         SchedulerState {
             connection,
+            plan_service,
             worker_service,
             worker_pool,
             providers,
@@ -66,6 +73,12 @@ impl SchedulerState {
     }
     pub async fn verify_node(&mut self, node_info: ComponentInfo) {
         log::debug!("Push node {:?} to verification queue", &node_info);
+        //Create a scheduler in db
+        let scheduler = PlanEntity::new(
+            node_info.id.clone(),
+            get_current_time(),
+            JobRole::Verification.to_string(),
+        );
         self.providers.lock().await.add_verify_node(node_info).await;
     }
 }

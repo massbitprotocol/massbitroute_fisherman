@@ -1,8 +1,8 @@
 use crate::persistence::seaorm::{
-    job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs, schedulers, workers,
+    job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs, plans, workers,
 };
 use common::job_manage::{Job, JobBenchmarkResult, JobDetail};
-use common::models::SchedulerEntity;
+use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
 use common::worker::WorkerInfo;
@@ -134,10 +134,10 @@ impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
     }
 }
 
-impl From<&SchedulerEntity> for schedulers::ActiveModel {
-    fn from(entity: &SchedulerEntity) -> Self {
-        schedulers::ActiveModel {
-            scheduler_id: Set(entity.scheduler_id.to_owned()),
+impl From<&PlanEntity> for plans::ActiveModel {
+    fn from(entity: &PlanEntity) -> Self {
+        plans::ActiveModel {
+            plan_id: Set(entity.plan_id.to_owned()),
             provider_id: Set(entity.provider_id.to_owned()),
             request_time: Set(entity.request_time.to_owned()),
             finish_time: Set(entity.finish_time.to_owned()),

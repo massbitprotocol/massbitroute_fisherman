@@ -1,4 +1,4 @@
-pub mod scheduler_entity;
+pub mod plan_entity;
 use serde::{Deserialize, Serialize};
 /*
  * Store time frame information
@@ -6,4 +6,4 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct TimeFrames {}
 
-pub use scheduler_entity::SchedulerEntity;
+pub use plan_entity::PlanEntity;

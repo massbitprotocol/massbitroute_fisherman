@@ -1,8 +1,8 @@
-use crate::persistence::seaorm::schedulers;
-use crate::persistence::seaorm::schedulers::Model;
+use crate::persistence::seaorm::plans;
+use crate::persistence::seaorm::plans::Model;
 use anyhow::anyhow;
 use common::component::Zone;
-use common::models::SchedulerEntity;
+use common::models::PlanEntity;
 use common::worker::WorkerInfo;
 use log::error;
 use sea_orm::DatabaseConnection;
@@ -11,12 +11,12 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 #[derive(Default)]
-pub struct SchedulerService {
+pub struct PlanService {
     db: Arc<DatabaseConnection>,
 }
-impl SchedulerService {
+impl PlanService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
-        SchedulerService { db }
+        PlanService { db }
     }
     /*
     pub async fn get_active(&self) -> Vec<WorkerInfo> {
@@ -50,20 +50,17 @@ impl SchedulerService {
         }
     }
     */
-    pub async fn store_scheduler(
-        &self,
-        entity: &SchedulerEntity,
-    ) -> Result<schedulers::Model, anyhow::Error> {
-        let sched = schedulers::ActiveModel::from(entity);
+    pub async fn store_scheduler(&self, entity: &PlanEntity) -> Result<Model, anyhow::Error> {
+        let sched = plans::ActiveModel::from(entity);
         match sched.insert(self.db.as_ref()).await {
             Ok(res) => Ok(res),
             Err(err) => Err(anyhow!("{:?}", &err)),
         }
     }
 }
-impl From<&schedulers::Model> for SchedulerEntity {
+impl From<&Model> for PlanEntity {
     fn from(info: &Model) -> Self {
-        SchedulerEntity {
+        PlanEntity {
             id: info.id.clone(),
             provider_id: info.provider_id.clone(),
             request_time: info.request_time.clone(),
@@ -71,7 +68,7 @@ impl From<&schedulers::Model> for SchedulerEntity {
             result: info.result.clone(),
             message: info.message.clone(),
             status: info.status.clone(),
-            scheduler_id: info.scheduler_id.clone(),
+            plan_id: info.plan_id.clone(),
             phase: info.phase.clone(),
         }
     }

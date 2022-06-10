@@ -1,6 +1,6 @@
 pub mod job_result_service;
 pub mod job_service;
-pub mod scheduler_service;
+pub mod plan_service;
 pub mod worker_service;
 pub use job_service::JobService;
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};

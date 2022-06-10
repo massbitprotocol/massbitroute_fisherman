@@ -10,9 +10,9 @@ use tokio::sync::Mutex;
 use warp::{Rejection, Reply};
 
 #[derive(Default)]
-pub struct SchedulerService {}
+pub struct WebService {}
 
-impl SchedulerService {
+impl WebService {
     pub fn builder() -> SchedulerServiceBuilder {
         SchedulerServiceBuilder::default()
     }
@@ -77,18 +77,18 @@ impl SchedulerService {
     }
 }
 pub struct SchedulerServiceBuilder {
-    inner: SchedulerService,
+    inner: WebService,
 }
 
 impl Default for SchedulerServiceBuilder {
     fn default() -> Self {
         Self {
-            inner: SchedulerService {},
+            inner: WebService {},
         }
     }
 }
 impl SchedulerServiceBuilder {
-    pub fn build(self) -> SchedulerService {
+    pub fn build(self) -> WebService {
         self.inner
     }
 }

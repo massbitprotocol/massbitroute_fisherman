@@ -3,17 +3,17 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "schedulers")]
+#[sea_orm(table_name = "plans")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
+    pub plan_id: String,
     pub provider_id: String,
     pub request_time: i64,
     pub finish_time: Option<i64>,
     pub result: Option<String>,
     pub message: Option<String>,
     pub status: String,
-    pub scheduler_id: String,
     pub phase: String,
 }
 
