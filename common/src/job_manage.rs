@@ -12,7 +12,7 @@ use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
 use crate::tasks::command::{JobCommand, JobCommandResponse, JobCommandResult};
 use crate::tasks::compound::JobCompound;
-use crate::tasks::eth::{CallBenchmarkError, JobLatestBlockResult};
+use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult};
 use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
 use crate::tasks::ping::{CallPingError, JobPingResult};
 use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
@@ -40,6 +40,7 @@ pub enum JobType {
 pub struct Job {
     pub job_id: JobId,
     pub job_name: String,
+    pub plan_id: String,
     pub component_id: ComponentId,
     pub component_type: ComponentType,
     pub priority: i32,               //Fist priority is 1
@@ -59,11 +60,17 @@ impl From<&Job> for reqwest::Body {
     }
 }
 impl Job {
-    pub fn new(job_name: String, component: &ComponentInfo, job_detail: JobDetail) -> Self {
+    pub fn new(
+        plan_id: String,
+        job_name: String,
+        component: &ComponentInfo,
+        job_detail: JobDetail,
+    ) -> Self {
         let uuid = Uuid::new_v4();
         Job {
             job_id: uuid.to_string(),
             job_name,
+            plan_id,
             component_id: component.id.clone(),
             component_type: component.component_type.clone(),
             priority: 1,
@@ -153,6 +160,7 @@ pub enum JobDetail {
     Compound(JobCompound),
     // perform ping check
     Ping(JobPing),
+    LatestBlock(JobLatestBlock),
     // perform benchmark checking
     Benchmark(JobBenchmark),
 }
@@ -165,6 +173,7 @@ impl JobDetail {
             JobDetail::Command(_) => "Command".to_string(),
             JobDetail::Compound(_) => "Compound".to_string(),
             JobDetail::Ping(_) => "Ping".to_string(),
+            JobDetail::LatestBlock(_) => "LatestBlock".to_string(),
             JobDetail::Benchmark(_) => "Benchmark".to_string(),
         }
     }
@@ -202,6 +211,11 @@ impl JobResult {
                 JobCommandResponse::default(),
             )),
             JobDetail::Ping(_) => JobResult::Ping(JobPingResult {
+                job: job.clone(),
+                //response_timestamp: current_timestamp,
+                ..Default::default()
+            }),
+            JobDetail::LatestBlock(_) => JobResult::LatestBlock(JobLatestBlockResult {
                 job: job.clone(),
                 //response_timestamp: current_timestamp,
                 ..Default::default()

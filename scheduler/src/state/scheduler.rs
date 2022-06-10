@@ -74,11 +74,12 @@ impl SchedulerState {
     pub async fn verify_node(&mut self, node_info: ComponentInfo) {
         log::debug!("Push node {:?} to verification queue", &node_info);
         //Create a scheduler in db
-        let scheduler = PlanEntity::new(
+        let plan = PlanEntity::new(
             node_info.id.clone(),
             get_current_time(),
             JobRole::Verification.to_string(),
         );
+        self.plan_service.store_plan(&plan).await;
         self.providers.lock().await.add_verify_node(node_info).await;
     }
 }

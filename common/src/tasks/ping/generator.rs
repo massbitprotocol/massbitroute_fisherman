@@ -5,6 +5,7 @@ use crate::{ComponentInfo, Timestamp};
 use anyhow::Error;
 use async_trait::async_trait;
 
+use crate::models::PlanEntity;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::vec;
@@ -48,11 +49,16 @@ impl TaskApplicant for PingGenerator {
         true
     }
 
-    fn apply(&self, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan: &PlanEntity, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};
         let job_detail = JobDetail::Ping(job_ping);
-        let mut job = Job::new(job_detail.get_job_name(), component, job_detail);
+        let mut job = Job::new(
+            plan.plan_id.clone(),
+            job_detail.get_job_name(),
+            component,
+            job_detail,
+        );
         job.parallelable = true;
         job.component_url = self.get_url(component);
         job.timeout = self.config.ping_timeout_ms;
