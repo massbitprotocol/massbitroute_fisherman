@@ -1,5 +1,6 @@
 use crate::Timestamp;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use uuid::Uuid;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -10,7 +11,7 @@ pub struct PlanEntity {
     pub request_time: Timestamp,
     pub finish_time: Option<Timestamp>,
     pub result: Option<String>,
-    pub status: String,
+    pub status: PlanStatus,
     pub message: Option<String>,
     pub phase: String,
 }
@@ -24,9 +25,45 @@ impl PlanEntity {
             request_time,
             finish_time: None,
             result: None,
-            status: "".to_string(),
+            status: Default::default(),
             message: None,
             phase,
         }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub enum PlanStatus {
+    Init,
+    Generated,
+    Finished,
+}
+
+impl ToString for PlanStatus {
+    fn to_string(&self) -> String {
+        match self {
+            PlanStatus::Init => "Init".to_string(),
+            PlanStatus::Generated => "Generated".to_string(),
+            PlanStatus::Finished => "Finished".to_string(),
+        }
+    }
+}
+
+impl FromStr for PlanStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Init" => Ok(PlanStatus::Init),
+            "Generated" => Ok(PlanStatus::Generated),
+            "Finished" => Ok(PlanStatus::Finished),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Default for PlanStatus {
+    fn default() -> Self {
+        PlanStatus::Init
     }
 }

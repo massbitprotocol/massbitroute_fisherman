@@ -2,56 +2,36 @@ use crate::models::jobs::{AssignmentBuffer, JobAssignment};
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::{Worker, WorkerInfoStorage};
 use crate::persistence::services::JobService;
-use crate::{CONFIG_DIR, JOB_GENERATOR_PERIOD};
+use crate::{CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use common::component::{ComponentInfo, Zone};
 use common::job_manage::{Job, JobRole};
 use common::tasks::generator::{get_tasks, TaskApplicant};
 use common::worker::WorkerInfo;
-use common::{ComponentId, WorkerId};
+use common::{task_spawn, ComponentId, WorkerId};
+use futures_util::future::join;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
+use tokio::task;
 
 #[derive(Default)]
 pub struct JobGenerator {
+    verification: DetailJobGenerator,
+    regular: DetailJobGenerator,
+}
+
+#[derive(Default)]
+pub struct DetailJobGenerator {
     providers: Arc<Mutex<ProviderStorage>>,
     worker_infos: Arc<Mutex<WorkerInfoStorage>>,
-    verification_tasks: Vec<Arc<dyn TaskApplicant>>,
-    regular_tasks: Vec<Arc<dyn TaskApplicant>>,
+    tasks: Vec<Arc<dyn TaskApplicant>>,
     job_service: Arc<JobService>,
     assignments: Arc<Mutex<AssignmentBuffer>>,
 }
 
-impl JobGenerator {
-    pub fn new(
-        providers: Arc<Mutex<ProviderStorage>>,
-        worker_infos: Arc<Mutex<WorkerInfoStorage>>,
-        job_service: Arc<JobService>,
-        assignments: Arc<Mutex<AssignmentBuffer>>,
-    ) -> Self {
-        JobGenerator {
-            providers,
-            worker_infos,
-            verification_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Verification),
-            regular_tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Regular),
-            job_service,
-            assignments,
-        }
-    }
-    pub async fn run(&mut self) {
-        loop {
-            let now = Instant::now();
-            self.generate_verification_jobs().await;
-            self.generate_regular_jobs().await;
-            if now.elapsed().as_secs() < JOB_GENERATOR_PERIOD {
-                sleep(Duration::from_secs(
-                    JOB_GENERATOR_PERIOD - now.elapsed().as_secs(),
-                ));
-            }
-        }
-    }
+impl DetailJobGenerator {
     /*
      * For verification job (long job) find next available worker
      */
@@ -66,7 +46,7 @@ impl JobGenerator {
             .await;
 
         for node in nodes.iter() {
-            for task in self.verification_tasks.iter() {
+            for task in self.tasks.iter() {
                 if task.can_apply(node) {
                     match task.apply(node) {
                         Ok(mut jobs) => {
@@ -94,7 +74,7 @@ impl JobGenerator {
             .pop_gateways_for_verifications()
             .await;
         for gw in gateways.iter() {
-            for task in self.verification_tasks.iter() {
+            for task in self.tasks.iter() {
                 if task.can_apply(gw) {
                     match task.apply(gw) {
                         Ok(mut jobs) => {
@@ -119,11 +99,13 @@ impl JobGenerator {
         //Store jobs to db
         self.store_jobs(&gen_jobs).await;
     }
+
     pub async fn store_jobs(&self, map_jobs: &HashMap<Zone, Vec<Job>>) {
         for (zone, jobs) in map_jobs.iter() {
             self.job_service.save_jobs(jobs).await;
         }
     }
+
     pub async fn assign_jobs(&self, map_jobs: &HashMap<Zone, Vec<Job>>) {
         let mut assignments = Vec::default();
         for (zone, jobs) in map_jobs.iter() {
@@ -141,7 +123,16 @@ impl JobGenerator {
         self.assignments.lock().await.add_assignments(assignments);
     }
     pub async fn generate_regular_jobs(&mut self) {
-        for task in self.regular_tasks.iter() {
+        // Get components in system
+
+        // Read Schedule to check what schedule already init and generated
+        //let schedule = get_init()
+
+        // Init all the node that not init or generated
+
+        // Generate Jobs for each schedule for all nodes that inited
+
+        for task in self.tasks.iter() {
             self.providers
                 .lock()
                 .await
@@ -149,6 +140,62 @@ impl JobGenerator {
                 .await;
         }
     }
+}
+
+impl JobGenerator {
+    pub fn new(
+        providers: Arc<Mutex<ProviderStorage>>,
+        worker_infos: Arc<Mutex<WorkerInfoStorage>>,
+        job_service: Arc<JobService>,
+        assignments: Arc<Mutex<AssignmentBuffer>>,
+    ) -> Self {
+        let verification = DetailJobGenerator {
+            providers: providers.clone(),
+            worker_infos: worker_infos.clone(),
+            tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Verification),
+            job_service: job_service.clone(),
+            assignments: assignments.clone(),
+        };
+
+        let regular = DetailJobGenerator {
+            providers,
+            worker_infos,
+            tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Regular),
+            job_service,
+            assignments,
+        };
+
+        JobGenerator {
+            verification,
+            regular,
+        }
+    }
+    pub async fn run(mut self) {
+        let JobGenerator {
+            mut verification,
+            mut regular,
+        } = self;
+        // Run Verification task
+        let verification_task = task::spawn(async move {
+            loop {
+                let now = Instant::now();
+                verification.generate_verification_jobs().await;
+                if now.elapsed().as_secs() < JOB_VERIFICATION_GENERATOR_PERIOD {
+                    sleep(Duration::from_secs(
+                        JOB_VERIFICATION_GENERATOR_PERIOD - now.elapsed().as_secs(),
+                    ));
+                }
+            }
+        });
+
+        // Run Regular task
+        let regular_task = task::spawn(async move {
+            regular.generate_regular_jobs().await;
+        });
+
+        join(verification_task, regular_task);
+    }
+
     /*
      * For verification job (long job) find next available worker
      */

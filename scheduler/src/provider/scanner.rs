@@ -43,7 +43,7 @@ impl ProviderScanner {
         }
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run(mut self) {
         loop {
             info!("Get new providers");
             self.update_providers().await;
