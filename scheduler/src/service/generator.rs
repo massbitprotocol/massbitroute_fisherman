@@ -3,16 +3,20 @@ use crate::models::providers::ProviderStorage;
 use crate::models::workers::{Worker, WorkerInfoStorage};
 use crate::persistence::services::{JobService, PlanService};
 use crate::{CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
+use anyhow::Error;
 use common::component::{ComponentInfo, Zone};
 use common::job_manage::{Job, JobRole};
+use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::tasks::generator::{get_tasks, TaskApplicant};
+use common::util::get_current_time;
 use common::worker::WorkerInfo;
 use common::{task_spawn, ComponentId, WorkerId};
 use futures_util::future::join;
 use sea_orm::sea_query::IndexType::Hash;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 use std::collections::HashMap;
+use std::mem::take;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -173,23 +177,50 @@ impl DetailJobGenerator {
         }
         self.assignments.lock().await.add_assignments(assignments);
     }
-    pub async fn generate_regular_jobs(&mut self) {
+
+    pub async fn generate_regular_jobs(&mut self) -> Result<(), Error> {
         // Get components in system
+        let mut components = self.providers.lock().await.clone_nodes_list().await;
+        components.append(&mut self.providers.lock().await.clone_gateways_list().await);
 
         // Read Schedule to check what schedule already init and generated
-        //let schedule = get_init()
+        let plans = self
+            .plan_service
+            .get_plans(&JobRole::Regular, &vec![])
+            .await?;
+        // Convert Plan vec to hashmap
+        let mut plans: HashMap<ComponentId, PlanEntity> = plans
+            .into_iter()
+            .map(|plan| (plan.provider_id.clone(), plan))
+            .collect();
 
-        // Init all the node that not init or generated
-
-        // Generate Jobs for each schedule for all nodes that inited
-
-        for task in self.tasks.iter() {
-            self.providers
-                .lock()
-                .await
-                .generate_regular_jobs(task.clone())
-                .await;
+        for component in components {
+            // Init all the components that not init or generated
+            let mut plan = plans.entry(component.id.clone()).or_insert(PlanEntity::new(
+                component.id.clone(),
+                get_current_time(),
+                JobRole::Regular.to_string(),
+            ));
+            if !(plan.status == PlanStatus::Init) {
+                continue;
+            }
+            // Generate job
+            let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
+            for task in self.tasks.iter() {
+                if task.can_apply(&component) {
+                    let jobs = task.apply(plan, &component);
+                    if let Ok(jobs) = jobs {
+                        gen_jobs.entry(component.zone.clone()).or_insert(jobs);
+                        self.assign_jobs(&gen_jobs).await;
+                        self.store_jobs(&gen_jobs).await;
+                    }
+                }
+            }
+            // Change plant status to
+            plan.status = PlanStatus::Generated;
         }
+
+        Ok(())
     }
 }
 

@@ -38,12 +38,21 @@ impl PlanService {
     */
     pub async fn get_plans(
         &self,
-        statuses: Vec<PlanStatus>,
+        phase: &JobRole,
+        statuses: &Vec<PlanStatus>,
     ) -> Result<Vec<PlanEntity>, anyhow::Error> {
-        let mut condition = Condition::any();
+        let mut condition = Condition::all();
+        condition = condition.add(plans::Column::Phase.eq(phase.to_string()));
+
+        let mut condition_status = Condition::any();
         for status in statuses {
-            condition.add(plans::Column::Status.eq(status))
+            condition_status = condition_status.add(plans::Column::Status.eq(status.to_string()));
         }
+
+        if !statuses.is_empty() {
+            condition = condition.add(condition_status);
+        }
+
         let mut vec = Vec::default();
         match plans::Entity::find()
             .filter(condition)
@@ -56,7 +65,7 @@ impl PlanService {
                 }
                 Ok(vec)
             }
-            Err(err) => Err(err),
+            Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }
     }
     pub async fn get_verification_plans(&self) -> Result<Vec<PlanEntity>, anyhow::Error> {
@@ -72,7 +81,10 @@ impl PlanService {
                 }
                 Ok(vec)
             }
-            Err(err) => Err(err),
+            Err(err) => Err(anyhow::Error::msg(format!(
+                "get_verification_plans error:{}",
+                err
+            ))),
         }
     }
     pub async fn store_plan(&self, entity: &PlanEntity) -> Result<Model, anyhow::Error> {
