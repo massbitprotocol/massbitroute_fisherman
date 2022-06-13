@@ -3,6 +3,7 @@ use crate::service::judgment::ReportCheck;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::models::PlanEntity;
+use minifier::js::Keyword::Default;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -19,10 +20,10 @@ impl LatestBlockJudgment {
 #[async_trait]
 impl ReportCheck for LatestBlockJudgment {
     fn can_apply(&self) -> bool {
-        todo!()
+        false
     }
 
     async fn apply(&self, plan: &PlanEntity) -> Result<u32, Error> {
-        todo!()
+        Ok(0)
     }
 }

@@ -19,10 +19,10 @@ impl BenchmarkJudgment {
 #[async_trait]
 impl ReportCheck for BenchmarkJudgment {
     fn can_apply(&self) -> bool {
-        todo!()
+        false
     }
 
     async fn apply(&self, plan: &PlanEntity) -> Result<u32, Error> {
-        todo!()
+        Ok(0)
     }
 }
