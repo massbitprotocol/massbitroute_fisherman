@@ -23,3 +23,4 @@ pub type Timestamp = i64; //Store as second
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;
 pub use std::env;
+pub type PlanId = String;

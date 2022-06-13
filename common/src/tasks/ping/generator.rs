@@ -1,7 +1,7 @@
 use crate::job_manage::{Job, JobDetail, JobPing, JobRole};
 use crate::tasks::generator::TaskApplicant;
 use crate::tasks::LoadConfig;
-use crate::{ComponentInfo, Timestamp};
+use crate::{ComponentInfo, PlanId, Timestamp};
 use anyhow::Error;
 use async_trait::async_trait;
 
@@ -49,12 +49,12 @@ impl TaskApplicant for PingGenerator {
         true
     }
 
-    fn apply(&self, plan: &PlanEntity, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan_id: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};
         let job_detail = JobDetail::Ping(job_ping);
         let mut job = Job::new(
-            plan.plan_id.clone(),
+            plan_id.clone(),
             job_detail.get_job_name(),
             component,
             job_detail,

@@ -7,16 +7,12 @@ use crate::models::PlanEntity;
 use crate::tasks::eth::*;
 use crate::tasks::http_request::HttpRequestGenerator;
 use crate::tasks::ping::generator::PingGenerator;
-use crate::ComponentInfo;
+use crate::{ComponentInfo, PlanId};
 use std::sync::Arc;
 
 pub trait TaskApplicant: Sync + Send {
     fn can_apply(&self, component: &ComponentInfo) -> bool;
-    fn apply(
-        &self,
-        plan: &PlanEntity,
-        component: &ComponentInfo,
-    ) -> Result<Vec<Job>, anyhow::Error>;
+    fn apply(&self, plan: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error>;
 }
 /*
  * Todo: can add config to load required task for each phase: verification or regular

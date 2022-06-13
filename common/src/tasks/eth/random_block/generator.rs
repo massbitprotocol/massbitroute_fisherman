@@ -2,7 +2,7 @@ use crate::component::ComponentInfo;
 use crate::job_manage::{Job, JobDetail, JobPing, JobResult};
 use crate::models::PlanEntity;
 use crate::tasks::generator::TaskApplicant;
-use crate::{Gateway, Node};
+use crate::{Gateway, Node, PlanId};
 use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -30,7 +30,7 @@ impl TaskApplicant for TaskRandomBlock {
         true
     }
 
-    fn apply(&self, plan: &PlanEntity, node: &Node) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan_id: &PlanId, node: &Node) -> Result<Vec<Job>, Error> {
         let vec = Vec::default();
         Ok(vec)
     }

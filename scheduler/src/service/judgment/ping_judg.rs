@@ -3,6 +3,7 @@ use crate::service::judgment::ReportCheck;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::models::PlanEntity;
+use log::log;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -19,7 +20,7 @@ impl PingJudgment {
 #[async_trait]
 impl ReportCheck for PingJudgment {
     fn can_apply(&self) -> bool {
-        todo!()
+        true
     }
 
     async fn apply(&self, plan: &PlanEntity) -> Result<u32, Error> {
@@ -28,7 +29,7 @@ impl ReportCheck for PingJudgment {
             .get_result_pings(plan.plan_id.as_str())
             .await
         {
-            println!("{:?}", &responses);
+            log::debug!("Ping results: {:?}", &responses);
         }
         Ok(0)
     }
