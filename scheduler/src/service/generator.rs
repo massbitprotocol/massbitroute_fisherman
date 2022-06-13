@@ -45,7 +45,78 @@ impl DetailJobGenerator {
     /*
      * For verification job (long job) find next available worker
      */
+    /*
+     * For verification job (long job) find next available worker
+     */
     pub async fn generate_verification_jobs(&mut self) {
+        let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
+
+        let nodes = self
+            .providers
+            .lock()
+            .await
+            .pop_nodes_for_verifications()
+            .await;
+        log::debug!("Generate verification jobs for {} nodes", nodes.len());
+        for (plan_id, node) in nodes.iter() {
+            for task in self.tasks.iter() {
+                if task.can_apply(node) {
+                    match task.apply(plan_id, node) {
+                        Ok(mut jobs) => {
+                            if jobs.len() > 0 {
+                                log::debug!("Create {:?} jobs for node {:?}", jobs.len(), &node);
+                                if let Some(current_jobs) = gen_jobs.get_mut(&node.zone) {
+                                    current_jobs.append(&mut jobs);
+                                } else {
+                                    gen_jobs.insert(node.zone.clone(), jobs);
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            log::error!("Error: {:?}", &err);
+                        }
+                    }
+                }
+            }
+        }
+        //Generate jobs for gateways
+        let gateways = self
+            .providers
+            .lock()
+            .await
+            .pop_gateways_for_verifications()
+            .await;
+        log::debug!("Generate verification jobs for {} gateways", gateways.len());
+        for (plan_id, gw) in gateways.iter() {
+            for task in self.tasks.iter() {
+                if task.can_apply(gw) {
+                    match task.apply(plan_id, gw) {
+                        Ok(mut jobs) => {
+                            if jobs.len() > 0 {
+                                log::debug!("Create {:?} jobs for gateway {:?}", jobs.len(), &gw);
+                                if let Some(current_jobs) = gen_jobs.get_mut(&gw.zone) {
+                                    current_jobs.append(&mut jobs);
+                                } else {
+                                    gen_jobs.insert(gw.zone.clone(), jobs);
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            log::error!("Error: {:?}", &err);
+                        }
+                    }
+                }
+            }
+        }
+
+        //Distribute job to workers
+        self.assign_jobs(&gen_jobs).await;
+        //Store jobs to db
+        self.store_jobs(&gen_jobs).await;
+    }
+    /*
+    pub async fn generate_verification_jobs_v0(&mut self) {
+        log::debug!("Generate verification jobs");
         let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
         let map_plans = self
             .plan_service
@@ -141,11 +212,14 @@ impl DetailJobGenerator {
         //Store jobs to db
         self.store_jobs(&gen_jobs).await;
     }
-
+    */
     pub async fn store_jobs(
         &self,
         map_jobs: &HashMap<Zone, Vec<Job>>,
     ) -> Result<(), anyhow::Error> {
+        if map_jobs.is_empty() {
+            return Ok(());
+        }
         let mut gen_plans = Vec::default();
         let tnx = self.db_conn.begin().await?;
         for (zone, jobs) in map_jobs.iter() {
@@ -231,7 +305,7 @@ impl DetailJobGenerator {
             // Generate job
             for task in self.tasks.iter() {
                 if task.can_apply(&component) {
-                    let jobs = task.apply(&plan, &component);
+                    let jobs = task.apply(&plan.plan_id, &component);
                     if let Ok(jobs) = jobs {
                         if jobs.is_empty() {
                             continue;
@@ -326,7 +400,6 @@ impl JobGenerator {
 
         join(verification_task, regular_task).await;
     }
-
     /*
      * For verification job (long job) find next available worker
      */

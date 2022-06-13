@@ -55,6 +55,7 @@ impl From<&Job> for jobs::ActiveModel {
         jobs::ActiveModel {
             job_id: Set(job.job_id.to_owned()),
             job_name: Set(job.job_name.to_owned()),
+            plan_id: Set(job.plan_id.to_string()),
             component_id: Set(job.component_id.to_owned()),
             priority: Set(job.priority),
             expected_runtime: Set(job.expected_runtime as i64),
@@ -75,6 +76,7 @@ impl From<&JobPingResult> for job_result_pings::ActiveModel {
         job_result_pings::ActiveModel {
             job_id: Set(result.job.job_id.to_owned()),
             //job_name: Set(result.job.job_name.to_owned()),
+            plan_id: Set(result.job.plan_id.to_string()),
             worker_id: Set(result.worker_id.to_owned()),
             provider_id: Set(result.job.component_id.to_owned()),
             provider_type: Set(result.job.component_type.to_string()),
@@ -89,6 +91,7 @@ impl From<&JobBenchmarkResult> for job_result_benchmarks::ActiveModel {
         job_result_benchmarks::ActiveModel {
             job_id: Set(result.job.job_id.to_owned()),
             //job_name: Set(result.job.job_name.to_owned()),
+            plan_id: Set(result.job.plan_id.to_string()),
             worker_id: Set(result.worker_id.to_owned()),
             provider_id: Set(result.job.component_id.to_owned()),
             provider_type: Set(result.job.component_type.to_string()),
@@ -123,6 +126,7 @@ impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
         job_result_latest_blocks::ActiveModel {
             job_id: Set(result.job.job_id.to_owned()),
             //job_name: Set(result.job.job_name.to_owned()),
+            plan_id: Set(result.job.plan_id.to_string()),
             worker_id: Set(result.worker_id.to_owned()),
             provider_id: Set(result.job.component_id.to_owned()),
             provider_type: Set(result.job.component_type.to_string()),

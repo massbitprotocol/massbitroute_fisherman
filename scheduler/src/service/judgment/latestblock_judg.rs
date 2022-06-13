@@ -20,7 +20,7 @@ impl LatestBlockJudgment {
 #[async_trait]
 impl ReportCheck for LatestBlockJudgment {
     fn can_apply(&self) -> bool {
-        false
+        true
     }
 
     async fn apply(&self, plan: &PlanEntity) -> Result<u32, Error> {

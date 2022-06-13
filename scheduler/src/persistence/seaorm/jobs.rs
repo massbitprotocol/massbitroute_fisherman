@@ -19,6 +19,7 @@ pub struct Model {
     pub repeat_number: i32,
     pub interval: i64,
     pub job_name: String,
+    pub plan_id: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

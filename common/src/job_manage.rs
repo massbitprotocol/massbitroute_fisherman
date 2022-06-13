@@ -254,6 +254,19 @@ impl JobResult {
     }
 }
 
+impl JobResult {
+    pub fn get_plan_id(&self) -> String {
+        match self {
+            JobResult::HttpRequest(detail) => detail.job.plan_id.clone(),
+            JobResult::RpcRequest(detail) => detail.job.plan_id.clone(),
+            JobResult::Command(detail) => detail.job.plan_id.clone(),
+            JobResult::Ping(detail) => detail.job.plan_id.clone(),
+            JobResult::LatestBlock(detail) => detail.job.plan_id.clone(),
+            JobResult::Benchmark(detail) => detail.job.plan_id.clone(),
+            JobResult::Compound(detail) => detail.job.plan_id.clone(),
+        }
+    }
+}
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     pub check_interval_ms: u64,

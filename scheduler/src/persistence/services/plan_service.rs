@@ -73,6 +73,30 @@ impl PlanService {
             Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }
     }
+    pub async fn get_plan_by_ids(
+        &self,
+        plan_ids: &Vec<String>,
+    ) -> Result<Vec<PlanEntity>, anyhow::Error> {
+        let mut id_conditions = Condition::any();
+        for id in plan_ids {
+            id_conditions = id_conditions.add(plans::Column::PlanId.eq(id.to_string()));
+        }
+
+        let mut vec = Vec::default();
+        match plans::Entity::find()
+            .filter(id_conditions)
+            .all(self.db.as_ref())
+            .await
+        {
+            Ok(entities) => {
+                for model in entities.iter() {
+                    vec.push(PlanEntity::from(model))
+                }
+                Ok(vec)
+            }
+            Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
+        }
+    }
     pub async fn get_verification_plans(&self) -> Result<Vec<PlanEntity>, anyhow::Error> {
         match plans::Entity::find()
             .filter(plans::Column::Phase.eq(JobRole::Verification.to_string()))

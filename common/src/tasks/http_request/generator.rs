@@ -1,6 +1,6 @@
 use crate::tasks::generator::TaskApplicant;
 use crate::tasks::LoadConfig;
-use crate::{ComponentInfo, Timestamp};
+use crate::{ComponentInfo, PlanId, Timestamp};
 use anyhow::{Context, Error};
 use async_trait::async_trait;
 
@@ -55,14 +55,14 @@ impl TaskApplicant for HttpRequestGenerator {
         true
     }
 
-    fn apply(&self, plan: &PlanEntity, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan_id: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
         log::debug!("Http Request apply for component {:?}", component);
         let mut jobs = Vec::new();
         for config in self.task_configs.iter() {
             let detail = JobHttpRequest {};
             let comp_url = detail.get_component_url(config, component);
             let mut job = Job::new(
-                plan.plan_id.clone(),
+                plan_id.clone(),
                 config.name.clone(),
                 component,
                 JobDetail::HttpRequest(detail),
