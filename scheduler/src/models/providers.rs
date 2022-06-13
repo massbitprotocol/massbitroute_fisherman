@@ -14,8 +14,8 @@ use tokio::sync::Mutex;
 pub struct ProviderStorage {
     nodes: Mutex<Vec<ComponentInfo>>,
     gateways: Mutex<Vec<ComponentInfo>>,
-    verification_nodes: Mutex<Vec<ComponentInfo>>,
-    verification_gateways: Mutex<Vec<ComponentInfo>>,
+    verification_nodes: Mutex<HashMap<String, ComponentInfo>>,
+    verification_gateways: Mutex<HashMap<String, ComponentInfo>>,
 }
 
 impl ProviderStorage {
@@ -38,28 +38,37 @@ impl ProviderStorage {
         }
     }
 
-    pub async fn add_verify_node(&mut self, node: ComponentInfo) {
+    pub async fn add_verify_node(&mut self, plan_id: String, node: ComponentInfo) {
         match node.component_type {
             ComponentType::Node => {
                 log::debug!("Add node to verification queue");
-                self.verification_nodes.lock().await.push(node);
+                self.verification_nodes.lock().await.insert(plan_id, node);
             }
             ComponentType::Gateway => {
                 log::debug!("Add gateway to verification queue");
-                self.verification_gateways.lock().await.push(node);
+                self.verification_gateways
+                    .lock()
+                    .await
+                    .insert(plan_id, node);
             }
         }
     }
-    pub async fn pop_nodes_for_verifications(&mut self) -> Vec<ComponentInfo> {
-        let mut res = Vec::new();
+    pub async fn pop_nodes_for_verifications(&mut self) -> HashMap<String, ComponentInfo> {
+        let mut res = HashMap::new();
         let mut nodes = self.verification_nodes.lock().await;
-        res.append(&mut nodes);
+        for (plan_id, node) in nodes.iter() {
+            res.insert(plan_id.clone(), node.clone());
+        }
+        nodes.clear();
         res
     }
-    pub async fn pop_gateways_for_verifications(&mut self) -> Vec<ComponentInfo> {
-        let mut res = Vec::new();
+    pub async fn pop_gateways_for_verifications(&mut self) -> HashMap<String, ComponentInfo> {
+        let mut res = HashMap::new();
         let mut nodes = self.verification_gateways.lock().await;
-        res.append(&mut nodes);
+        for (plan_id, node) in nodes.iter() {
+            res.insert(plan_id.clone(), node.clone());
+        }
+        nodes.clear();
         res
     }
 

@@ -1,6 +1,6 @@
 use crate::tasks::generator::TaskApplicant;
 use crate::tasks::LoadConfig;
-use crate::{ComponentInfo, Timestamp};
+use crate::{ComponentInfo, PlanId, Timestamp};
 use anyhow::Error;
 use async_trait::async_trait;
 
@@ -53,12 +53,12 @@ impl TaskApplicant for RpcRequestGenerator {
         true
     }
 
-    fn apply(&self, plan: &PlanEntity, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan_id: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let detail = JobRpcRequest {};
         let comp_url = detail.get_component_url(component);
         let mut job = Job::new(
-            plan.plan_id.clone(),
+            plan_id.clone(),
             String::new(),
             component,
             JobDetail::RpcRequest(detail),

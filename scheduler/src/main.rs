@@ -71,7 +71,11 @@ async fn main() {
     let assigment_buffer = Arc::new(Mutex::new(AssignmentBuffer::default()));
 
     let scheduler_service = SchedulerServiceBuilder::default().build();
-    let processor_service = ProcessorServiceBuilder::default().build();
+    let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
+    let processor_service = ProcessorServiceBuilder::default()
+        .with_plan_service(plan_service.clone())
+        .with_result_service(result_service)
+        .build();
     let access_control = AccessControl::default();
     //let (tx, mut rx) = mpsc::channel(1024);
 
@@ -89,12 +93,6 @@ async fn main() {
         job_service,
         assigment_buffer.clone(),
     );
-    let mut judgment = Judgment::new(plan_service.clone(), arc_conn.clone());
-    let mut job_delivery = JobDelivery::new(worker_infos.clone(), assigment_buffer.clone());
-    let task_judgment = task::spawn(async move { judgment.run().await });
-    let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
-    let task_job_generator = task::spawn(async move { job_generator.run().await });
-    let task_job_delivery = task::spawn(async move { job_delivery.run().await });
     let scheduler_state = SchedulerState::new(
         arc_conn.clone(),
         plan_service,
@@ -102,6 +100,14 @@ async fn main() {
         worker_infos.clone(),
         provider_storage.clone(),
     );
+    //let mut judgment = Judgment::new(plan_service.clone(), arc_conn.clone());
+    let mut job_delivery = JobDelivery::new(worker_infos.clone(), assigment_buffer.clone());
+    //let task_judgment = task::spawn(async move { judgment.run().await });
+    let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
+
+    let task_job_generator = task::spawn(async move { job_generator.run().await });
+    let task_job_delivery = task::spawn(async move { job_delivery.run().await });
+
     let processor_state = ProcessorState::new(arc_conn.clone());
     info!("Init http service ");
     let server = ServerBuilder::default()
@@ -111,12 +117,11 @@ async fn main() {
         .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
     let task_serve = server.serve();
-    join5(
+    join4(
         task_provider_scanner,
         task_job_generator,
         task_job_delivery,
         task_serve,
-        task_judgment,
     )
     .await;
 }

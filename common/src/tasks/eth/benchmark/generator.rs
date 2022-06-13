@@ -7,7 +7,7 @@ use crate::job_manage::{Job, JobBenchmark, JobDetail, JobRole};
 use crate::models::PlanEntity;
 use crate::tasks::generator::TaskApplicant;
 use crate::tasks::LoadConfig;
-use crate::Timestamp;
+use crate::{PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -49,7 +49,7 @@ impl TaskApplicant for BenchmarkGenerator {
 
     fn apply(
         &self,
-        plan: &PlanEntity,
+        plan_id: &PlanId,
         component: &ComponentInfo,
     ) -> Result<Vec<Job>, anyhow::Error> {
         log::debug!("TaskPing apply for component {:?}", component);
@@ -66,7 +66,7 @@ impl TaskApplicant for BenchmarkGenerator {
         };
         let job_detail = JobDetail::Benchmark(job_benchmark);
         let mut job = Job::new(
-            plan.plan_id.clone(),
+            plan_id.clone(),
             job_detail.get_job_name(),
             component,
             job_detail,

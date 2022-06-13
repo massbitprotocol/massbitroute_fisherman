@@ -29,6 +29,7 @@ impl Judgment {
     pub async fn run(&mut self) {
         loop {
             let plan_service = self.plan_service.clone();
+            log::debug!("Get plan from dbs");
             if let Ok(plans) = plan_service
                 .get_plans(&None, &vec![PlanStatus::Generated])
                 .await

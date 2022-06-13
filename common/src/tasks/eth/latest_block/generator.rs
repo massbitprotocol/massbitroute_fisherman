@@ -3,7 +3,7 @@ use crate::job_manage::{Job, JobDetail, JobPing, JobResult};
 use crate::models::PlanEntity;
 use crate::tasks::eth::{JobLatestBlock, JobLatestBlockResult};
 use crate::tasks::generator::TaskApplicant;
-use crate::Node;
+use crate::{Node, PlanId};
 use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -34,18 +34,13 @@ impl TaskApplicant for TaskLatestBlock {
         true
     }
 
-    fn apply(&self, plan: &PlanEntity, node: &Node) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan_id: &PlanId, node: &Node) -> Result<Vec<Job>, Error> {
         let job = JobLatestBlock {
             assigned_at: 0,
             finished_at: 0,
         };
         let job_detail = JobDetail::LatestBlock(job);
-        let mut job = Job::new(
-            plan.plan_id.clone(),
-            job_detail.get_job_name(),
-            node,
-            job_detail,
-        );
+        let mut job = Job::new(plan_id.clone(), job_detail.get_job_name(), node, job_detail);
         job.parallelable = true;
         job.component_url = self.create_url(node);
         let vec = vec![job];

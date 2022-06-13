@@ -3,6 +3,7 @@ use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::seaorm::workers;
 use crate::persistence::services::plan_service::PlanService;
 use crate::persistence::services::WorkerService;
+use crate::service::generator::JobGenerator;
 use crate::REPORT_CALLBACK;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
@@ -11,6 +12,7 @@ use common::util::get_current_time;
 use common::worker::{WorkerInfo, WorkerRegisterResult};
 use sea_orm::ActiveModelTrait;
 use sea_orm::DatabaseConnection;
+use std::borrow::BorrowMut;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -71,7 +73,10 @@ impl SchedulerState {
 
         //Add worker to ProviderStorage
     }
-    pub async fn verify_node(&mut self, node_info: ComponentInfo) {
+    pub async fn verify_node(
+        &mut self,
+        node_info: ComponentInfo,
+    ) -> Result<PlanEntity, anyhow::Error> {
         log::debug!("Push node {:?} to verification queue", &node_info);
         //Create a scheduler in db
         let plan = PlanEntity::new(
@@ -79,7 +84,21 @@ impl SchedulerState {
             get_current_time(),
             JobRole::Verification.to_string(),
         );
-        self.plan_service.store_plan(&plan).await;
-        self.providers.lock().await.add_verify_node(node_info).await;
+        let store_res = self.plan_service.store_plan(&plan).await;
+        if let Ok(_) = store_res {
+            //Generate verification job base on stored plan
+            self.providers
+                .lock()
+                .await
+                .add_verify_node(plan.plan_id.clone(), node_info)
+                .await;
+            /*
+             self.job_generator
+                 .generate_verification_job(plan.plan_id.clone(), &node_info)
+                 .await;
+            */
+        }
+
+        Ok(plan)
     }
 }
