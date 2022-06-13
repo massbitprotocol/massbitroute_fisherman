@@ -2,7 +2,7 @@ use crate::models::jobs::{AssignmentBuffer, JobAssignment};
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::{Worker, WorkerInfoStorage};
 use crate::persistence::services::{JobService, PlanService};
-use crate::{CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
+use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use anyhow::{anyhow, Error};
 use common::component::{ComponentInfo, Zone};
 use common::job_manage::{Job, JobRole};
@@ -13,15 +13,16 @@ use common::util::get_current_time;
 use common::worker::WorkerInfo;
 use common::{task_spawn, ComponentId, WorkerId};
 use futures_util::future::join;
+use log::{info, warn};
 use sea_orm::sea_query::IndexType::Hash;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 use std::collections::HashMap;
 use std::mem::take;
 use std::sync::Arc;
-use std::thread::sleep;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use tokio::task;
+use tokio::time::sleep;
 
 #[derive(Default)]
 pub struct JobGenerator {
@@ -216,28 +217,34 @@ impl DetailJobGenerator {
         &self,
         map_jobs: &HashMap<Zone, Vec<Job>>,
     ) -> Result<(), anyhow::Error> {
-        if map_jobs.len() > 0 {
-            let mut gen_plans = Vec::default();
-            let tnx = self.db_conn.begin().await?;
-            for (zone, jobs) in map_jobs.iter() {
-                jobs.iter().for_each(|job| {
+        if map_jobs.is_empty() {
+            return Ok(());
+        }
+        let mut gen_plans = Vec::default();
+        let tnx = self.db_conn.begin().await?;
+        for (zone, jobs) in map_jobs.iter() {
+            jobs.iter().for_each(|job| {
+                if !gen_plans.contains(&job.plan_id) {
                     gen_plans.push(job.plan_id.clone());
-                });
-                self.job_service.save_jobs(jobs).await;
-            }
-            self.plan_service.update_plans_as_generated(gen_plans);
-            match tnx.commit().await {
-                Ok(_) => {
-                    log::debug!("Transaction commited successful");
-                    Ok(())
                 }
-                Err(err) => {
-                    log::debug!("Transaction commited with error {:?}", &err);
-                    Err(anyhow!("{:?}", &err))
-                }
+            });
+            self.job_service.save_jobs(jobs).await;
+        }
+        warn!(
+            "update_plans_as_generated {}: {:?}",
+            gen_plans.len(),
+            gen_plans
+        );
+        self.plan_service.update_plans_as_generated(gen_plans).await;
+        match tnx.commit().await {
+            Ok(_) => {
+                log::debug!("Transaction commited successful");
+                Ok(())
             }
-        } else {
-            Ok(())
+            Err(err) => {
+                log::debug!("Transaction commited with error {:?}", &err);
+                Err(anyhow!("{:?}", &err))
+            }
         }
     }
 
@@ -262,6 +269,7 @@ impl DetailJobGenerator {
         // Get components in system
         let mut components = self.providers.lock().await.clone_nodes_list().await;
         components.append(&mut self.providers.lock().await.clone_gateways_list().await);
+        info!("components list: {:?}", components);
 
         // Read Schedule to check what schedule already init and generated
         let plans = self
@@ -274,32 +282,54 @@ impl DetailJobGenerator {
             .map(|plan| (plan.provider_id.clone(), plan))
             .collect();
 
+        let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
+        let mut new_plans: Vec<PlanEntity> = Vec::new();
         for component in components {
             // Init all the components that not init or generated
-            let mut plan = plans.entry(component.id.clone()).or_insert(PlanEntity::new(
-                component.id.clone(),
-                get_current_time(),
-                JobRole::Regular.to_string(),
-            ));
+
+            let mut plan = match plans.get(&*component.id) {
+                None => {
+                    let new_plan = PlanEntity::new(
+                        component.id.clone(),
+                        get_current_time(),
+                        JobRole::Regular.to_string(),
+                    );
+                    new_plans.push(new_plan.clone());
+                    new_plan
+                }
+                Some(plan) => plan.clone(),
+            };
             if !(plan.status == PlanStatus::Init) {
                 continue;
             }
             // Generate job
-            let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
             for task in self.tasks.iter() {
                 if task.can_apply(&component) {
                     let jobs = task.apply(&plan.plan_id, &component);
                     if let Ok(jobs) = jobs {
-                        gen_jobs.entry(component.zone.clone()).or_insert(jobs);
-                        self.assign_jobs(&gen_jobs).await;
-                        self.store_jobs(&gen_jobs).await;
+                        if jobs.is_empty() {
+                            continue;
+                        }
+                        let entry = gen_jobs.entry(component.zone.clone()).or_insert(Vec::new());
+                        entry.extend(jobs);
                     }
                 }
             }
             // Change plant status to
-            plan.status = PlanStatus::Generated;
+            //plan.status = PlanStatus::Generated;
         }
+        warn!("Store new_plans {}: {:?}", new_plans.len(), new_plans);
+        if !new_plans.is_empty() {
+            self.plan_service.store_plans(&new_plans).await;
+        }
+        warn!("assign gen_jobs {}: {:?}", gen_jobs.len(), gen_jobs);
+        if !gen_jobs.is_empty() {
+            // Assign job
+            self.assign_jobs(&gen_jobs).await;
 
+            // Store job
+            self.store_jobs(&gen_jobs).await;
+        }
         Ok(())
     }
 }
@@ -344,21 +374,28 @@ impl JobGenerator {
             mut regular,
         } = self;
         // Run Verification task
-        let verification_task = task::spawn(async move {
+        let verification_task = task_spawn::spawn(async move {
             loop {
                 let now = Instant::now();
                 verification.generate_verification_jobs().await;
                 if now.elapsed().as_secs() < JOB_VERIFICATION_GENERATOR_PERIOD {
                     sleep(Duration::from_secs(
                         JOB_VERIFICATION_GENERATOR_PERIOD - now.elapsed().as_secs(),
-                    ));
+                    ))
+                    .await;
                 }
             }
         });
 
         // Run Regular task
-        let regular_task = task::spawn(async move {
-            regular.generate_regular_jobs().await;
+        let regular_task = task_spawn::spawn(async move {
+            info!("Run Regular task");
+            loop {
+                info!("generate_regular_jobs result 1");
+                let res = regular.generate_regular_jobs().await;
+                info!("generate_regular_jobs result 2: {:?} ", res);
+                sleep(Duration::from_secs(CONFIG.regular_plan_generate_interval)).await;
+            }
         });
 
         join(verification_task, regular_task).await;

@@ -24,14 +24,17 @@ impl ProviderStorage {
         component_type: ComponentType,
         components: Vec<ComponentInfo>,
     ) {
+        log::debug!(
+            "Update {:?} list for regular schedule: {:?}",
+            component_type,
+            components
+        );
         match component_type {
             ComponentType::Node => {
-                log::debug!("Add node to verification queue");
                 let mut lock = self.nodes.lock().await;
                 *lock = components;
             }
             ComponentType::Gateway => {
-                log::debug!("Add gateway to verification queue");
                 let mut lock = self.gateways.lock().await;
                 *lock = components;
             }

@@ -35,7 +35,7 @@ impl JobService {
                 Ok(res.last_insert_id)
             }
             Err(err) => {
-                log::debug!("Error {:?}", &err);
+                log::debug!("Error save_jobs {:?}", &err);
                 Err(anyhow!("{:?}", &err))
             }
         }

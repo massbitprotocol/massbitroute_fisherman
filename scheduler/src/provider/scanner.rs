@@ -7,10 +7,10 @@ use futures_util::TryFutureExt;
 use log::{debug, error, info};
 use reqwest::Client;
 use std::sync::Arc;
-use std::thread::sleep;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
+use tokio::time::sleep;
 
 pub struct ProviderScanner {
     url_list_nodes: String,
@@ -47,7 +47,7 @@ impl ProviderScanner {
         loop {
             info!("Get new providers");
             self.update_providers().await;
-            sleep(Duration::from_secs(CONFIG.update_provider_list_interval));
+            sleep(Duration::from_secs(CONFIG.update_provider_list_interval)).await;
         }
     }
 
@@ -65,7 +65,8 @@ impl ProviderScanner {
             let mut lock = self.providers.lock().await;
             match nodes {
                 Ok(nodes) => {
-                    lock.update_components_list(ComponentType::Node, nodes);
+                    lock.update_components_list(ComponentType::Node, nodes)
+                        .await;
                 }
                 Err(err) => {
                     error!("Cannot get list node: {}", err);
@@ -74,7 +75,8 @@ impl ProviderScanner {
             }
             match gateways {
                 Ok(gateways) => {
-                    lock.update_components_list(ComponentType::Gateway, gateways);
+                    lock.update_components_list(ComponentType::Gateway, gateways)
+                        .await;
                 }
                 Err(err) => {
                     error!("Cannot get list gateways: {}", err);
