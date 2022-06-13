@@ -3,16 +3,19 @@ use common::util::get_current_time;
 use common::Timestamp;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct JobBuffer {
-    jobs: Vec<Job>,
+    jobs: VecDeque<Job>,
 }
 
 impl JobBuffer {
     pub fn new() -> Self {
-        JobBuffer { jobs: vec![] }
+        JobBuffer {
+            jobs: VecDeque::new(),
+        }
     }
     pub fn add_job(&mut self, job: Job) {
         let mut next_ind = self.jobs.len();
@@ -49,10 +52,11 @@ impl JobBuffer {
         }
     }
     pub fn pop_job(&mut self) -> Option<Job> {
-        let first_expected_time = self.jobs.first().and_then(|job| {
+        let first_expected_time = self.jobs.front().and_then(|job| {
             log::debug!(
-                "Found new job with expected runtime {}",
-                &job.expected_runtime
+                "Found new job with expected runtime {}: {:?}",
+                &job.expected_runtime,
+                job
             );
             Some(job.expected_runtime)
         });
@@ -65,7 +69,7 @@ impl JobBuffer {
                 "Found new job with expected run time {}. Current time is {}. Job is executed after {}",
                 expected_time, current_time, expected_time - current_time);
             if expected_time <= current_time {
-                let job = self.jobs.pop();
+                let job = self.jobs.pop_front();
                 if let Some(inner) = job.as_ref() {
                     let mut next_job = inner.clone();
                     if inner.repeat_number > 0 {
