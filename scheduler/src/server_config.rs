@@ -8,6 +8,7 @@ pub struct Config {
     pub check_logic_interval: u64,
     pub check_benchmark_interval: u64,
     pub update_provider_list_interval: u64,
+    pub regular_plan_generate_interval: u64,
 }
 
 impl Config {

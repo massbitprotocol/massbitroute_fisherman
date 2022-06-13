@@ -6,7 +6,8 @@ use common::job_manage::JobRole;
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::worker::WorkerInfo;
-use log::error;
+use log::{debug, error};
+use log::{info, warn};
 use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};
@@ -98,6 +99,30 @@ impl PlanService {
             Err(err) => Err(anyhow!("{:?}", &err)),
         }
     }
+
+    pub async fn store_plans(&self, vec_plans: &Vec<PlanEntity>) -> Result<i64, anyhow::Error> {
+        let records = vec_plans
+            .iter()
+            .map(|plan| plans::ActiveModel::from(plan))
+            .collect::<Vec<plans::ActiveModel>>();
+        let length = records.len();
+        warn!("save_plans records:{:?}", records);
+
+        match plans::Entity::insert_many(records)
+            .exec(self.db.as_ref())
+            .await
+        {
+            Ok(res) => {
+                log::warn!("Insert plans many records {:?}", length);
+                Ok(res.last_insert_id)
+            }
+            Err(err) => {
+                log::warn!("Error store_plans {:?}", &err);
+                Err(anyhow!("{:?}", &err))
+            }
+        }
+    }
+
     pub async fn update_plans_as_generated(
         &self,
         plan_ids: Vec<String>,
