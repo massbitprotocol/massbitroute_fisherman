@@ -92,8 +92,9 @@ impl JobExecution {
                     }
                 }
             }
+            //Jun 13 - Don't use this anymore
             //Get new generated jobs
-            self.get_jobs_from_executions().await;
+            //self.get_jobs_from_executions().await;
             sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD));
         }
     }
