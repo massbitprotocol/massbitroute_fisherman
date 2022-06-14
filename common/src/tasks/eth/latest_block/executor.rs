@@ -176,20 +176,3 @@ struct BlockData {
     pub block_timestamp: Timestamp,
     pub block_hash: String,
 }
-
-#[test]
-fn test() {
-    let raw = "0xe449bd";
-    let without_prefix = raw.trim_start_matches("0x");
-    let z = i64::from_str_radix(without_prefix, 16);
-
-    let block_number = "0xe449bd".to_string();
-    let block_timestamp = "0x62a8588d".to_string();
-    let block_number = block_number.trim_start_matches("0x");
-    let block_timestamp = block_timestamp.trim_start_matches("0x");
-    println!(
-        "block_number: {}, block_timestamp: {}",
-        block_number, block_timestamp
-    );
-    println!("{:?}", z);
-}
