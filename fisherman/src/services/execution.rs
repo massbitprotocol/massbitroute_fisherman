@@ -69,7 +69,7 @@ impl JobExecution {
                         let counter = self.thread_counter.clone();
                         counter.fetch_add(1, Ordering::SeqCst);
                         rt_handle.spawn(async move {
-                            debug!("Execute job on a worker thread");
+                            debug!("Execute job on a worker thread: {:?}", clone_job);
                             clone_executor.execute(&clone_job, result_sender).await;
                             //Fixme: Program will hang if it panic before fetch_sub is executed.
                             counter.fetch_sub(1, Ordering::SeqCst);

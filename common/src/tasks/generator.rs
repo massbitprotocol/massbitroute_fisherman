@@ -30,7 +30,7 @@ pub fn get_tasks(config_dir: &str, role: JobRole) -> Vec<Arc<dyn TaskApplicant>>
         _ => {}
     }
     result.push(Arc::new(TaskGWNodeConnection::new()));
-    result.push(Arc::new(TaskLatestBlock::new()));
+    result.push(Arc::new(LatestBlockGenerator::new(config_dir, &role)));
     result.push(Arc::new(PingGenerator::new(config_dir, &role)));
     result
 }
