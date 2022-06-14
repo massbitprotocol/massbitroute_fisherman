@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use common::component::Zone;
 use common::job_manage::Job;
 use common::worker::WorkerInfo;
-use log::{debug, error, log};
+use log::{debug, error, info, log, warn};
 use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use std::str::FromStr;

@@ -40,12 +40,12 @@ impl From<&Job> for jobs::ActiveModel {
             },
         };
         let header = match job.header.is_empty() {
-            true => NotSet,
+            true => None,
             false => match serde_json::to_value(job.header.to_owned()) {
-                Ok(value) => Set(Some(value)),
+                Ok(value) => Some(value),
                 Err(err) => {
                     debug!("err from job_detail: {:?}", err);
-                    NotSet
+                    None
                 }
             },
         };
@@ -63,7 +63,7 @@ impl From<&Job> for jobs::ActiveModel {
             timeout: Set(job.timeout as i64),
             job_detail: Set(job_detail),
             component_url: Set(job.component_url.to_owned()),
-            header,
+            header: Set(header),
             interval: Set(job.interval),
             repeat_number: Set(job.repeat_number),
             id: NotSet,
