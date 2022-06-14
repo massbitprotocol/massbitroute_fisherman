@@ -2,36 +2,30 @@
 extern crate diesel_migrations;
 
 use clap::{Arg, Command};
-use common::component::ComponentInfo;
 use common::logger::init_logger;
-use diesel::r2d2::ConnectionManager;
-use diesel::{r2d2, PgConnection};
-use diesel_migrations::embed_migrations;
-use futures_util::future::{join, join4, join5, join_all};
-use log::{debug, info, warn};
+//use diesel::r2d2::ConnectionManager;
+//use diesel::{r2d2, PgConnection};
+//use diesel_migrations::embed_migrations;
+use futures_util::future::join4;
+use log::info;
 use scheduler::models::jobs::AssignmentBuffer;
 use scheduler::models::providers::ProviderStorage;
 use scheduler::models::workers::WorkerInfoStorage;
 use scheduler::provider::scanner::ProviderScanner;
 use scheduler::server_builder::ServerBuilder;
-use scheduler::server_config::{AccessControl, Config};
+use scheduler::server_config::AccessControl;
 use scheduler::service::delivery::JobDelivery;
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
-use scheduler::{
-    CONNECTION_POOL_SIZE, DATABASE_URL, SCHEDULER_CONFIG, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST,
-    URL_NODES_LIST,
-};
+use scheduler::{DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
 
 use scheduler::persistence::services::job_result_service::JobResultService;
 use scheduler::persistence::services::plan_service::PlanService;
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
-use scheduler::service::judgment::Judgment;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::Mutex;
 use tokio::task;
 
 #[tokio::main]
@@ -39,7 +33,7 @@ async fn main() {
     // Load env file
     dotenv::dotenv().ok();
     let _res = init_logger(&String::from("Fisherman Scheduler"));
-    let matches = create_scheduler_app().get_matches();
+    let _matches = create_scheduler_app().get_matches();
     // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
     // let connection_pool = r2d2::Pool::builder()
     //     .max_size(*CONNECTION_POOL_SIZE)
@@ -75,17 +69,18 @@ async fn main() {
     let processor_service = ProcessorServiceBuilder::default()
         .with_plan_service(plan_service.clone())
         .with_result_service(result_service)
+        .with_job_service(job_service.clone())
         .build();
     let access_control = AccessControl::default();
     //let (tx, mut rx) = mpsc::channel(1024);
 
-    let mut provider_scanner = ProviderScanner::new(
+    let provider_scanner = ProviderScanner::new(
         URL_NODES_LIST.to_string(),
         URL_GATEWAYS_LIST.to_string(),
         provider_storage.clone(),
         worker_infos.clone(),
     );
-    let mut job_generator = JobGenerator::new(
+    let job_generator = JobGenerator::new(
         arc_conn.clone(),
         plan_service.clone(),
         provider_storage.clone(),

@@ -20,6 +20,7 @@ pub struct Model {
     pub interval: i64,
     pub job_name: String,
     pub plan_id: String,
+    pub component_type: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
