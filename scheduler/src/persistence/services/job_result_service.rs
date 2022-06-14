@@ -1,3 +1,4 @@
+use crate::persistence::seaorm::job_result_pings::Model as ResultPingModel;
 use crate::persistence::seaorm::jobs::Model;
 use crate::persistence::seaorm::{
     job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs,
@@ -9,9 +10,10 @@ use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
 use common::worker::WorkerInfo;
 use log::{debug, error, log};
-use sea_orm::DatabaseConnection;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
-use std::collections::HashMap;
+use sea_orm::ActiveValue::Set;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
+use sea_orm::{Condition, DatabaseConnection};
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -26,28 +28,126 @@ impl JobResultService {
     pub async fn save_result_pings(
         &self,
         vec_results: &Vec<JobPingResult>,
-    ) -> Result<i64, anyhow::Error> {
-        let records = vec_results
-            .iter()
-            .map(|job| job_result_pings::ActiveModel::from(job))
-            .collect::<Vec<job_result_pings::ActiveModel>>();
-        let length = records.len();
-        debug!("Save job_result_pings with {:?} records", records);
-
-        match job_result_pings::Entity::insert_many(records)
-            .exec(self.db.as_ref())
+    ) -> Result<usize, anyhow::Error> {
+        let job_ids = Vec::from_iter(
+            vec_results
+                .iter()
+                .map(|res| res.job.job_id.clone())
+                .collect::<HashSet<String>>(),
+        );
+        let res_results = self
+            .get_result_ping_by_job_ids(&job_ids)
             .await
-        {
-            Ok(res) => {
-                log::debug!("Insert many records {:?}", length);
-                Ok(res.last_insert_id)
+            .unwrap_or(Vec::new());
+        let mut map_results = HashMap::<String, ResultPingModel>::new();
+        for res in res_results.into_iter() {
+            map_results.insert(res.job_id.clone(), res);
+        }
+        let mut map_update_results = HashMap::<String, bool>::new();
+        /*
+        let mut map_job_ids = HashMap::<String, Vec<String>>::default();
+        for job_res in vec_results.iter() {
+            if let Some(job_ids) = map_job_ids.get_mut(&job_res.worker_id) {
+                job_ids.push(job_res.job.job_id.clone());
+            } else {
+                map_job_ids.insert(job_res.worker_id.clone(), vec![job_res.job.job_id.clone()]);
+            }
+        }
+        */
+        let mut new_records = HashMap::<String, ResultPingModel>::default();
+        for result in vec_results.iter() {
+            if let Some(res) = map_results.get_mut(&result.job.job_id) {
+                res.add_response_time(result.response.response_time as i64);
+                map_update_results.insert(result.job.job_id.clone(), true);
+            } else {
+                new_records.insert(result.job.job_id.clone(), ResultPingModel::from(result));
+            }
+        }
+
+        let len = new_records.len();
+        //New records
+        let active_models = new_records
+            .into_iter()
+            .map(|(key, val)| job_result_pings::ActiveModel::from_model(&val))
+            .collect::<Vec<job_result_pings::ActiveModel>>();
+        debug!(
+            "Create new {:?} records for job_result_pings",
+            &active_models
+        );
+        let tnx = self.db.begin().await?;
+        for (id, _) in map_update_results.iter() {
+            let model = map_results.remove(id).unwrap();
+            let response_times = model.response_times.clone();
+            let mut active_model: job_result_pings::ActiveModel = model.into();
+            active_model.response_times = Set(response_times);
+            log::debug!("Update model {:?}", &active_model);
+            match active_model.update(self.db.as_ref()).await {
+                Ok(_) => {
+                    log::debug!("Update successfully");
+                }
+                Err(err) => {
+                    log::error!("{:?}", &err);
+                }
+            }
+        }
+        if active_models.len() > 0 {
+            log::debug!(
+                "Insert job_ping_result {:?} records: {:?}",
+                len,
+                &active_models
+            );
+            match job_result_pings::Entity::insert_many(active_models)
+                .exec(self.db.as_ref())
+                .await
+            {
+                Ok(res) => {
+                    log::debug!("Insert many records {:?}", len);
+                }
+                Err(err) => {
+                    log::debug!("Error {:?}", &err);
+                }
+            }
+        }
+        match tnx.commit().await {
+            Ok(_) => {
+                log::debug!("Transaction commited successful");
+                Ok(len + map_update_results.len())
             }
             Err(err) => {
-                log::debug!("Error {:?}", &err);
+                log::debug!("Transaction commited with error {:?}", &err);
                 Err(anyhow!("{:?}", &err))
             }
         }
     }
+    pub async fn get_result_ping_by_job_ids(
+        &self,
+        job_ids: &Vec<String>,
+    ) -> Result<Vec<ResultPingModel>, anyhow::Error> {
+        let mut id_conditions = Condition::any();
+        for id in job_ids {
+            id_conditions = id_conditions.add(job_result_pings::Column::JobId.eq(id.to_string()));
+        }
+        job_result_pings::Entity::find()
+            .filter(id_conditions)
+            .all(self.db.as_ref())
+            .await
+            .map_err(|err| anyhow!("{:?}", &err))
+        /*
+        {
+            Ok(results) => {
+                let res = results
+                    .iter()
+                    .map(|model| JobPingResult.from(model))
+                    .collect::<Vec<JobPingResult>>();
+                Ok(res)
+            }
+            Err(err) => Err(anyhow!("{:?}", &err)),
+        }
+        */
+    }
+    /*
+     * map by worker_id and vector of response times
+     */
     pub async fn get_result_pings(
         &self,
         plan_id: &str,
@@ -61,11 +161,17 @@ impl JobResultService {
                 let mut res = HashMap::<String, Vec<i64>>::new();
                 for model in results.iter() {
                     let worker_id = model.worker_id.clone();
-                    let response_time = model.response_time.clone();
+                    let response_times: serde_json::Value = model.response_times.clone();
+                    let mut values = response_times
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|val| val.as_i64().unwrap())
+                        .collect::<Vec<i64>>();
                     if let Some(mut vec) = res.get_mut(&worker_id) {
-                        vec.push(response_time);
+                        vec.append(&mut values);
                     } else {
-                        res.insert(worker_id.clone(), vec![response_time]);
+                        res.insert(worker_id.clone(), values);
                     }
                 }
                 Ok(res)

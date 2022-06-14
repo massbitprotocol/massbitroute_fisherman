@@ -1,6 +1,5 @@
 pub mod benchmark_judg;
 pub mod latestblock_judg;
-pub mod main_judg;
 pub mod ping_judg;
 
 use crate::persistence::services::job_result_service::JobResultService;
@@ -10,18 +9,18 @@ use common::models::PlanEntity;
 pub use latestblock_judg::LatestBlockJudgment;
 pub use ping_judg::PingJudgment;
 
-pub use main_judg::Judgment;
+use common::job_manage::Job;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
 #[async_trait]
 pub trait ReportCheck: Sync + Send {
-    fn can_apply(&self) -> bool;
+    fn can_apply(&self, job: &Job) -> bool;
     /*
      * result >= 0 result is looked good
      * result < 0 something is bad
      */
-    async fn apply(&self, plan: &PlanEntity) -> Result<u32, anyhow::Error>;
+    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<u32, anyhow::Error>;
 }
 
 pub fn get_report_judgments(result_service: Arc<JobResultService>) -> Vec<Arc<dyn ReportCheck>> {

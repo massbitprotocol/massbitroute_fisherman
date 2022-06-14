@@ -13,8 +13,8 @@ pub struct Model {
     pub provider_type: String,
     pub execution_timestamp: i64,
     pub recorded_timestamp: i64,
-    pub response_time: i64,
     pub plan_id: String,
+    pub response_times: Json,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
