@@ -57,23 +57,29 @@ impl DetailJobGenerator {
             .await
             .pop_nodes_for_verifications()
             .await;
-        log::debug!("Generate verification jobs for {} nodes", nodes.len());
-        for (plan_id, node) in nodes.iter() {
-            for task in self.tasks.iter() {
-                if task.can_apply(node) {
-                    match task.apply(plan_id, node) {
-                        Ok(mut jobs) => {
-                            if jobs.len() > 0 {
-                                log::debug!("Create {:?} jobs for node {:?}", jobs.len(), &node);
-                                if let Some(current_jobs) = gen_jobs.get_mut(&node.zone) {
-                                    current_jobs.append(&mut jobs);
-                                } else {
-                                    gen_jobs.insert(node.zone.clone(), jobs);
+        if nodes.len() > 0 {
+            log::debug!("Generate verification jobs for {} nodes", nodes.len());
+            for (plan_id, node) in nodes.iter() {
+                for task in self.tasks.iter() {
+                    if task.can_apply(node) {
+                        match task.apply(plan_id, node) {
+                            Ok(mut jobs) => {
+                                if jobs.len() > 0 {
+                                    log::debug!(
+                                        "Create {:?} jobs for node {:?}",
+                                        jobs.len(),
+                                        &node
+                                    );
+                                    if let Some(current_jobs) = gen_jobs.get_mut(&node.zone) {
+                                        current_jobs.append(&mut jobs);
+                                    } else {
+                                        gen_jobs.insert(node.zone.clone(), jobs);
+                                    }
                                 }
                             }
-                        }
-                        Err(err) => {
-                            log::error!("Error: {:?}", &err);
+                            Err(err) => {
+                                log::error!("Error: {:?}", &err);
+                            }
                         }
                     }
                 }
@@ -86,33 +92,40 @@ impl DetailJobGenerator {
             .await
             .pop_gateways_for_verifications()
             .await;
-        log::debug!("Generate verification jobs for {} gateways", gateways.len());
-        for (plan_id, gw) in gateways.iter() {
-            for task in self.tasks.iter() {
-                if task.can_apply(gw) {
-                    match task.apply(plan_id, gw) {
-                        Ok(mut jobs) => {
-                            if jobs.len() > 0 {
-                                log::debug!("Create {:?} jobs for gateway {:?}", jobs.len(), &gw);
-                                if let Some(current_jobs) = gen_jobs.get_mut(&gw.zone) {
-                                    current_jobs.append(&mut jobs);
-                                } else {
-                                    gen_jobs.insert(gw.zone.clone(), jobs);
+        if gateways.len() > 0 {
+            log::debug!("Generate verification jobs for {} gateways", gateways.len());
+            for (plan_id, gw) in gateways.iter() {
+                for task in self.tasks.iter() {
+                    if task.can_apply(gw) {
+                        match task.apply(plan_id, gw) {
+                            Ok(mut jobs) => {
+                                if jobs.len() > 0 {
+                                    log::debug!(
+                                        "Create {:?} jobs for gateway {:?}",
+                                        jobs.len(),
+                                        &gw
+                                    );
+                                    if let Some(current_jobs) = gen_jobs.get_mut(&gw.zone) {
+                                        current_jobs.append(&mut jobs);
+                                    } else {
+                                        gen_jobs.insert(gw.zone.clone(), jobs);
+                                    }
                                 }
                             }
-                        }
-                        Err(err) => {
-                            log::error!("Error: {:?}", &err);
+                            Err(err) => {
+                                log::error!("Error: {:?}", &err);
+                            }
                         }
                     }
                 }
             }
         }
-
         //Distribute job to workers
-        self.assign_jobs(&gen_jobs).await;
-        //Store jobs to db
-        self.store_jobs(&gen_jobs).await;
+        if gen_jobs.len() > 0 {
+            self.assign_jobs(&gen_jobs).await;
+            //Store jobs to db
+            self.store_jobs(&gen_jobs).await;
+        }
     }
     /*
     pub async fn generate_verification_jobs_v0(&mut self) {
@@ -270,7 +283,6 @@ impl DetailJobGenerator {
         let mut components = self.providers.lock().await.clone_nodes_list().await;
         components.append(&mut self.providers.lock().await.clone_gateways_list().await);
         info!("components list: {:?}", components);
-
         // Read Schedule to check what schedule already init and generated
         let plans = self
             .plan_service
@@ -328,7 +340,10 @@ impl DetailJobGenerator {
             self.assign_jobs(&gen_jobs).await;
 
             // Store job
-            self.store_jobs(&gen_jobs).await;
+            match self.store_jobs(&gen_jobs).await {
+                Ok(_) => {}
+                Err(_) => {}
+            }
         }
         Ok(())
     }

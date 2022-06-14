@@ -5,8 +5,8 @@ use common::component::Zone;
 use common::job_manage::Job;
 use common::worker::WorkerInfo;
 use log::{debug, error, log};
-use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{Condition, DatabaseConnection};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -38,6 +38,26 @@ impl JobService {
                 log::debug!("Error save_jobs {:?}", &err);
                 Err(anyhow!("{:?}", &err))
             }
+        }
+    }
+    pub async fn get_job_by_plan_ids(
+        &self,
+        plan_ids: &Vec<String>,
+    ) -> Result<Vec<Job>, anyhow::Error> {
+        let mut id_conditions = Condition::any();
+        for id in plan_ids {
+            id_conditions = id_conditions.add(jobs::Column::PlanId.eq(id.to_string()));
+        }
+        match jobs::Entity::find()
+            .filter(id_conditions)
+            .all(self.db.as_ref())
+            .await
+        {
+            Ok(entities) => Ok(entities
+                .iter()
+                .map(|entity| Job::from((entity)))
+                .collect::<Vec<Job>>()),
+            Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }
     }
 }

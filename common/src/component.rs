@@ -1,5 +1,6 @@
 use crate::{BlockChainType, ComponentId, NetworkType, UrlType};
 use crate::{Deserialize, Serialize};
+use anyhow::anyhow;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default, Hash, PartialEq, Eq)]
@@ -60,6 +61,17 @@ impl ToString for ComponentType {
     }
 }
 
+impl FromStr for ComponentType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "gateway" => Ok(ComponentType::Gateway),
+            "node" => Ok(ComponentType::Node),
+            _ => Err(anyhow!("Invalid value")),
+        }
+    }
+}
 impl std::default::Default for ComponentType {
     fn default() -> Self {
         ComponentType::Node
