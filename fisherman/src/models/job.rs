@@ -73,7 +73,6 @@ impl JobBuffer {
                 if let Some(inner) = job.as_ref() {
                     let mut next_job = inner.clone();
                     if inner.repeat_number > 0 {
-                        next_job.job_id = Uuid::new_v4().to_string();
                         next_job.expected_runtime = current_time + inner.interval;
                         next_job.repeat_number = next_job.repeat_number - 1;
                         debug!("Schedule new repeat job: {:?}", &next_job);
