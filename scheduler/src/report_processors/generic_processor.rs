@@ -1,3 +1,4 @@
+use crate::models::job_result::StoredJobResult;
 use crate::report_processors::adapters::{get_report_adapters, Appender};
 use crate::report_processors::ReportProcessor;
 use async_trait::async_trait;
@@ -6,6 +7,7 @@ use common::tasks::eth::JobLatestBlockResult;
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+
 #[derive(Clone, Default)]
 pub struct GenericReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
@@ -22,15 +24,24 @@ impl ReportProcessor for GenericReportProcessor {
         true
     }
 
-    async fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {
+    async fn process_job(
+        &self,
+        report: &JobResult,
+        db_connection: Arc<DatabaseConnection>,
+    ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
     }
 
-    async fn process_jobs(&self, reports: Vec<JobResult>, db_connection: Arc<DatabaseConnection>) {
+    async fn process_jobs(
+        &self,
+        reports: Vec<JobResult>,
+        db_connection: Arc<DatabaseConnection>,
+    ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         log::debug!("Generic report process jobs");
         let mut ping_results = Vec::new();
         let mut benchmark_results: Vec<JobBenchmarkResult> = Vec::new();
         let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
+        let mut stored_results = Vec::<StoredJobResult>::new();
         for report in reports {
             match report {
                 JobResult::Ping(result) => {
@@ -55,5 +66,6 @@ impl ReportProcessor for GenericReportProcessor {
                 adapter.append_benchmark_results(&benchmark_results).await;
             }
         }
+        Ok(stored_results)
     }
 }

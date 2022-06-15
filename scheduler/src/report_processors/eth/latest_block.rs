@@ -1,3 +1,4 @@
+use crate::models::job_result::StoredJobResult;
 use crate::report_processors::ReportProcessor;
 use async_trait::async_trait;
 use common::job_manage::JobResult;
@@ -19,11 +20,19 @@ impl ReportProcessor for LatestBlockReportProcessor {
         true
     }
 
-    async fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {
+    async fn process_job(
+        &self,
+        report: &JobResult,
+        db_connection: Arc<DatabaseConnection>,
+    ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
     }
 
-    async fn process_jobs(&self, report: Vec<JobResult>, db_connection: Arc<DatabaseConnection>) {
+    async fn process_jobs(
+        &self,
+        report: Vec<JobResult>,
+        db_connection: Arc<DatabaseConnection>,
+    ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         todo!()
     }
 }

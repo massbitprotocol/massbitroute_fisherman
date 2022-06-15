@@ -1,4 +1,5 @@
 use crate::persistence::services::{JobResultService, JobService, PlanService};
+use crate::service::judgment::main_judg::MainJudgment;
 use crate::service::judgment::{get_report_judgments, ReportCheck};
 use crate::state::ProcessorState;
 use common::job_manage::{Job, JobResult};
@@ -15,7 +16,7 @@ pub struct ProcessorService {
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
     result_service: Arc<JobResultService>,
-    judgments: Vec<Arc<dyn ReportCheck>>,
+    judgment: MainJudgment,
 }
 
 impl ProcessorService {
@@ -35,6 +36,7 @@ impl ProcessorService {
                     .map(|res| res.get_plan_id())
                     .collect::<HashSet<String>>(),
             );
+            //Store results to persistence storage: csv file, sql db, monitor system v.v...
             state.lock().await.process_results(job_results).await;
             if let (Ok(plans), Ok(all_jobs)) = (
                 self.plan_service.get_plan_by_ids(&plan_ids).await,
@@ -50,16 +52,20 @@ impl ProcessorService {
                 }
                 for plan in plans.iter() {
                     if let Some(jobs) = map_plan_jobs.get(&plan.plan_id) {
-                        for judg in self.judgments.iter() {
-                            for job in jobs {
-                                if judg.can_apply(job) {
-                                    continue;
-                                }
-                                match judg.apply(plan, job).await {
-                                    Ok(res) => {}
-                                    Err(_) => {}
-                                }
+                        let mut plan_result = 0;
+                        for job in jobs {
+                            let job_result = self.judgment.apply(plan, job).await.unwrap_or(0);
+                            if job_result <= 0 {
+                                plan_result = job_result;
+                                break;
+                            } else {
+                                plan_result = plan_result + job_result;
                             }
+                        }
+                        if plan_result < 0 {
+                            //Todo: call portal for report bad result
+                        } else if plan_result > 0 {
+                            //Todo: call portal for report good result
                         }
                     }
                 }
@@ -89,12 +95,12 @@ impl ProcessorServiceBuilder {
         self
     }
     pub fn build(self) -> ProcessorService {
-        let judgments = get_report_judgments(self.result_service.clone());
+        let judgment = MainJudgment::new(self.result_service.clone());
         ProcessorService {
             plan_service: self.plan_service,
             job_service: self.job_service,
             result_service: self.result_service,
-            judgments,
+            judgment,
         }
     }
 }
