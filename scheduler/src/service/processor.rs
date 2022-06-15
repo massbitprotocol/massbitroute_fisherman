@@ -1,12 +1,16 @@
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::service::judgment::main_judg::MainJudgment;
-use crate::service::judgment::{get_report_judgments, ReportCheck};
+use crate::service::judgment::{get_report_judgments, JudgmentsResult, PingJudgment, ReportCheck};
+use crate::service::report_portal::StoreReport;
 use crate::state::ProcessorState;
-use common::job_manage::{Job, JobResult};
+use crate::PORTAL_AUTHORIZATION;
+use common::job_manage::{Job, JobResult, JobRole};
 use common::worker::WorkerInfo;
+use common::DOMAIN;
 use sea_orm::sea_query::IdenList;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::{Buf, Rejection, Reply};
@@ -52,19 +56,41 @@ impl ProcessorService {
                 }
                 for plan in plans.iter() {
                     if let Some(jobs) = map_plan_jobs.get(&plan.plan_id) {
-                        let mut plan_result = 0;
+                        let mut plan_result = JudgmentsResult::Pass;
                         for job in jobs {
-                            let job_result = self.judgment.apply(plan, job).await.unwrap_or(0);
-                            if job_result <= 0 {
-                                plan_result = job_result;
-                                break;
-                            } else {
-                                plan_result = plan_result + job_result;
+                            let job_result = self
+                                .judgment
+                                .apply(plan, job)
+                                .await
+                                .unwrap_or(JudgmentsResult::Failed);
+                            match job_result {
+                                JudgmentsResult::Pass => {}
+                                JudgmentsResult::Failed => {
+                                    plan_result = JudgmentsResult::Failed;
+                                    break;
+                                }
+                                JudgmentsResult::Unfinished => {
+                                    plan_result = JudgmentsResult::Unfinished;
+                                    break;
+                                }
                             }
                         }
-                        if plan_result < 0 {
+
+                        if plan_result == JudgmentsResult::Failed {
                             //Todo: call portal for report bad result
-                        } else if plan_result > 0 {
+                            let mut report = StoreReport::build(
+                                &plan.provider_id,
+                                JobRole::from_str(&*plan.phase).unwrap_or_default(),
+                                &*PORTAL_AUTHORIZATION,
+                                &DOMAIN,
+                            );
+
+                            report.set_report_data_short(
+                                false,
+                                &"".to_string(),
+                                &Default::default(),
+                            )
+                        } else if plan_result == JudgmentsResult::Pass {
                             //Todo: call portal for report good result
                         }
                     }

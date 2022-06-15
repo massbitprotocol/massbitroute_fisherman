@@ -10,9 +10,18 @@ pub use latestblock_judg::LatestBlockJudgment;
 pub use main_judg::MainJudgment;
 pub use ping_judg::PingJudgment;
 
-use common::job_manage::Job;
+use common::component::ComponentType;
+use common::job_manage::{Job, JobRole};
+use common::{Deserialize, Serialize};
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum JudgmentsResult {
+    Pass = 1,
+    Failed = -1,
+    Unfinished = 0,
+}
 
 #[async_trait]
 pub trait ReportCheck: Sync + Send {
@@ -22,7 +31,7 @@ pub trait ReportCheck: Sync + Send {
      * result = 0 job is not finished
      * result < 0 something is bad
      */
-    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<i32, anyhow::Error>;
+    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, anyhow::Error>;
 }
 
 pub fn get_report_judgments(

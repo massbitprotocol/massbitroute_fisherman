@@ -1,14 +1,18 @@
 {
   "default": {
-    "ping_success_ratio_threshold": 0.95,
-    "ping_sample_number": 10,
-    "ping_request_response": "pong",
-    "ping_timeout_ms": 300
-  },
-  "fisherman": {
-    "ping_success_ratio_threshold": 0.50,
+    "ping_error_percent_threshold": 95,
+    "ping_percentile": 95,
+    "ping_response_time_threshold": 300,
     "ping_sample_number": 10,
     "ping_request_response": "pong",
     "ping_timeout_ms": 500
+  },
+  "fisherman": {
+    "ping_error_percent_threshold": 50,
+    "ping_percentile": 95,
+    "ping_response_time_threshold": 500,
+    "ping_sample_number": 10,
+    "ping_request_response": "pong",
+    "ping_timeout_ms": 1000
   }
 }

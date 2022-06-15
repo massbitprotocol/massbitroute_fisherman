@@ -1,5 +1,5 @@
 use crate::persistence::services::job_result_service::JobResultService;
-use crate::service::judgment::ReportCheck;
+use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{Job, JobDetail, JobRole};
@@ -9,6 +9,7 @@ use common::tasks::LoadConfig;
 use histogram::Histogram;
 use log::log;
 use sea_orm::DatabaseConnection;
+use std::str::FromStr;
 use std::sync::Arc;
 
 pub struct PingJudgment {
@@ -44,34 +45,40 @@ impl ReportCheck for PingJudgment {
         }
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<i32, Error> {
+    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, Error> {
+        let config = match JobRole::from_str(&*plan.phase)? {
+            JobRole::Verification => &self.verification_config,
+            JobRole::Regular => &self.regular_config,
+        };
         self.result_service
             .get_result_pings(job.job_id.as_str())
             .await
-            .and_then(|responses| {
-                if responses.len() < (job.repeat_number + 1) as usize {
-                    Ok(0)
+            .and_then(|(responses, error_number)| {
+                if responses.len() + (error_number as usize) < (job.repeat_number + 1) as usize {
+                    // Todo: Check timeout
+                    Ok(JudgmentsResult::Unfinished)
                 } else {
                     let mut histogram = Histogram::new();
                     for val in responses.iter() {
                         histogram.increment(val.clone() as u64);
                     }
-                    let res = histogram.percentile(50_f64);
+                    let res = histogram.percentile(config.ping_percentile);
                     log::debug!(
-                        "Ping job {} has results: {:?} ans histogram 99 {:?} ",
+                        "Ping job {} has results: {:?} ans histogram {}%: {:?} ",
                         &job.job_id,
                         &responses,
+                        config.ping_percentile,
                         &res
                     );
                     match res {
                         Ok(val) => {
-                            if val < 300 {
-                                Ok(1)
+                            if val < config.ping_response_time_threshold {
+                                Ok(JudgmentsResult::Pass)
                             } else {
-                                Ok(-1)
+                                Ok(JudgmentsResult::Failed)
                             }
                         }
-                        Err(err) => Ok(-1),
+                        Err(err) => Ok(JudgmentsResult::Failed),
                     }
                 }
             })

@@ -57,7 +57,12 @@ impl JobResultService {
         let mut new_records = HashMap::<String, ResultPingModel>::default();
         for result in vec_results.iter() {
             if let Some(res) = map_results.get_mut(&result.job.job_id) {
-                res.add_response_time(result.response.response_time as i64);
+                if result.response.error_code == 0 {
+                    res.add_response_time(result.response.response_time as i64);
+                } else {
+                    res.error_number += 1;
+                }
+
                 map_update_results.insert(result.job.job_id.clone(), true);
             } else {
                 new_records.insert(result.job.job_id.clone(), ResultPingModel::from(result));
@@ -148,7 +153,7 @@ impl JobResultService {
     /*
      * map by worker_id and vector of response times
      */
-    pub async fn get_result_pings(&self, job_id: &str) -> Result<Vec<i64>, anyhow::Error> {
+    pub async fn get_result_pings(&self, job_id: &str) -> Result<(Vec<i64>, i64), anyhow::Error> {
         match job_result_pings::Entity::find()
             .filter(job_result_pings::Column::JobId.eq(job_id.to_owned()))
             .all(self.db.as_ref())
@@ -164,7 +169,7 @@ impl JobResultService {
                         .iter()
                         .map(|val| val.as_i64().unwrap())
                         .collect::<Vec<i64>>();
-                    Some(values)
+                    Some((values, model.error_number))
                 })
                 .ok_or(anyhow!("Result not found for job {:?}", job_id)),
             Err(err) => Err(anyhow!("{:?}", &err)),
