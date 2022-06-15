@@ -1,5 +1,6 @@
 use crate::job_manage::{Job, JobResult};
 use crate::tasks::eth::benchmark::executor::BenchmarkExecutor;
+use crate::tasks::eth::latest_block::executor::LatestBlockExecutor;
 use crate::tasks::ping::executor::PingExecutor;
 use crate::util::get_current_time;
 use crate::WorkerId;
@@ -25,5 +26,6 @@ pub fn get_executors(worker_id: WorkerId, benchmark_wrk_path: &str) -> Vec<Arc<d
         worker_id.clone(),
         benchmark_wrk_path,
     )));
+    result.push(Arc::new(LatestBlockExecutor::new(worker_id.clone())));
     result
 }

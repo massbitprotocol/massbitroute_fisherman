@@ -24,3 +24,7 @@ pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;
 pub use std::env;
 pub type PlanId = String;
+
+lazy_static! {
+    pub static ref DOMAIN: String = env::var("DOMAIN").expect("There is no env var DOMAIN");
+}
