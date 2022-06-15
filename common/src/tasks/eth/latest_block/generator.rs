@@ -1,4 +1,4 @@
-use crate::component::{ComponentInfo, ComponentType};
+use crate::component::{ChainInfo, ComponentInfo, ComponentType};
 use crate::job_manage::{Config, Job, JobDetail, JobPing, JobResult, JobRole};
 use crate::models::PlanEntity;
 use crate::tasks::eth::{JobLatestBlock, JobLatestBlockResult};
@@ -55,6 +55,7 @@ impl TaskApplicant for LatestBlockGenerator {
         let job = JobLatestBlock {
             assigned_at: get_current_time(),
             request_body: self.config.latest_block_request_body.clone(),
+            chain_info: ChainInfo::new(node.blockchain.clone(), node.network.clone()),
         };
         let job_detail = JobDetail::LatestBlock(job);
         let mut job = Job::new(plan_id.clone(), job_detail.get_job_name(), node, job_detail);

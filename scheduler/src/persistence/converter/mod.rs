@@ -212,14 +212,19 @@ impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
     fn from(result: &JobLatestBlockResult) -> Self {
         job_result_latest_blocks::ActiveModel {
             job_id: Set(result.job.job_id.to_owned()),
-            //job_name: Set(result.job.job_name.to_owned()),
             plan_id: Set(result.job.plan_id.to_string()),
             worker_id: Set(result.worker_id.to_owned()),
             provider_id: Set(result.job.component_id.to_owned()),
             provider_type: Set(result.job.component_type.to_string()),
-            block_chain: Set(String::new()),
             block_number: Set(result.response.block_number as i64),
             block_timestamp: Set(result.response.block_timestamp as i64),
+            chain_id: Set(result.response.chain_info.chain_id()),
+            http_code: Set(result.response.http_code as i32),
+            error_code: Set(result.response.error_code as i32),
+            message: Set(result.response.message.to_string()),
+            response_time: Set(result.response.response_time),
+            execution_timestamp: Set(result.execution_timestamp as i64),
+            block_hash: Set(result.response.block_hash.to_owned()),
             ..Default::default()
         }
     }

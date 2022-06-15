@@ -33,10 +33,29 @@ impl LatestBlockExecutor {
                 .unwrap(),
         }
     }
+
     pub async fn call_latest_block(
         &self,
         job: &Job,
     ) -> Result<LatestBlockResponse, CallLatestBlockError> {
+        //Get job detail
+        let job_detail = match job
+            .job_detail
+            .as_ref()
+            .ok_or(CallLatestBlockError::GetBodyError(
+                "No job detail".to_string(),
+            ))? {
+            JobDetail::LatestBlock(job_detail) => Ok(job_detail),
+            _ => Err(CallLatestBlockError::GetBodyError(
+                "Wrong job detail type".to_string(),
+            )),
+        }?;
+
+        match &job.job_detail {
+            Some(JobDetail::LatestBlock(latest_block)) => {}
+            None => {}
+            _ => {}
+        }
         // Measure response_time
         let mut builder = self
             .client
@@ -47,15 +66,7 @@ impl LatestBlockExecutor {
             builder = builder.header(key, value);
         }
 
-        let body = match job
-            .job_detail
-            .as_ref()
-            .ok_or(CallLatestBlockError::BuildError(
-                "No job detail".to_string(),
-            ))? {
-            JobDetail::LatestBlock(job_detail) => job_detail.request_body.clone(),
-            _ => Default::default(),
-        };
+        let body = job_detail.request_body.clone();
 
         let now = Instant::now();
         debug!("call_latest_block builder: {:?}", builder);
@@ -89,6 +100,7 @@ impl LatestBlockExecutor {
             http_code,
             error_code: 0,
             message: "success".to_string(),
+            chain_info: job_detail.chain_info.clone(),
         };
         Ok(latest_block_result)
     }
@@ -140,17 +152,31 @@ impl LatestBlockExecutor {
 #[async_trait]
 impl TaskExecutor for LatestBlockExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
+        let job_detail = match job
+            .job_detail
+            .as_ref()
+            .ok_or(Error::msg("No job detail".to_string()))?
+        {
+            JobDetail::LatestBlock(job_detail) => Ok(job_detail),
+            _ => Err(Error::msg("Wrong job detail type".to_string())),
+        }?;
+
         info!("TaskLatestBlock execute for job {:?}", &job);
         let res = self.call_latest_block(job).await;
         let response = match res {
             Ok(res) => res,
-            Err(err) => err.into(),
+            Err(err) => LatestBlockResponse::new_error(
+                err.get_code(),
+                err.get_message().as_str(),
+                job_detail.chain_info.clone(),
+            ),
         };
         info!("LatestBlock result {:?}", &response);
         let latest_block_result = JobLatestBlockResult {
             job: job.clone(),
             worker_id: self.worker_id.clone(),
             response,
+            execution_timestamp: get_current_time(),
         };
         let res = result_sender
             .send(JobResult::LatestBlock(latest_block_result))
