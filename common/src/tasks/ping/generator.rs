@@ -31,9 +31,13 @@ impl PingGenerator {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-struct PingConfig {
+pub struct PingConfig {
     #[serde(default)]
-    ping_success_ratio_threshold: f32,
+    ping_error_ratio_threshold: f32, //
+    #[serde(default)]
+    ping_percentile: i32,
+    #[serde(default)]
+    ping_response_time_threshold: i32,
     #[serde(default)]
     ping_sample_number: i32,
     #[serde(default)]

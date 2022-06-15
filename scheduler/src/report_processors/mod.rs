@@ -4,6 +4,7 @@ pub mod dot;
 pub mod eth;
 pub mod generic_processor;
 pub mod ping_report;
+use crate::models::job_result::StoredJobResult;
 use crate::report_processors::adapters::get_report_adapters;
 use crate::report_processors::benchamark::BenchmarkReportProcessor;
 use crate::report_processors::generic_processor::GenericReportProcessor;
@@ -19,17 +20,25 @@ use std::sync::Arc;
 #[async_trait]
 pub trait ReportProcessor: Sync + Send {
     fn can_apply(&self, report: &JobResult) -> bool;
-    async fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>);
-    async fn process_jobs(&self, report: Vec<JobResult>, db_connection: Arc<DatabaseConnection>);
+    async fn process_job(
+        &self,
+        report: &JobResult,
+        db_connection: Arc<DatabaseConnection>,
+    ) -> Result<StoredJobResult, anyhow::Error>;
+    async fn process_jobs(
+        &self,
+        report: Vec<JobResult>,
+        db_connection: Arc<DatabaseConnection>,
+    ) -> Result<Vec<StoredJobResult>, anyhow::Error>;
 }
 
 pub fn get_report_processors(connection: Arc<DatabaseConnection>) -> Vec<Arc<dyn ReportProcessor>> {
     let report_adapters = get_report_adapters(connection);
     let mut result: Vec<Arc<dyn ReportProcessor>> = Default::default();
-    //result.push(Arc::new(PingReportProcessor::new(report_adapters.clone())));
     result.push(Arc::new(GenericReportProcessor::new(
         report_adapters.clone(),
     )));
+    //result.push(Arc::new(PingReportProcessor::new(report_adapters.clone())));
     //result.push(Arc::new(BenchmarkReportProcessor::new()));
     //result.push(Arc::new(LatestBlockReportProcessor::new()));
     //result.push(Arc::new(RandomBlockReportProcessor::new()));

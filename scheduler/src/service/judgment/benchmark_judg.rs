@@ -26,7 +26,7 @@ impl ReportCheck for BenchmarkJudgment {
         }
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<u32, Error> {
+    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<i32, Error> {
         Ok(0)
     }
 }

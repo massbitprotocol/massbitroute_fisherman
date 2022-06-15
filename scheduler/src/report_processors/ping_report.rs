@@ -1,3 +1,4 @@
+use crate::models::job_result::StoredJobResult;
 use crate::report_processors::adapters::{get_report_adapters, Appender};
 use crate::report_processors::ReportProcessor;
 use async_trait::async_trait;
@@ -25,11 +26,19 @@ impl ReportProcessor for PingReportProcessor {
         }
     }
 
-    async fn process_job(&self, report: &JobResult, db_connection: Arc<DatabaseConnection>) {
+    async fn process_job(
+        &self,
+        report: &JobResult,
+        db_connection: Arc<DatabaseConnection>,
+    ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
     }
 
-    async fn process_jobs(&self, reports: Vec<JobResult>, db_connection: Arc<DatabaseConnection>) {
+    async fn process_jobs(
+        &self,
+        reports: Vec<JobResult>,
+        db_connection: Arc<DatabaseConnection>,
+    ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         let mut ping_results = Vec::new();
         for report in reports {
             match report {
@@ -43,5 +52,7 @@ impl ReportProcessor for PingReportProcessor {
         for adapter in self.report_adapters.iter() {
             adapter.append_ping_results(&ping_results);
         }
+        //Todo: use generic processor
+        Ok(Vec::new())
     }
 }

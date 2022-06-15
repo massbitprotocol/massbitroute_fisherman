@@ -1,3 +1,4 @@
+use crate::models::job_result::StoredJobResult;
 use crate::report_processors::{get_report_processors, ReportProcessor};
 use common::job_manage::JobResult;
 use diesel::PgArrayExpressionMethods;
@@ -22,8 +23,9 @@ impl ProcessorState {
     pub async fn process_results(
         &mut self,
         job_results: Vec<JobResult>,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut map_processor_reports = HashMap::<usize, Vec<JobResult>>::new();
+        //Group result by processor then process result by list
         for report in job_results.iter() {
             for (ind, processor) in self.processors.iter().enumerate() {
                 if processor.can_apply(&report) {
@@ -35,12 +37,13 @@ impl ProcessorState {
                 }
             }
         }
+        let mut stored_results = HashMap::<String, StoredJobResult>::new();
         for (ind, jobs) in map_processor_reports {
             let connection = self.connection.clone();
             if let Some(processor) = self.processors.get(ind) {
                 processor.process_jobs(jobs, connection).await;
             };
         }
-        Ok(())
+        Ok(stored_results)
     }
 }

@@ -148,34 +148,25 @@ impl JobResultService {
     /*
      * map by worker_id and vector of response times
      */
-    pub async fn get_result_pings(
-        &self,
-        plan_id: &str,
-    ) -> Result<HashMap<String, Vec<i64>>, anyhow::Error> {
+    pub async fn get_result_pings(&self, job_id: &str) -> Result<Vec<i64>, anyhow::Error> {
         match job_result_pings::Entity::find()
-            .filter(job_result_pings::Column::PlanId.eq(plan_id.to_owned()))
+            .filter(job_result_pings::Column::JobId.eq(job_id.to_owned()))
             .all(self.db.as_ref())
             .await
         {
-            Ok(results) => {
-                let mut res = HashMap::<String, Vec<i64>>::new();
-                for model in results.iter() {
-                    let worker_id = model.worker_id.clone();
+            Ok(results) => results
+                .get(0)
+                .and_then(|model| {
                     let response_times: serde_json::Value = model.response_times.clone();
-                    let mut values = response_times
+                    let values = response_times
                         .as_array()
                         .unwrap()
                         .iter()
                         .map(|val| val.as_i64().unwrap())
                         .collect::<Vec<i64>>();
-                    if let Some(mut vec) = res.get_mut(&worker_id) {
-                        vec.append(&mut values);
-                    } else {
-                        res.insert(worker_id.clone(), values);
-                    }
-                }
-                Ok(res)
-            }
+                    Some(values)
+                })
+                .ok_or(anyhow!("Result not found for job {:?}", job_id)),
             Err(err) => Err(anyhow!("{:?}", &err)),
         }
     }
