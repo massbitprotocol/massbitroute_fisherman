@@ -1,4 +1,4 @@
-use crate::{BlockChainType, ComponentId, NetworkType, UrlType};
+use crate::{BlockChainType, ChainId, ComponentId, NetworkType, UrlType};
 use crate::{Deserialize, Serialize};
 use anyhow::anyhow;
 use std::str::FromStr;
@@ -116,5 +116,26 @@ impl FromStr for Zone {
 impl Default for Zone {
     fn default() -> Self {
         Zone::GB
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Default)]
+pub struct ChainInfo {
+    pub chain: BlockChainType,
+    pub network: NetworkType,
+}
+
+impl ToString for ChainInfo {
+    fn to_string(&self) -> String {
+        format!("{}.{}", self.chain, self.network)
+    }
+}
+
+impl ChainInfo {
+    pub fn new(chain: BlockChainType, network: NetworkType) -> Self {
+        ChainInfo { chain, network }
+    }
+    pub fn chain_id(&self) -> ChainId {
+        self.to_string()
     }
 }
