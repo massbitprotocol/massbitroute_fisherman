@@ -18,6 +18,12 @@ pub struct Model {
     pub block_number: i64,
     pub block_timestamp: i64,
     pub plan_id: String,
+    pub chain_id: String,
+    pub http_code: i32,
+    pub error_code: i32,
+    pub message: String,
+    pub response_time: i64,
+    pub block_hash: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
