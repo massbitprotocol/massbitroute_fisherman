@@ -3,6 +3,7 @@ use log::{debug, info};
 use reqwest::Response;
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::str::FromStr;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::time::{sleep, Duration};
@@ -306,7 +307,21 @@ impl ToString for JobRole {
     fn to_string(&self) -> String {
         match self {
             JobRole::Verification => "verification".to_string(),
-            JobRole::Regular => "fisherman".to_string(),
+            JobRole::Regular => "regular".to_string(),
+        }
+    }
+}
+impl FromStr for JobRole {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "regular" => Ok(JobRole::Regular),
+            "verification" => Ok(JobRole::Verification),
+            _ => Err(anyhow::Error::msg(format!(
+                "Cannot convert {} to Job role",
+                s
+            ))),
         }
     }
 }

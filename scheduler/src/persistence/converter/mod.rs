@@ -130,16 +130,34 @@ impl From<&jobs::Model> for Job {
 
 impl From<&JobPingResult> for job_result_pings::Model {
     fn from(result: &JobPingResult) -> Self {
-        job_result_pings::Model {
-            id: 0,
-            job_id: result.job.job_id.clone(),
-            plan_id: result.job.plan_id.clone(),
-            worker_id: result.worker_id.clone(),
-            provider_id: result.job.component_id.clone(),
-            provider_type: result.job.component_type.to_string(),
-            execution_timestamp: 0,
-            recorded_timestamp: 0,
-            response_times: Value::Array(vec![Value::from(result.response.response_time as i64)]),
+        if result.response.error_code == 0 {
+            job_result_pings::Model {
+                id: 0,
+                job_id: result.job.job_id.clone(),
+                plan_id: result.job.plan_id.clone(),
+                worker_id: result.worker_id.clone(),
+                provider_id: result.job.component_id.clone(),
+                provider_type: result.job.component_type.to_string(),
+                execution_timestamp: 0,
+                recorded_timestamp: 0,
+                response_times: Value::Array(vec![Value::from(
+                    result.response.response_time as i64,
+                )]),
+                error_number: 0,
+            }
+        } else {
+            job_result_pings::Model {
+                id: 0,
+                job_id: result.job.job_id.clone(),
+                plan_id: result.job.plan_id.clone(),
+                worker_id: result.worker_id.clone(),
+                provider_id: result.job.component_id.clone(),
+                provider_type: result.job.component_type.to_string(),
+                execution_timestamp: 0,
+                recorded_timestamp: 0,
+                response_times: Value::Array(vec![]),
+                error_number: 1,
+            }
         }
     }
 }
@@ -153,6 +171,7 @@ impl job_result_pings::ActiveModel {
             provider_id: Set(model.provider_id.to_owned()),
             provider_type: Set(model.provider_type.to_string()),
             response_times: Set(model.response_times.clone()),
+            error_number: Set(model.error_number),
             ..Default::default()
         }
     }

@@ -1,5 +1,5 @@
 use crate::persistence::services::job_result_service::JobResultService;
-use crate::service::judgment::ReportCheck;
+use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{Job, JobDetail};
@@ -27,7 +27,7 @@ impl ReportCheck for LatestBlockJudgment {
         }
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<i32, Error> {
-        Ok(0)
+    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, Error> {
+        Ok(JudgmentsResult::Pass)
     }
 }
