@@ -46,4 +46,11 @@ lazy_static! {
     pub static ref URL_GATEWAYS_LIST: String =
         env::var("URL_GATEWAYS_LIST").expect("There is no env var URL_GATEWAYS_LIST");
     pub static ref CONFIG: Config = Config::load(SCHEDULER_CONFIG.as_str());
+    //Worker configurations
+    pub static ref WORKER_PATH_JOBS_HANDLE: String =
+        env::var("WORKER_PATH_JOBS_HANDLE").unwrap_or(String::from("jobs_handle"));
+    pub static ref WORKER_PATH_JOBS_UPDATE: String =
+        env::var("WORKER_PATH_JOBS_UPDATE").unwrap_or(String::from("jobs_update"));
+    pub static ref WORKER_PATH_JOB_UPDATE: String =
+        env::var("WORKER_PATH_GET_STATE").unwrap_or(String::from("get_state"));
 }
