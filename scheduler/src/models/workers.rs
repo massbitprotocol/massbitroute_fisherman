@@ -1,3 +1,4 @@
+use crate::WORKER_PATH_JOBS_HANDLE;
 use anyhow::anyhow;
 use common::component::Zone;
 use common::job_manage::Job;
@@ -8,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::format;
 use std::sync::Arc;
+
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct WorkerInfoStorage {
     map_zone_workers: HashMap<Zone, Vec<Arc<WorkerInfo>>>,
@@ -71,14 +73,26 @@ impl Worker {
     pub fn has_id(&self, id: &WorkerId) -> bool {
         self.worker_info.worker_id.eq(id)
     }
+    pub fn get_url_job_handle(&self) -> String {
+        format!(
+            "{}/{}",
+            self.worker_info.url,
+            WORKER_PATH_JOBS_HANDLE.as_str()
+        )
+    }
     pub async fn send_job(&self, job: &Job) -> Result<(), anyhow::Error> {
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
-        log::debug!("Send job {:?} to worker {:?}", &job, &self.worker_info);
+        let url = self.get_url_job_handle();
+        log::debug!(
+            "Send 1 jobs to worker {:?} by url {:?}",
+            &self.worker_info,
+            url.as_str()
+        );
         let request_builder = client
             .post(self.worker_info.url.as_str())
             .header("content-type", "application/json")
-            .body(job);
+            .body(serde_json::to_string(&vec![job])?);
         match request_builder.send().await {
             Ok(res) => {
                 log::debug!("Worker response: {:?}", res);
@@ -93,10 +107,15 @@ impl Worker {
     pub async fn send_jobs(&self, jobs: &Vec<Job>) -> Result<(), anyhow::Error> {
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
-        log::debug!("Send {} jobs to worker {:?}", jobs.len(), &self.worker_info);
-        if let Ok(body) = serde_json::to_string(jobs) {}
+        let url = self.get_url_job_handle();
+        log::debug!(
+            "Send {} jobs to worker {:?} by url {:?}",
+            jobs.len(),
+            &self.worker_info,
+            url.as_str()
+        );
         let request_builder = client
-            .post(self.worker_info.url.as_str())
+            .post(url.as_str())
             .header("content-type", "application/json")
             .body(serde_json::to_string(jobs)?);
         match request_builder.send().await {
