@@ -23,7 +23,9 @@ const FISHERMAN_KEY: &str = "fisherman";
 
 pub trait LoadConfig<T: DeserializeOwned + Default + Debug> {
     fn load_config(path: &str, role: &JobRole) -> T {
-        let json = std::fs::read_to_string(path).unwrap();
+        let json = std::fs::read_to_string(path).unwrap_or_else(|err| {
+            panic!("Error {:?}. Path not found {}", err, path);
+        });
         let configs: Value = serde_json::from_str(&*json).unwrap();
         let mut default_config: T =
             serde_json::from_value(configs.get(DEFAULT_KEY).unwrap().clone()).unwrap();

@@ -48,7 +48,7 @@ async fn main() {
     let db_conn = match get_sea_db_connection(DATABASE_URL.as_str()).await {
         Ok(con) => con,
         Err(_) => {
-            panic!("Please check connection and retry.")
+            panic!("Please check database connection and retry.")
         }
     };
     let arc_conn = Arc::new(db_conn);
