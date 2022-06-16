@@ -27,7 +27,7 @@ lazy_static! {
     pub static ref REPORT_CALLBACK: String =
         env::var("REPORT_CALLBACK").unwrap_or(String::from("http://127.0.0.1:3031/report"));
     pub static ref SCHEDULER_CONFIG: String =
-        env::var("SCHEDULER_CONFIG").unwrap_or(String::from("config_fisherman.json"));
+        env::var("SCHEDULER_CONFIG").unwrap_or(String::from("configs/scheduler.json"));
     pub static ref CONNECTION_POOL_SIZE: u32 = env::var("CONNECTION_POOL_SIZE")
         .ok()
         .and_then(|val| val.parse().ok())
@@ -40,7 +40,7 @@ lazy_static! {
     pub static ref SIGNER_PHRASE: String =
         env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
     pub static ref CONFIG_DIR: String =
-        env::var("CONFIG_DIR").unwrap_or(String::from("resource/task_config"));
+        env::var("CONFIG_DIR").unwrap_or(String::from("configs/tasks"));
     pub static ref URL_NODES_LIST: String =
         env::var("URL_NODES_LIST").expect("There is no env var URL_NODES_LIST");
     pub static ref URL_GATEWAYS_LIST: String =
