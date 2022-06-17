@@ -38,7 +38,6 @@ impl JobDelivery {
             let undelivered = Vec::<JobAssignment>::default();
             let mut handlers = Vec::new();
             let mut worker_jobs = HashMap::<WorkerId, Vec<Job>>::default();
-            let mut workers = HashMap::<WorkerId, Arc<Worker>>::default();
             for job_assign in assignments.into_iter() {
                 let JobAssignment { worker, job, .. } = job_assign;
                 let worker_id = worker.get_id();
@@ -47,7 +46,7 @@ impl JobDelivery {
                 } else {
                     worker_jobs.insert(worker_id.clone(), vec![job]);
                 }
-                workers.insert(worker_id, worker);
+                self.worker_pool.insert(worker_id, worker);
             }
             for (id, jobs) in worker_jobs.into_iter() {
                 if let Some(worker) = self.worker_pool.get(&id) {
