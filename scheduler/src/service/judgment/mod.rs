@@ -10,11 +10,10 @@ use common::models::PlanEntity;
 pub use latestblock_judg::LatestBlockJudgment;
 pub use main_judg::MainJudgment;
 pub use ping_judg::PingJudgment;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-use common::component::ComponentType;
-use common::job_manage::{Job, JobRole};
-use common::{Deserialize, Serialize};
+use common::jobs::Job;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 

@@ -1,12 +1,12 @@
-use crate::component::{ChainInfo, ComponentInfo, ComponentType};
-use crate::job_manage::{Config, Job, JobDetail, JobPing, JobResult, JobRole};
-use crate::models::PlanEntity;
-use crate::tasks::eth::{JobLatestBlock, JobLatestBlockResult};
-use crate::tasks::generator::TaskApplicant;
-use crate::tasks::LoadConfig;
-use crate::util::get_current_time;
-use crate::{Node, PlanId, Timestamp, DOMAIN};
+use crate::models::tasks::generator::TaskApplicant;
 use anyhow::Error;
+use common::component::{ChainInfo, ComponentInfo, ComponentType};
+use common::job_manage::{JobDetail, JobRole};
+use common::jobs::Job;
+use common::tasks::eth::{JobLatestBlock, LatestBlockConfig};
+use common::tasks::LoadConfig;
+use common::util::get_current_time;
+use common::{Node, PlanId, Timestamp, DOMAIN};
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -15,17 +15,6 @@ use std::vec;
 /*
  * Apply for node to get latest block number and time
  */
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct LatestBlockConfig {
-    #[serde(default)]
-    header: HashMap<String, String>,
-    #[serde(default)]
-    latest_block_request_body: String,
-    #[serde(default)]
-    latest_block_timeout_ms: Timestamp,
-    #[serde(default)]
-    pub late_duration_threshold_ms: i64,
-}
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct LatestBlockGenerator {
@@ -45,8 +34,6 @@ impl LatestBlockGenerator {
         format!("https://{}", component.ip)
     }
 }
-
-impl LoadConfig<LatestBlockConfig> for LatestBlockConfig {}
 
 impl TaskApplicant for LatestBlockGenerator {
     fn can_apply(&self, component: &ComponentInfo) -> bool {

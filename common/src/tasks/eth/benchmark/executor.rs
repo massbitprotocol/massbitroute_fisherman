@@ -1,6 +1,7 @@
 use crate::job_manage::{
-    BenchmarkResponse, Job, JobBenchmark, JobBenchmarkResult, JobDetail, JobResult,
+    BenchmarkResponse, JobBenchmark, JobBenchmarkResult, JobDetail, JobResult,
 };
+use crate::jobs::Job;
 use crate::logger::helper::message;
 use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::executor::TaskExecutor;

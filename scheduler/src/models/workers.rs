@@ -1,8 +1,9 @@
+use crate::persistence::WorkerProviderConnection;
 use crate::WORKER_PATH_JOBS_HANDLE;
 use anyhow::anyhow;
-use common::component::Zone;
-use common::job_manage::Job;
-use common::worker::WorkerInfo;
+use common::component::{ComponentInfo, Zone};
+use common::jobs::Job;
+use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::WorkerId;
 use reqwest::{Error, Response};
 use serde::{Deserialize, Serialize};
@@ -10,123 +11,69 @@ use std::collections::HashMap;
 use std::format;
 use std::sync::Arc;
 
-#[derive(Default, Debug, Deserialize, Serialize)]
+/*
+ * Todo: Rename to WorkerStorage
+ */
+#[derive(Default, Debug)]
 pub struct WorkerInfoStorage {
-    map_zone_workers: HashMap<Zone, Vec<Arc<WorkerInfo>>>,
+    map_zone_workers: HashMap<Zone, Vec<Arc<Worker>>>,
+    map_worker_provider: Vec<WorkerProviderConnection>,
 }
 
 impl WorkerInfoStorage {
     pub fn new(workers: Vec<WorkerInfo>) -> Self {
-        let mut map = HashMap::<Zone, Vec<Arc<WorkerInfo>>>::default();
-        for worker in workers.into_iter() {
-            if let Some(vec) = map.get_mut(&worker.zone) {
-                vec.push(Arc::new(worker));
+        let mut map = HashMap::<Zone, Vec<Arc<Worker>>>::default();
+        for worker_info in workers.into_iter() {
+            let zone = worker_info.zone.clone();
+            let worker = Arc::new(Worker::new(worker_info));
+            if let Some(vec) = map.get_mut(&zone) {
+                vec.push(worker);
             } else {
-                map.insert(worker.zone.clone(), vec![Arc::new(worker)]);
+                map.insert(zone, vec![worker]);
             }
         }
         WorkerInfoStorage {
             map_zone_workers: map,
+            map_worker_provider: vec![],
         }
     }
     pub fn add_worker(&mut self, info: WorkerInfo) {
-        let vec_workers = self.map_zone_workers.get_mut(&info.zone);
-        match vec_workers {
-            None => {
-                let mut vec = Vec::default();
-                let key = info.zone.clone();
-                vec.push(Arc::new(info));
-                self.map_zone_workers.insert(key, vec);
-            }
-            Some(vec) => {
-                vec.push(Arc::new(info));
-            }
+        let zone = info.zone.clone();
+        let worker = Arc::new(Worker::new(info));
+        if let Some(vec) = self.map_zone_workers.get_mut(&zone) {
+            vec.push(worker);
+        } else {
+            self.map_zone_workers.insert(zone, vec![worker]);
         }
     }
-    pub fn get_worker_by_zone_id(
-        &self,
-        zone: &Zone,
-        worker_id: &WorkerId,
-    ) -> Option<Arc<WorkerInfo>> {
+    pub fn get_worker_by_zone_id(&self, zone: &Zone, worker_id: &WorkerId) -> Option<Arc<Worker>> {
         self.map_zone_workers.get(zone).and_then(|workers| {
             workers
                 .iter()
-                .find(|w| w.worker_id.eq(worker_id))
+                .find(|w| w.get_id().as_str() == worker_id.as_str())
                 .map(|r| r.clone())
         })
     }
-    pub fn get_workers(&self, zone: &Zone) -> Option<&Vec<Arc<WorkerInfo>>> {
+    pub fn get_workers(&self, zone: &Zone) -> Option<&Vec<Arc<Worker>>> {
         self.map_zone_workers.get(zone)
     }
-}
-pub struct Worker {
-    worker_info: Arc<WorkerInfo>,
-}
-
-impl Worker {
-    pub fn new(info: Arc<WorkerInfo>) -> Worker {
-        Worker { worker_info: info }
-    }
-    pub fn get_zone(&self) -> Zone {
-        self.worker_info.zone.clone()
-    }
-    pub fn has_id(&self, id: &WorkerId) -> bool {
-        self.worker_info.worker_id.eq(id)
-    }
-    pub fn get_url_job_handle(&self) -> String {
-        format!(
-            "{}/{}",
-            self.worker_info.url,
-            WORKER_PATH_JOBS_HANDLE.as_str()
-        )
-    }
-    pub async fn send_job(&self, job: &Job) -> Result<(), anyhow::Error> {
-        let client_builder = reqwest::ClientBuilder::new();
-        let client = client_builder.danger_accept_invalid_certs(true).build()?;
-        let url = self.get_url_job_handle();
-        log::debug!(
-            "Send 1 jobs to worker {:?} by url {:?}",
-            &self.worker_info,
-            url.as_str()
-        );
-        let request_builder = client
-            .post(self.worker_info.url.as_str())
-            .header("content-type", "application/json")
-            .body(serde_json::to_string(&vec![job])?);
-        match request_builder.send().await {
-            Ok(res) => {
-                log::debug!("Worker response: {:?}", res);
-                Ok(())
-            }
-            Err(err) => {
-                log::debug!("Error:{:?}", &err);
-                Err(anyhow!(format!("{:?}", &err)))
-            }
-        }
-    }
-    pub async fn send_jobs(&self, jobs: &Vec<Job>) -> Result<(), anyhow::Error> {
-        let client_builder = reqwest::ClientBuilder::new();
-        let client = client_builder.danger_accept_invalid_certs(true).build()?;
-        let url = self.get_url_job_handle();
-        log::debug!(
-            "Send {} jobs to worker {:?} by url {:?}",
-            jobs.len(),
-            &self.worker_info,
-            url.as_str()
-        );
-        let request_builder = client
-            .post(url.as_str())
-            .header("content-type", "application/json")
-            .body(serde_json::to_string(jobs)?);
-        match request_builder.send().await {
-            Ok(res) => {
-                log::debug!("Worker response: {:?}", res);
-                Ok(())
-            }
-            Err(err) => {
-                log::debug!("Error:{:?}", &err);
-                Err(anyhow!(format!("{:?}", &err)))
-            }
-        }
+    pub fn match_workers(&self, provider: &ComponentInfo) -> Result<MatchedWorkers, anyhow::Error> {
+        let zone_workers = self
+            .map_zone_workers
+            .get(&provider.zone)
+            .and_then(|workers| {
+                Some(
+                    workers
+                        .iter()
+                        .map(|r| r.clone())
+                        .collect::<Vec<Arc<Worker>>>(),
+                )
+            })
+            .unwrap_or(vec![]);
+        Ok(MatchedWorkers {
+            provider: provider.clone(),
+            nearby_workers: vec![],
+            best_workers: vec![],
+        })
     }
 }

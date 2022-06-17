@@ -1,9 +1,10 @@
-use crate::component::ComponentInfo;
-use crate::job_manage::{Job, JobDetail, JobPing, JobResult};
-use crate::models::PlanEntity;
-use crate::tasks::generator::TaskApplicant;
-use crate::{Gateway, Node, PlanId};
+use crate::models::tasks::generator::TaskApplicant;
 use anyhow::Error;
+use common::component::ComponentInfo;
+use common::job_manage::{JobDetail, JobPing, JobResult};
+use common::jobs::Job;
+use common::models::PlanEntity;
+use common::{Node, PlanId};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::vec;

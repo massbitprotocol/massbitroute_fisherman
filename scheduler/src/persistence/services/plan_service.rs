@@ -5,7 +5,7 @@ use common::component::Zone;
 use common::job_manage::JobRole;
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
-use common::worker::WorkerInfo;
+use common::workers::WorkerInfo;
 use log::{debug, error};
 use log::{info, warn};
 use sea_orm::sea_query::Expr;

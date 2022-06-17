@@ -3,7 +3,7 @@ use crate::persistence::services::PlanService;
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::{CONFIG, CONFIG_DIR, JUDGMENT_PERIOD};
 use anyhow::Error;
-use common::job_manage::{Job, JobResult};
+use common::jobs::Job;
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use log::{error, info};

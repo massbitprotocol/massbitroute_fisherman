@@ -1,14 +1,13 @@
-use crate::models::jobs::JobAssignment;
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::service::judgment::main_judg::MainJudgment;
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, PingJudgment, ReportCheck};
 use crate::service::report_portal::StoreReport;
 use crate::state::ProcessorState;
 use crate::PORTAL_AUTHORIZATION;
-use common::component::ComponentType;
-use common::job_manage::{Job, JobResult, JobRole};
-use common::worker::WorkerInfo;
-use common::{PlanId, DOMAIN};
+use common::job_manage::{JobResult, JobRole};
+use common::jobs::Job;
+use common::workers::WorkerInfo;
+use common::DOMAIN;
 use log::info;
 use sea_orm::sea_query::IdenList;
 use serde_json::json;
@@ -103,22 +102,28 @@ impl ProcessorService {
                             | JudgmentsResult::Error => {
                                 let plan_phase =
                                     JobRole::from_str(&*plan.phase).unwrap_or_default();
-                                //Todo: call portal for report bad result
-                                let mut report = StoreReport::build(
-                                    &plan.provider_id,
-                                    &plan_phase,
-                                    &*PORTAL_AUTHORIZATION,
-                                    &DOMAIN,
-                                );
+                                //Todo: move StoreReport to processor Service member
+                                // call portal for report result
+                                if JobRole::Verification == plan_phase
+                                    || plan_result == JudgmentsResult::Failed
+                                    || plan_result == JudgmentsResult::Error
+                                {
+                                    let mut report = StoreReport::build(
+                                        &"Scheduler".to_string(),
+                                        &plan_phase,
+                                        &*PORTAL_AUTHORIZATION,
+                                        &DOMAIN,
+                                    );
 
-                                let is_data_correct = plan_result.is_pass();
-                                report.set_report_data_short(
-                                    is_data_correct,
-                                    &plan.provider_id,
-                                    &component_type,
-                                );
-                                info!("Send plan report to portal:{:?}", report);
-                                report.send_data(&plan_phase);
+                                    let is_data_correct = plan_result.is_pass();
+                                    report.set_report_data_short(
+                                        is_data_correct,
+                                        &plan.provider_id,
+                                        &component_type,
+                                    );
+                                    info!("Send plan report to portal:{:?}", report);
+                                    report.send_data(&plan_phase);
+                                }
                             }
                             JudgmentsResult::Unfinished => {}
                         }

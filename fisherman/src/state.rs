@@ -1,5 +1,5 @@
 use crate::models::job::JobBuffer;
-use common::job_manage::Job;
+use common::jobs::Job;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;

@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Error};
-use common::job_manage::{Job, JobResult};
+use common::job_manage::JobResult;
 use common::logger::init_logger;
-use common::worker::{WorkerInfo, WorkerRegisterResult};
+use common::workers::{WorkerInfo, WorkerRegisterResult};
 use std::collections::HashMap;
 
 use fisherman::models::job::JobBuffer;

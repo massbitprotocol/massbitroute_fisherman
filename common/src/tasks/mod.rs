@@ -3,7 +3,6 @@ pub mod compound;
 pub mod dot;
 pub mod eth;
 pub mod executor;
-pub mod generator;
 pub mod http_request;
 pub mod ping;
 pub mod rpc_request;

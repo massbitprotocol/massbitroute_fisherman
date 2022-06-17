@@ -11,6 +11,7 @@ use tokio::time::{sleep, Duration};
 use crate::component::{ComponentInfo, ComponentType};
 use crate::job_action::CheckStep;
 use crate::job_action::EndpointInfo;
+use crate::jobs::Job;
 use crate::tasks::command::{JobCommand, JobCommandResponse, JobCommandResult};
 use crate::tasks::compound::JobCompound;
 use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult};
@@ -22,11 +23,6 @@ use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 use uuid::Uuid;
 
-pub type Url = String;
-
-const DEFAULT_JOB_INTERVAL: Timestamp = 1000;
-const DEFAULT_JOB_TIMEOUT: Timestamp = 5000;
-
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
 pub enum JobType {
     // perform ping check
@@ -35,51 +31,6 @@ pub enum JobType {
     REQUEST,
     // perform benchmark checking
     BENCHMARK,
-}
-
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct Job {
-    pub job_id: JobId,
-    pub job_name: String,
-    pub plan_id: String,
-    pub component_id: ComponentId,
-    pub component_type: ComponentType,
-    pub priority: i32,               //Fist priority is 1
-    pub expected_runtime: Timestamp, //timestamp in millisecond Default 0, job is executed if only expected_runtime <= current timestamp
-    pub parallelable: bool,          //Job can be executed parallel with other jobs
-    pub timeout: Timestamp,
-    pub component_url: Url,
-    pub repeat_number: i32,  //0-don't repeat
-    pub interval: Timestamp, //
-    pub header: HashMap<String, String>,
-    pub job_detail: Option<JobDetail>,
-}
-
-impl From<&Job> for reqwest::Body {
-    fn from(job: &Job) -> Self {
-        reqwest::Body::from(serde_json::to_string(job).unwrap())
-    }
-}
-impl Job {
-    pub fn new(plan_id: String, component: &ComponentInfo, job_detail: JobDetail) -> Self {
-        let uuid = Uuid::new_v4();
-        Job {
-            job_id: uuid.to_string(),
-            job_name: job_detail.get_job_name(),
-            plan_id,
-            component_id: component.id.clone(),
-            component_type: component.component_type.clone(),
-            priority: 1,
-            expected_runtime: 0,
-            repeat_number: 0,
-            timeout: DEFAULT_JOB_TIMEOUT,
-            interval: DEFAULT_JOB_INTERVAL,
-            header: Default::default(),
-            job_detail: Some(job_detail),
-            parallelable: false,
-            component_url: "".to_string(),
-        }
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -286,7 +237,7 @@ pub struct Config {
     pub skip_benchmark: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Eq, PartialEq)]
 pub enum JobRole {
     Verification,
     Regular,

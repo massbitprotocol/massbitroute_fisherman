@@ -2,7 +2,7 @@ use crate::persistence::seaorm::workers::Model;
 use crate::persistence::seaorm::{plans, workers};
 use anyhow::anyhow;
 use common::component::Zone;
-use common::worker::WorkerInfo;
+use common::workers::WorkerInfo;
 use log::error;
 use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};

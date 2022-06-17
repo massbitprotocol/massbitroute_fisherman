@@ -1,3 +1,4 @@
+use crate::models::component::ProviderPlan;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::seaorm::workers;
@@ -9,7 +10,7 @@ use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::models::PlanEntity;
 use common::util::get_current_time;
-use common::worker::{WorkerInfo, WorkerRegisterResult};
+use common::workers::{WorkerInfo, WorkerRegisterResult};
 use sea_orm::ActiveModelTrait;
 use sea_orm::DatabaseConnection;
 use std::borrow::BorrowMut;
@@ -85,12 +86,12 @@ impl SchedulerState {
             JobRole::Verification.to_string(),
         );
         let store_res = self.plan_service.store_plan(&plan).await;
-        if let Ok(_) = store_res {
+        if let Ok(model) = store_res {
             //Generate verification job base on stored plan
             self.providers
                 .lock()
                 .await
-                .add_verify_node(plan.plan_id.clone(), node_info)
+                .add_verify_node(model, node_info)
                 .await;
             /*
              self.job_generator

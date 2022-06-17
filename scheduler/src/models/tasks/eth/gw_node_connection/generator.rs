@@ -2,11 +2,10 @@
  * Check from any gateway can connection to any node
  */
 
-use crate::component::ComponentInfo;
-use crate::job_manage::Job;
-use crate::models::PlanEntity;
-use crate::tasks::generator::TaskApplicant;
-use crate::{Gateway, Node, PlanId};
+use crate::models::tasks::generator::TaskApplicant;
+use common::component::ComponentInfo;
+use common::jobs::Job;
+use common::{Gateway, Node, PlanId};
 use std::sync::Arc;
 
 pub struct TaskGWNodeConnection {

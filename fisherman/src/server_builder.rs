@@ -1,5 +1,5 @@
 use crate::server_config::AccessControl;
-use common::job_manage::Job;
+use common::jobs::Job;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -13,8 +13,8 @@ use warp::http::{HeaderMap, Method};
 
 use crate::services::WebService;
 use crate::state::WorkerState;
-use common::worker::WorkerInfo;
-use common::worker::WorkerStateParam;
+use common::workers::WorkerInfo;
+use common::workers::WorkerStateParam;
 use std::default::Default;
 use tokio::sync::Mutex;
 use warp::reply::Json;
