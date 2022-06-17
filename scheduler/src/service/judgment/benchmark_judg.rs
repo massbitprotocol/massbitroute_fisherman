@@ -11,11 +11,25 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct BenchmarkJudgment {
     result_service: Arc<JobResultService>,
+    verification_config: LatestBenchmarkConfig,
+    regular_config: LatestBenchmarkConfig,
 }
 
 impl BenchmarkJudgment {
     pub fn new(config_dir: &str, result_service: Arc<JobResultService>) -> Self {
-        BenchmarkJudgment { result_service }
+        let verification_config = LatestBenchmarkConfig::load_config(
+            format!("{}/benchmark.json", config_dir).as_str(),
+            &JobRole::Verification,
+        );
+        let regular_config = LatestBenchmarkConfig::load_config(
+            format!("{}/benchmark.json", config_dir).as_str(),
+            &JobRole::Regular,
+        );
+        BenchmarkJudgment {
+            result_service,
+            verification_config,
+            regular_config,
+        }
     }
 }
 
