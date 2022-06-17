@@ -5,7 +5,7 @@ use crate::persistence::seaorm::{
 };
 use anyhow::anyhow;
 use common::component::{ChainInfo, Zone};
-use common::job_manage::JobBenchmarkResult;
+use common::job_manage::{BenchmarkResponse, JobBenchmarkResult};
 use common::jobs::Job;
 use common::tasks::eth::{JobLatestBlockResult, LatestBlockResponse};
 use common::tasks::ping::JobPingResult;
@@ -235,8 +235,9 @@ impl JobResultService {
     }
     pub async fn get_result_benchmarks(
         &self,
-        plan_id: &str,
+        job: &Job,
     ) -> Result<Vec<JobBenchmarkResult>, anyhow::Error> {
+        let plan_id = &job.plan_id;
         match job_result_benchmarks::Entity::find()
             .filter(job_result_benchmarks::Column::PlanId.eq(plan_id.to_owned()))
             .all(self.db.as_ref())
@@ -245,7 +246,7 @@ impl JobResultService {
             Ok(results) => {
                 let mut res = Vec::new();
                 for model in results.iter() {
-                    //res.push(JobBenchmarkResult::from(model))
+                    res.push(JobBenchmarkResult::from_db(model, job))
                 }
                 Ok(res)
             }
@@ -274,11 +275,11 @@ impl JobResultService {
     }
 }
 
-trait FromDb {
-    fn from_db(model: &job_result_latest_blocks::Model, job: &Job) -> Self;
+trait FromDb<T> {
+    fn from_db(model: &T, job: &Job) -> Self;
 }
 
-impl FromDb for JobLatestBlockResult {
+impl FromDb<job_result_latest_blocks::Model> for JobLatestBlockResult {
     fn from_db(model: &job_result_latest_blocks::Model, job: &Job) -> Self {
         let res = LatestBlockResponse {
             response_time: model.response_time,
@@ -295,6 +296,31 @@ impl FromDb for JobLatestBlockResult {
             worker_id: model.worker_id.clone(),
             response: res,
             execution_timestamp: model.execution_timestamp,
+        }
+    }
+}
+
+impl FromDb<job_result_benchmarks::Model> for JobBenchmarkResult {
+    fn from_db(model: &job_result_benchmarks::Model, job: &Job) -> Self {
+        // Fixme: Histogram percentiles are dynamically config. However, we hardcode it for now.
+        let histograms = HashMap::from([
+            (90u32, model.histogram90 as f32),
+            (95u32, model.histogram95 as f32),
+            (99u32, model.histogram99 as f32),
+        ]);
+        let res = BenchmarkResponse {
+            request_rate: model.request_rate as f32,
+            transfer_rate: model.transfer_rate as f32,
+            average_latency: model.average_latency as f32,
+            error_code: model.error_code as u32,
+            message: model.message.clone(),
+            histograms,
+        };
+        JobBenchmarkResult {
+            job: job.clone(),
+            worker_id: model.worker_id.clone(),
+            response_timestamp: 0,
+            response: res,
         }
     }
 }

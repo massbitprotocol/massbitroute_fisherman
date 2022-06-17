@@ -7,7 +7,7 @@ use common::{JobId, WorkerId};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct AssignmentBuffer {
     list_assignments: Vec<JobAssignment>,
 }

@@ -65,7 +65,7 @@ impl ReportCheck for LatestBlockJudgment {
             .unwrap();
         // Get late duration from execution time to block time
         if result.response.error_code != 0 {
-            return Ok(JudgmentsResult::Failed);
+            return Ok(JudgmentsResult::Error);
         }
         let late_duration = result.execution_timestamp - result.response.block_timestamp * 1000;
         info!(

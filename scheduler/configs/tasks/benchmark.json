@@ -6,7 +6,9 @@
     "benchmark_rate": 80,
     "script": "massbit.lua",
     "histograms": [90,95,99,100],
-    "url_path":"/ping"
+    "url_path":"/ping",
+    "judge_histogram_percentile":  95,
+    "response_threshold": 500
   },
   "fisherman": {
     "benchmark_thread": 5,
@@ -15,6 +17,8 @@
     "benchmark_rate": 10,
     "script": "massbit.lua",
     "histograms": [90,95,99,100],
-    "url_path":"/ping"
+    "url_path":"/ping",
+    "judge_histogram_percentile":  90,
+    "response_threshold": 500
   }
 }
