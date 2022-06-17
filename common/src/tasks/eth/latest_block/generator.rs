@@ -16,13 +16,15 @@ use std::vec;
  * Apply for node to get latest block number and time
  */
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-struct LatestBlockConfig {
+pub struct LatestBlockConfig {
     #[serde(default)]
     header: HashMap<String, String>,
     #[serde(default)]
     latest_block_request_body: String,
     #[serde(default)]
     latest_block_timeout_ms: Timestamp,
+    #[serde(default)]
+    pub late_duration_threshold_ms: i64,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -58,7 +60,7 @@ impl TaskApplicant for LatestBlockGenerator {
             chain_info: ChainInfo::new(node.blockchain.clone(), node.network.clone()),
         };
         let job_detail = JobDetail::LatestBlock(job);
-        let mut job = Job::new(plan_id.clone(), job_detail.get_job_name(), node, job_detail);
+        let mut job = Job::new(plan_id.clone(), node, job_detail);
         job.parallelable = true;
         job.timeout = self.config.latest_block_timeout_ms;
         job.component_url = self.get_url(node);

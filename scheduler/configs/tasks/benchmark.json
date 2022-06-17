@@ -12,7 +12,7 @@
     "benchmark_thread": 5,
     "benchmark_connection": 5,
     "benchmark_duration": 15000,
-    "benchmark_rate": 50,
+    "benchmark_rate": 10,
     "script": "massbit.lua",
     "histograms": [90,95,99,100],
     "url_path":"/ping"

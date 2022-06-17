@@ -22,7 +22,7 @@ impl ProcessorState {
     }
     pub async fn process_results(
         &mut self,
-        job_results: Vec<JobResult>,
+        job_results: &Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut map_processor_reports = HashMap::<usize, Vec<JobResult>>::new();
         //Group result by processor then process result by list
