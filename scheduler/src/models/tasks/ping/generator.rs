@@ -4,9 +4,11 @@ use common::job_manage::{JobDetail, JobPing, JobRole};
 use common::tasks::LoadConfig;
 
 use crate::models::tasks::generator::TaskApplicant;
+use crate::persistence::PlanModel;
 use common::component::ComponentInfo;
-use common::jobs::Job;
+use common::jobs::{Job, JobAssignment};
 use common::models::PlanEntity;
+use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -66,5 +68,21 @@ impl TaskApplicant for PingGenerator {
         job.repeat_number = self.config.ping_sample_number;
         let vec = vec![job];
         Ok(vec)
+    }
+    fn assign_jobs(
+        &self,
+        plan: &PlanModel,
+        provider_node: &ComponentInfo,
+        jobs: &Vec<Job>,
+        workers: &MatchedWorkers,
+    ) -> Result<Vec<JobAssignment>, anyhow::Error> {
+        let mut assignments = Vec::default();
+        jobs.iter().enumerate().for_each(|(ind, job)| {
+            for worker in workers.best_workers.iter() {
+                let job_assignment = JobAssignment::new(worker.clone(), job);
+                assignments.push(job_assignment);
+            }
+        });
+        Ok(assignments)
     }
 }

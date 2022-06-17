@@ -17,6 +17,7 @@ use futures_util::future::join;
 use log::{info, warn};
 use sea_orm::sea_query::IndexType::Hash;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
+use slog::log;
 use std::collections::HashMap;
 use std::mem::take;
 use std::sync::Arc;
@@ -67,6 +68,11 @@ impl DetailJobGenerator {
                     .await
                     .match_workers(&provider_plan.provider)
                     .unwrap_or(MatchedWorkers::default());
+                log::debug!(
+                    "Found workers {:?} for plan {:?}",
+                    &matched_workers,
+                    provider_plan
+                );
                 for task in self.tasks.iter() {
                     if !task.can_apply(&provider_plan.provider) {
                         continue;
@@ -95,6 +101,11 @@ impl DetailJobGenerator {
                         }
                     }
                 }
+                log::debug!(
+                    "Create {:?} assignments for provider plan {:?}",
+                    job_assignments.len(),
+                    &provider_plan
+                );
             }
         }
         //Generate jobs for gateways
@@ -107,6 +118,12 @@ impl DetailJobGenerator {
         if gateways.len() > 0 {
             log::debug!("Generate verification jobs for {} gateways", gateways.len());
             for provider_plan in gateways.iter() {
+                let matched_workers = self
+                    .worker_infos
+                    .lock()
+                    .await
+                    .match_workers(&provider_plan.provider)
+                    .unwrap_or(MatchedWorkers::default());
                 for task in self.tasks.iter() {
                     if !task.can_apply(&provider_plan.provider) {
                         continue;
@@ -121,6 +138,14 @@ impl DetailJobGenerator {
                             applied_jobs.len(),
                             &provider_plan.provider
                         );
+                        if let Ok(mut assignments) = task.assign_jobs(
+                            &provider_plan.plan,
+                            &provider_plan.provider,
+                            &applied_jobs,
+                            &matched_workers,
+                        ) {
+                            job_assignments.append(&mut assignments);
+                        }
                         if let Some(current_jobs) = gen_jobs.get_mut(&provider_plan.provider.zone) {
                             current_jobs.append(&mut applied_jobs);
                         } else {
@@ -130,9 +155,16 @@ impl DetailJobGenerator {
                 }
             }
         }
+        log::debug!("Job assignment length {}", job_assignments.len());
+        if job_assignments.len() > 0 {
+            self.assignments
+                .lock()
+                .await
+                .add_assignments(job_assignments);
+        }
         //Distribute job to workers
         if gen_jobs.len() > 0 {
-            self.assign_jobs(&gen_jobs).await;
+            //self.assign_jobs(&gen_jobs).await;
             //Store jobs to db
             self.store_jobs(&gen_jobs).await;
         }
