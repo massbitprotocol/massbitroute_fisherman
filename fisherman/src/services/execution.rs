@@ -3,7 +3,8 @@ use crate::{
     BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
     WORKER_ID,
 };
-use common::job_manage::{Job, JobResult};
+use common::job_manage::JobResult;
+use common::jobs::Job;
 use common::tasks::executor::TaskExecutor;
 use common::tasks::get_executors;
 use common::util::get_current_time;

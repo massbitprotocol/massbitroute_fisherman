@@ -1,5 +1,5 @@
 use crate::server_config::AccessControl;
-use common::job_manage::Job;
+use common::jobs::Job;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;

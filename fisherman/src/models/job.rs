@@ -1,4 +1,4 @@
-use common::job_manage::Job;
+use common::jobs::Job;
 use common::util::get_current_time;
 use common::Timestamp;
 use log::{debug, info};

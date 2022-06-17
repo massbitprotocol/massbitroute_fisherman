@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Error};
-use common::job_manage::{Job, JobResult};
+use common::job_manage::JobResult;
 use common::logger::init_logger;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
 use std::collections::HashMap;

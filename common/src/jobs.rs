@@ -71,7 +71,7 @@ impl Job {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Debug)]
 pub struct JobAssignment {
     pub zone: Zone,
     pub worker: Arc<Worker>,

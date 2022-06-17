@@ -145,7 +145,7 @@ impl Worker {
 }
 /*
  */
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Default, Debug)]
 pub struct MatchedWorkers {
     pub provider: ComponentInfo,
     pub nearby_workers: Vec<Arc<Worker>>, //Workers defined by zone
