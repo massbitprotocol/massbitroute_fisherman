@@ -1,4 +1,5 @@
-use crate::job_manage::{Job, JobResult};
+use crate::job_manage::JobResult;
+use crate::jobs::Job;
 use crate::logger::helper::message;
 use crate::task_spawn;
 use crate::tasks::executor::TaskExecutor;

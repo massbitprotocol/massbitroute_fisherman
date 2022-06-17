@@ -1,28 +1,33 @@
-use crate::job_manage::{Job, JobDetail, JobPing, JobRole};
-use crate::tasks::generator::TaskApplicant;
-use crate::tasks::LoadConfig;
-use crate::{ComponentInfo, PlanId, Timestamp};
 use anyhow::Error;
 use async_trait::async_trait;
+use common::tasks::LoadConfig;
 
-use crate::models::PlanEntity;
+use crate::models::tasks::generator::TaskApplicant;
+use common::component::ComponentInfo;
+use common::job_manage::{JobDetail, JobRole};
+use common::jobs::Job;
+use common::models::PlanEntity;
+use common::tasks::rpc_request::JobRpcRequest;
+use common::{PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::vec;
 use tokio::sync::mpsc::Sender;
-
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
  */
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct PingGenerator {
-    config: PingConfig,
+pub struct RpcRequestGenerator {
+    config: RpcRequestConfig,
 }
 
-impl PingGenerator {
+impl RpcRequestGenerator {
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
-        PingGenerator {
-            config: PingConfig::load_config(format!("{}/ping.json", config_dir).as_str(), role),
+        RpcRequestGenerator {
+            config: RpcRequestConfig::load_config(
+                format!("{}/rpcrequest.json", config_dir).as_str(),
+                role,
+            ),
         }
     }
     pub fn get_url(&self, component: &ComponentInfo) -> String {
@@ -31,13 +36,9 @@ impl PingGenerator {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct PingConfig {
+struct RpcRequestConfig {
     #[serde(default)]
-    ping_error_ratio_threshold: f32, //
-    #[serde(default)]
-    ping_percentile: i32,
-    #[serde(default)]
-    ping_response_time_threshold: i32,
+    ping_success_ratio_threshold: f32,
     #[serde(default)]
     ping_sample_number: i32,
     #[serde(default)]
@@ -46,25 +47,25 @@ pub struct PingConfig {
     ping_timeout_ms: Timestamp,
 }
 
-impl LoadConfig<PingConfig> for PingConfig {}
+impl LoadConfig<RpcRequestConfig> for RpcRequestConfig {}
 
-impl TaskApplicant for PingGenerator {
+impl TaskApplicant for RpcRequestGenerator {
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }
 
     fn apply(&self, plan_id: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
-        let job_ping = JobPing {};
-        let job_detail = JobDetail::Ping(job_ping);
+        let detail = JobRpcRequest {};
+        let comp_url = detail.get_component_url(component);
         let mut job = Job::new(
             plan_id.clone(),
-            job_detail.get_job_name(),
+            String::new(),
             component,
-            job_detail,
+            JobDetail::RpcRequest(detail),
         );
         job.parallelable = true;
-        job.component_url = self.get_url(component);
+        job.component_url = comp_url;
         job.timeout = self.config.ping_timeout_ms;
         job.repeat_number = self.config.ping_sample_number;
         let vec = vec![job];

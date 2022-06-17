@@ -1,9 +1,7 @@
 pub mod executor;
-pub mod generator;
 use crate::component::ChainInfo;
-use crate::job_manage::Job;
+use crate::jobs::Job;
 use crate::Timestamp;
-pub use generator::LatestBlockGenerator;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

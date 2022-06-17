@@ -1,4 +1,4 @@
-use crate::job_manage::Job;
+use crate::jobs::Job;
 use crate::{ComponentInfo, Timestamp};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;

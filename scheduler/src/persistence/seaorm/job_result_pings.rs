@@ -15,6 +15,7 @@ pub struct Model {
     pub recorded_timestamp: i64,
     pub plan_id: String,
     pub response_times: Json,
+    pub error_number: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

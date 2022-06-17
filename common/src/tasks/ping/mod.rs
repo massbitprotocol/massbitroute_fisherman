@@ -1,6 +1,6 @@
 pub mod executor;
-pub mod generator;
-use crate::job_manage::Job;
+
+use crate::jobs::Job;
 use crate::Timestamp;
 use anyhow::{anyhow, Error};
 use serde::{Deserialize, Serialize};

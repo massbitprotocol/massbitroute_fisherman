@@ -1,4 +1,5 @@
-use crate::job_manage::{Job, JobResult};
+use crate::job_manage::JobResult;
+use crate::jobs::Job;
 use crate::tasks::eth::benchmark::executor::BenchmarkExecutor;
 use crate::tasks::eth::latest_block::executor::LatestBlockExecutor;
 use crate::tasks::ping::executor::PingExecutor;

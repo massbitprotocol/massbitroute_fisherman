@@ -1,8 +1,9 @@
-use crate::models::component::ZoneComponents;
+use crate::models::component::{ProviderPlan, ZoneComponents};
+use crate::models::tasks::generator::TaskApplicant;
+use crate::persistence::PlanModel;
 use anyhow::Error;
 use common::component::{ComponentInfo, ComponentType, Zone};
-use common::job_manage::Job;
-use common::tasks::generator::TaskApplicant;
+use common::jobs::Job;
 use common::ComponentId;
 use log::{debug, log};
 use serde::{Deserialize, Serialize};
@@ -14,8 +15,8 @@ use tokio::sync::Mutex;
 pub struct ProviderStorage {
     nodes: Mutex<Vec<ComponentInfo>>,
     gateways: Mutex<Vec<ComponentInfo>>,
-    verification_nodes: Mutex<HashMap<String, ComponentInfo>>,
-    verification_gateways: Mutex<HashMap<String, ComponentInfo>>,
+    verification_nodes: Mutex<Vec<ProviderPlan>>,
+    verification_gateways: Mutex<Vec<ProviderPlan>>,
 }
 
 impl ProviderStorage {
@@ -41,37 +42,34 @@ impl ProviderStorage {
         }
     }
 
-    pub async fn add_verify_node(&mut self, plan_id: String, node: ComponentInfo) {
+    pub async fn add_verify_node(&mut self, plan_model: PlanModel, node: ComponentInfo) {
         match node.component_type {
             ComponentType::Node => {
                 log::debug!("Add node to verification queue");
-                self.verification_nodes.lock().await.insert(plan_id, node);
+                self.verification_nodes
+                    .lock()
+                    .await
+                    .push(ProviderPlan::new(node, plan_model));
             }
             ComponentType::Gateway => {
                 log::debug!("Add gateway to verification queue");
                 self.verification_gateways
                     .lock()
                     .await
-                    .insert(plan_id, node);
+                    .push(ProviderPlan::new(node, plan_model));
             }
         }
     }
-    pub async fn pop_nodes_for_verifications(&mut self) -> HashMap<String, ComponentInfo> {
-        let mut res = HashMap::new();
+    pub async fn pop_nodes_for_verifications(&mut self) -> Vec<ProviderPlan> {
+        let mut res = Vec::new();
         let mut nodes = self.verification_nodes.lock().await;
-        for (plan_id, node) in nodes.iter() {
-            res.insert(plan_id.clone(), node.clone());
-        }
-        nodes.clear();
+        res.append(&mut nodes);
         res
     }
-    pub async fn pop_gateways_for_verifications(&mut self) -> HashMap<String, ComponentInfo> {
-        let mut res = HashMap::new();
+    pub async fn pop_gateways_for_verifications(&mut self) -> Vec<ProviderPlan> {
+        let mut res = Vec::new();
         let mut nodes = self.verification_gateways.lock().await;
-        for (plan_id, node) in nodes.iter() {
-            res.insert(plan_id.clone(), node.clone());
-        }
-        nodes.clear();
+        res.append(&mut nodes);
         res
     }
 

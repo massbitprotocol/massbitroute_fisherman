@@ -2,17 +2,29 @@
  * Each Task description can apply to node/gateway to generate a list of jobs.
  * If task is suitable for node or gateway only then result is empty
  */
-use crate::job_manage::{Job, JobRole};
-use crate::models::PlanEntity;
-use crate::tasks::eth::*;
-use crate::tasks::http_request::HttpRequestGenerator;
-use crate::tasks::ping::generator::PingGenerator;
-use crate::{ComponentInfo, PlanId};
+use crate::models::tasks::*;
+use crate::persistence::PlanModel;
+use common::component::ComponentInfo;
+use common::job_manage::JobRole;
+use common::jobs::{Job, JobAssignment};
+use common::models::PlanEntity;
+use common::tasks::eth::*;
+use common::workers::MatchedWorkers;
+use common::PlanId;
 use std::sync::Arc;
 
 pub trait TaskApplicant: Sync + Send {
     fn can_apply(&self, component: &ComponentInfo) -> bool;
     fn apply(&self, plan: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error>;
+    fn assign_jobs(
+        &self,
+        plan: &PlanModel,
+        provider_node: &ComponentInfo,
+        jobs: &Vec<Job>,
+        workers: &MatchedWorkers,
+    ) -> Result<Vec<JobAssignment>, anyhow::Error> {
+        Ok(vec![])
+    }
 }
 /*
  * Todo: can add config to load required task for each phase: verification or regular

@@ -1,7 +1,8 @@
-use crate::models::workers::Worker;
 use common::component::Zone;
-use common::job_manage::{Job, JobResult};
-use common::worker::WorkerInfo;
+use common::job_manage::JobResult;
+use common::jobs::JobAssignment;
+use common::workers::Worker;
+use common::workers::WorkerInfo;
 use common::{JobId, WorkerId};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -31,45 +32,5 @@ impl AssignmentBuffer {
         let mut res = Vec::default();
         res.append(&mut self.list_assignments);
         res
-    }
-}
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct JobAssignment {
-    pub zone: Zone,
-    pub worker: Arc<WorkerInfo>,
-    pub job: Job,
-    pub status: JobStatus,
-    pub assigned_at: u64, //Timestamp to assign job
-    pub finished_at: u64, //Timestamp when result has arrived
-    pub result: Option<JobResult>,
-}
-
-impl JobAssignment {
-    pub fn new(worker: Arc<WorkerInfo>, job: &Job) -> JobAssignment {
-        JobAssignment {
-            zone: worker.zone.clone(),
-            worker,
-            job: job.clone(),
-            status: Default::default(),
-            assigned_at: 0,
-            finished_at: 0,
-            result: None,
-        }
-    }
-}
-#[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
-pub enum JobStatus {
-    CREATED,
-    // Initial status, when job is assigned to a worker
-    ASSIGNED,
-    //Job is send to worker
-    DELIVERED,
-    //Receive job result
-    DONE,
-}
-
-impl Default for JobStatus {
-    fn default() -> Self {
-        JobStatus::CREATED
     }
 }

@@ -2,11 +2,12 @@ use crate::persistence::seaorm::{
     job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs, plans, workers,
 };
 use common::component::ComponentType;
-use common::job_manage::{Job, JobBenchmarkResult, JobDetail};
+use common::job_manage::{JobBenchmarkResult, JobDetail};
+use common::jobs::Job;
 use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
-use common::worker::WorkerInfo;
+use common::workers::WorkerInfo;
 use core::default::Default;
 use log::debug;
 use sea_orm::ActiveValue::Set;
@@ -140,6 +141,7 @@ impl From<&JobPingResult> for job_result_pings::Model {
             execution_timestamp: 0,
             recorded_timestamp: 0,
             response_times: Value::Array(vec![Value::from(result.response.response_time as i64)]),
+            error_number: 0,
         }
     }
 }

@@ -1,10 +1,11 @@
+use crate::models::tasks::ping::generator::PingConfig;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::ReportCheck;
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{Job, JobDetail, JobRole};
+use common::job_manage::{JobDetail, JobRole};
+use common::jobs::Job;
 use common::models::PlanEntity;
-use common::tasks::ping::generator::PingConfig;
 use common::tasks::LoadConfig;
 use histogram::Histogram;
 use log::log;

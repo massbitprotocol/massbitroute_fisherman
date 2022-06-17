@@ -1,7 +1,7 @@
 use crate::models::job::JobBuffer;
 use crate::state::WorkerState;
 use common::job_manage::{Job, JobBenchmark};
-use common::worker::WorkerInfo;
+use common::workers::WorkerInfo;
 use common::JobId;
 use common::{Deserialize, Serialize};
 use log::info;

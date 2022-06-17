@@ -5,10 +5,10 @@ use crate::persistence::seaorm::{
 };
 use anyhow::anyhow;
 use common::component::Zone;
-use common::job_manage::{Job, JobBenchmarkResult};
+use common::job_manage::JobBenchmarkResult;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
-use common::worker::WorkerInfo;
+use common::workers::WorkerInfo;
 use log::{debug, error, log};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};

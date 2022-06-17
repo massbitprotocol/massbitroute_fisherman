@@ -1,13 +1,11 @@
-use crate::tasks::generator::TaskApplicant;
-use crate::tasks::LoadConfig;
-use crate::{ComponentInfo, PlanId, Timestamp};
+use crate::models::tasks::generator::TaskApplicant;
 use anyhow::{Context, Error};
 use async_trait::async_trait;
-
-use crate::job_manage::{Job, JobDetail, JobRole};
-use crate::models::PlanEntity;
-use crate::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
-use crate::tasks::rpc_request::JobRpcRequest;
+use common::component::ComponentInfo;
+use common::job_manage::JobDetail;
+use common::jobs::Job;
+use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
+use common::PlanId;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::sync::Arc;

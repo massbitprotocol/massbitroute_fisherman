@@ -2,12 +2,13 @@
  * Check from any gateway can connection to any node
  */
 
-use crate::component::ComponentInfo;
-use crate::job_manage::{Job, JobBenchmark, JobDetail, JobRole};
-use crate::models::PlanEntity;
-use crate::tasks::generator::TaskApplicant;
-use crate::tasks::LoadConfig;
-use crate::{PlanId, Timestamp};
+use crate::models::tasks::generator::TaskApplicant;
+use common::component::ComponentInfo;
+use common::job_manage::{JobBenchmark, JobDetail, JobRole};
+use common::jobs::Job;
+use common::models::PlanEntity;
+use common::tasks::LoadConfig;
+use common::{PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 

@@ -1,9 +1,8 @@
-use crate::job_manage::Job;
+use crate::jobs::Job;
 use crate::{ComponentInfo, Timestamp};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 pub mod executor;
-pub mod generator;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobRpcRequest {}

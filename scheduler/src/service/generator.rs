@@ -1,16 +1,17 @@
-use crate::models::jobs::{AssignmentBuffer, JobAssignment};
+use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
-use crate::models::workers::{Worker, WorkerInfoStorage};
+use crate::models::tasks::generator::{get_tasks, TaskApplicant};
+use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
 use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use anyhow::{anyhow, Error};
 use common::component::{ComponentInfo, Zone};
-use common::job_manage::{Job, JobRole};
+use common::job_manage::JobRole;
+use common::jobs::{Job, JobAssignment};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
-use common::tasks::generator::{get_tasks, TaskApplicant};
 use common::util::get_current_time;
-use common::worker::WorkerInfo;
+use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{task_spawn, ComponentId, WorkerId};
 use futures_util::future::join;
 use log::{info, warn};
@@ -50,7 +51,7 @@ impl DetailJobGenerator {
      */
     pub async fn generate_verification_jobs(&mut self) {
         let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
-
+        let mut job_assignments = Vec::default();
         let nodes = self
             .providers
             .lock()
@@ -59,27 +60,38 @@ impl DetailJobGenerator {
             .await;
         if nodes.len() > 0 {
             log::debug!("Generate verification jobs for {} nodes", nodes.len());
-            for (plan_id, node) in nodes.iter() {
+            for provider_plan in nodes.iter() {
+                let matched_workers = self
+                    .worker_infos
+                    .lock()
+                    .await
+                    .match_workers(&provider_plan.provider)
+                    .unwrap_or(MatchedWorkers::default());
                 for task in self.tasks.iter() {
-                    if task.can_apply(node) {
-                        match task.apply(plan_id, node) {
-                            Ok(mut jobs) => {
-                                if jobs.len() > 0 {
-                                    log::debug!(
-                                        "Create {:?} jobs for node {:?}",
-                                        jobs.len(),
-                                        &node
-                                    );
-                                    if let Some(current_jobs) = gen_jobs.get_mut(&node.zone) {
-                                        current_jobs.append(&mut jobs);
-                                    } else {
-                                        gen_jobs.insert(node.zone.clone(), jobs);
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                log::error!("Error: {:?}", &err);
-                            }
+                    if !task.can_apply(&provider_plan.provider) {
+                        continue;
+                    }
+                    let mut applied_jobs = task
+                        .apply(&provider_plan.plan.plan_id, &provider_plan.provider)
+                        .unwrap_or(vec![]);
+                    if applied_jobs.len() > 0 {
+                        log::debug!(
+                            "Create {:?} jobs for node {:?}",
+                            applied_jobs.len(),
+                            &provider_plan.provider
+                        );
+                        if let Ok(mut assignments) = task.assign_jobs(
+                            &provider_plan.plan,
+                            &provider_plan.provider,
+                            &applied_jobs,
+                            &matched_workers,
+                        ) {
+                            job_assignments.append(&mut assignments);
+                        }
+                        if let Some(current_jobs) = gen_jobs.get_mut(&provider_plan.provider.zone) {
+                            current_jobs.append(&mut applied_jobs);
+                        } else {
+                            gen_jobs.insert(provider_plan.provider.zone.clone(), applied_jobs);
                         }
                     }
                 }
@@ -94,27 +106,25 @@ impl DetailJobGenerator {
             .await;
         if gateways.len() > 0 {
             log::debug!("Generate verification jobs for {} gateways", gateways.len());
-            for (plan_id, gw) in gateways.iter() {
+            for provider_plan in gateways.iter() {
                 for task in self.tasks.iter() {
-                    if task.can_apply(gw) {
-                        match task.apply(plan_id, gw) {
-                            Ok(mut jobs) => {
-                                if jobs.len() > 0 {
-                                    log::debug!(
-                                        "Create {:?} jobs for gateway {:?}",
-                                        jobs.len(),
-                                        &gw
-                                    );
-                                    if let Some(current_jobs) = gen_jobs.get_mut(&gw.zone) {
-                                        current_jobs.append(&mut jobs);
-                                    } else {
-                                        gen_jobs.insert(gw.zone.clone(), jobs);
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                log::error!("Error: {:?}", &err);
-                            }
+                    if !task.can_apply(&provider_plan.provider) {
+                        continue;
+                    }
+                    let mut applied_jobs = task
+                        .apply(&provider_plan.plan.plan_id, &provider_plan.provider)
+                        .unwrap_or(vec![]);
+
+                    if applied_jobs.len() > 0 {
+                        log::debug!(
+                            "Create {:?} jobs for gateway {:?}",
+                            applied_jobs.len(),
+                            &provider_plan.provider
+                        );
+                        if let Some(current_jobs) = gen_jobs.get_mut(&provider_plan.provider.zone) {
+                            current_jobs.append(&mut applied_jobs);
+                        } else {
+                            gen_jobs.insert(provider_plan.provider.zone.clone(), applied_jobs);
                         }
                     }
                 }
@@ -268,7 +278,7 @@ impl DetailJobGenerator {
                 if workers.len() > 0 {
                     jobs.iter().enumerate().for_each(|(ind, job)| {
                         let wind = ind % workers.len();
-                        let worker: &Arc<WorkerInfo> = workers.get(wind).unwrap();
+                        let worker: &Arc<Worker> = workers.get(wind).unwrap();
                         let job_assignment = JobAssignment::new(worker.clone(), job);
                         assignments.push(job_assignment);
                     });

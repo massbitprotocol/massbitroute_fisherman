@@ -1,4 +1,5 @@
-use crate::job_manage::{Job, JobDetail, JobResult};
+use crate::job_manage::{JobDetail, JobResult};
+use crate::jobs::Job;
 use crate::logger::helper::message;
 use crate::tasks::eth::{CallLatestBlockError, JobLatestBlockResult, LatestBlockResponse};
 use crate::tasks::executor::TaskExecutor;

@@ -1,4 +1,4 @@
-use crate::job_manage::Job;
+use crate::jobs::Job;
 use serde::{Deserialize, Serialize};
 
 pub mod executor;

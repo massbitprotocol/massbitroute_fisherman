@@ -13,8 +13,8 @@ use warp::http::{HeaderMap, Method};
 
 use crate::services::WebService;
 use crate::state::WorkerState;
-use common::worker::WorkerInfo;
-use common::worker::WorkerStateParam;
+use common::workers::WorkerInfo;
+use common::workers::WorkerStateParam;
 use std::default::Default;
 use tokio::sync::Mutex;
 use warp::reply::Json;

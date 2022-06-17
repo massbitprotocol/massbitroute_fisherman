@@ -10,7 +10,7 @@ pub use latestblock_judg::LatestBlockJudgment;
 pub use main_judg::MainJudgment;
 pub use ping_judg::PingJudgment;
 
-use common::job_manage::Job;
+use common::jobs::Job;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 

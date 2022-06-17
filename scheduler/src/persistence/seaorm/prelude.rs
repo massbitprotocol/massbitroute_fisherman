@@ -7,4 +7,5 @@ pub use super::job_result_pings::Entity as JobResultPings;
 pub use super::jobs::Entity as Jobs;
 pub use super::plans::Entity as Plans;
 pub use super::providers::Entity as Providers;
+pub use super::worker_provider_connections::Entity as WorkerProviderConnections;
 pub use super::workers::Entity as Workers;

@@ -1,4 +1,6 @@
+use crate::persistence::PlanModel;
 use common::component::{ComponentInfo, Zone};
+use common::models::PlanEntity;
 use common::ComponentId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -33,4 +35,16 @@ impl ZoneComponents {
     //         .get(zone)
     //         .map(|vec| vec.iter().filter(|id| ids.index(id) >= 0).collect())
     // }
+}
+
+#[derive(Clone, Debug)]
+pub struct ProviderPlan {
+    pub provider: ComponentInfo,
+    pub plan: PlanModel,
+}
+
+impl ProviderPlan {
+    pub fn new(provider: ComponentInfo, plan: PlanModel) -> Self {
+        ProviderPlan { provider, plan }
+    }
 }

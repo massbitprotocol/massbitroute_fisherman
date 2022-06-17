@@ -2,7 +2,7 @@ use crate::models::providers::ProviderStorage;
 use crate::state::{ProcessorState, SchedulerState};
 use anyhow::Error;
 use common::component::ComponentInfo;
-use common::worker::{WorkerInfo, WorkerRegisterResult};
+use common::workers::{WorkerInfo, WorkerRegisterResult};
 use log::log;
 use serde_json::json;
 use std::sync::Arc;
