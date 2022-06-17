@@ -1,8 +1,11 @@
 pub mod executor;
+
 use crate::component::ChainInfo;
 use crate::jobs::Job;
+use crate::tasks::LoadConfig;
 use crate::Timestamp;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -18,12 +21,23 @@ pub struct JobLatestBlockResult {
     pub response: LatestBlockResponse,
     pub execution_timestamp: Timestamp,
 }
-
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct LatestBlockConfig {
+    #[serde(default)]
+    pub header: HashMap<String, String>,
+    #[serde(default)]
+    pub latest_block_request_body: String,
+    #[serde(default)]
+    pub latest_block_timeout_ms: Timestamp,
+    #[serde(default)]
+    pub late_duration_threshold_ms: i64,
+}
+impl LoadConfig<LatestBlockConfig> for LatestBlockConfig {}
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct LatestBlockResponse {
     pub response_time: Timestamp,
     pub block_number: u64,
-    pub block_timestamp: Timestamp,
+    pub block_timestamp: Timestamp, // in sec
     pub block_hash: String,
     pub http_code: u16,
     pub error_code: u32,

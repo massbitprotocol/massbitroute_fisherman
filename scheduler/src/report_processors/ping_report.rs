@@ -44,13 +44,12 @@ impl ReportProcessor for PingReportProcessor {
             match report {
                 JobResult::Ping(result) => {
                     ping_results.push(result);
-                    //println!("{:?}", &ping_result);
                 }
                 _ => {}
             }
         }
         for adapter in self.report_adapters.iter() {
-            adapter.append_ping_results(&ping_results);
+            adapter.append_ping_results(&ping_results).await;
         }
         //Todo: use generic processor
         Ok(Vec::new())

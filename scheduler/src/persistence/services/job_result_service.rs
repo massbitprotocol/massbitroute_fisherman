@@ -4,9 +4,10 @@ use crate::persistence::seaorm::{
     job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs,
 };
 use anyhow::anyhow;
-use common::component::Zone;
+use common::component::{ChainInfo, Zone};
 use common::job_manage::JobBenchmarkResult;
-use common::tasks::eth::JobLatestBlockResult;
+use common::jobs::Job;
+use common::tasks::eth::{JobLatestBlockResult, LatestBlockResponse};
 use common::tasks::ping::JobPingResult;
 use common::workers::WorkerInfo;
 use log::{debug, error, log};
@@ -17,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct JobResultService {
     db: Arc<DatabaseConnection>,
 }
@@ -57,8 +58,19 @@ impl JobResultService {
         let mut new_records = HashMap::<String, ResultPingModel>::default();
         for result in vec_results.iter() {
             if let Some(res) = map_results.get_mut(&result.job.job_id) {
-                res.add_response_time(result.response.response_time as i64);
+                if result.response.error_code == 0 {
+                    res.add_response_time(result.response.response_time as i64);
+                } else {
+                    res.error_number += 1;
+                }
+
                 map_update_results.insert(result.job.job_id.clone(), true);
+            } else if let Some(res) = new_records.get_mut(&result.job.job_id) {
+                if result.response.error_code == 0 {
+                    res.add_response_time(result.response.response_time as i64);
+                } else {
+                    res.error_number += 1;
+                }
             } else {
                 new_records.insert(result.job.job_id.clone(), ResultPingModel::from(result));
             }
@@ -148,7 +160,7 @@ impl JobResultService {
     /*
      * map by worker_id and vector of response times
      */
-    pub async fn get_result_pings(&self, job_id: &str) -> Result<Vec<i64>, anyhow::Error> {
+    pub async fn get_result_pings(&self, job_id: &str) -> Result<(Vec<i64>, i64), anyhow::Error> {
         match job_result_pings::Entity::find()
             .filter(job_result_pings::Column::JobId.eq(job_id.to_owned()))
             .all(self.db.as_ref())
@@ -164,7 +176,7 @@ impl JobResultService {
                         .iter()
                         .map(|val| val.as_i64().unwrap())
                         .collect::<Vec<i64>>();
-                    Some(values)
+                    Some((values, model.error_number))
                 })
                 .ok_or(anyhow!("Result not found for job {:?}", job_id)),
             Err(err) => Err(anyhow!("{:?}", &err)),
@@ -242,8 +254,9 @@ impl JobResultService {
     }
     pub async fn get_result_latest_blocks(
         &self,
-        plan_id: &str,
+        job: &Job,
     ) -> Result<Vec<JobLatestBlockResult>, anyhow::Error> {
+        let plan_id = &job.plan_id;
         match job_result_latest_blocks::Entity::find()
             .filter(job_result_latest_blocks::Column::PlanId.eq(plan_id.to_owned()))
             .all(self.db.as_ref())
@@ -252,11 +265,36 @@ impl JobResultService {
             Ok(results) => {
                 let mut res = Vec::new();
                 for model in results.iter() {
-                    //res.push(JobLatestBlockResult::from(model))
+                    res.push(JobLatestBlockResult::from_db(model, job))
                 }
                 Ok(res)
             }
             Err(err) => Err(anyhow!("{:?}", &err)),
+        }
+    }
+}
+
+trait FromDb {
+    fn from_db(model: &job_result_latest_blocks::Model, job: &Job) -> Self;
+}
+
+impl FromDb for JobLatestBlockResult {
+    fn from_db(model: &job_result_latest_blocks::Model, job: &Job) -> Self {
+        let res = LatestBlockResponse {
+            response_time: model.response_time,
+            block_number: model.block_number as u64,
+            block_timestamp: model.block_timestamp,
+            block_hash: model.block_hash.clone(),
+            http_code: model.http_code as u16,
+            error_code: model.error_code as u32,
+            message: model.message.clone(),
+            chain_info: ChainInfo::from_str(model.chain_id.as_str()).unwrap_or_default(),
+        };
+        JobLatestBlockResult {
+            job: job.clone(),
+            worker_id: model.worker_id.clone(),
+            response: res,
+            execution_timestamp: model.execution_timestamp,
         }
     }
 }

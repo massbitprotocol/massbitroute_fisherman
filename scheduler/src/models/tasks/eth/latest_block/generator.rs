@@ -3,7 +3,7 @@ use anyhow::Error;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::Job;
-use common::tasks::eth::JobLatestBlock;
+use common::tasks::eth::{JobLatestBlock, LatestBlockConfig};
 use common::tasks::LoadConfig;
 use common::util::get_current_time;
 use common::{Node, PlanId, Timestamp, DOMAIN};
@@ -15,15 +15,6 @@ use std::vec;
 /*
  * Apply for node to get latest block number and time
  */
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-struct LatestBlockConfig {
-    #[serde(default)]
-    header: HashMap<String, String>,
-    #[serde(default)]
-    latest_block_request_body: String,
-    #[serde(default)]
-    latest_block_timeout_ms: Timestamp,
-}
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct LatestBlockGenerator {
@@ -44,8 +35,6 @@ impl LatestBlockGenerator {
     }
 }
 
-impl LoadConfig<LatestBlockConfig> for LatestBlockConfig {}
-
 impl TaskApplicant for LatestBlockGenerator {
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         return component.component_type == ComponentType::Node;
@@ -58,7 +47,7 @@ impl TaskApplicant for LatestBlockGenerator {
             chain_info: ChainInfo::new(node.blockchain.clone(), node.network.clone()),
         };
         let job_detail = JobDetail::LatestBlock(job);
-        let mut job = Job::new(plan_id.clone(), job_detail.get_job_name(), node, job_detail);
+        let mut job = Job::new(plan_id.clone(), node, job_detail);
         job.parallelable = true;
         job.timeout = self.config.latest_block_timeout_ms;
         job.component_url = self.get_url(node);

@@ -35,17 +35,17 @@ impl PingGenerator {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct PingConfig {
     #[serde(default)]
-    ping_error_ratio_threshold: f32, //
+    pub ping_error_percent_threshold: f64, //
     #[serde(default)]
-    ping_percentile: i32,
+    pub ping_percentile: f64,
     #[serde(default)]
-    ping_response_time_threshold: i32,
+    pub ping_response_time_threshold: u64,
     #[serde(default)]
-    ping_sample_number: i32,
+    pub ping_sample_number: i32,
     #[serde(default)]
-    ping_request_response: String,
+    pub ping_request_response: String,
     #[serde(default)]
-    ping_timeout_ms: Timestamp,
+    pub ping_timeout_ms: Timestamp,
 }
 
 impl LoadConfig<PingConfig> for PingConfig {}
@@ -59,12 +59,7 @@ impl TaskApplicant for PingGenerator {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};
         let job_detail = JobDetail::Ping(job_ping);
-        let mut job = Job::new(
-            plan_id.clone(),
-            job_detail.get_job_name(),
-            component,
-            job_detail,
-        );
+        let mut job = Job::new(plan_id.clone(), component, job_detail);
         job.parallelable = true;
         job.component_url = self.get_url(component);
         job.timeout = self.config.ping_timeout_ms;

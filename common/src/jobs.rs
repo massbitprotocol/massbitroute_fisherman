@@ -50,16 +50,11 @@ impl From<&Job> for reqwest::Body {
     }
 }
 impl Job {
-    pub fn new(
-        plan_id: String,
-        job_name: String,
-        component: &ComponentInfo,
-        job_detail: JobDetail,
-    ) -> Self {
+    pub fn new(plan_id: String, component: &ComponentInfo, job_detail: JobDetail) -> Self {
         let uuid = Uuid::new_v4();
         Job {
             job_id: uuid.to_string(),
-            job_name,
+            job_name: job_detail.get_job_name(),
             plan_id,
             component_id: component.id.clone(),
             component_type: component.component_type.clone(),

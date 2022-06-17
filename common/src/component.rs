@@ -1,6 +1,6 @@
 use crate::{BlockChainType, ChainId, ComponentId, NetworkType, UrlType};
 use crate::{Deserialize, Serialize};
-use anyhow::anyhow;
+use anyhow::{anyhow, Error};
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default, Hash, PartialEq, Eq)]
@@ -137,5 +137,20 @@ impl ChainInfo {
     }
     pub fn chain_id(&self) -> ChainId {
         self.to_string()
+    }
+}
+
+impl FromStr for ChainInfo {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let arr = s.split(".").collect::<Vec<&str>>();
+        if arr.len() != 2 {
+            return Err(Error::msg(format!("Cannot parse {} to ChainInfo", s)));
+        }
+        Ok(ChainInfo {
+            chain: arr[0].to_string(),
+            network: arr[1].to_string(),
+        })
     }
 }

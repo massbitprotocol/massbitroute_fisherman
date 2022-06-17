@@ -59,12 +59,7 @@ impl TaskApplicant for HttpRequestGenerator {
         for config in self.task_configs.iter() {
             let detail = JobHttpRequest {};
             let comp_url = detail.get_component_url(config, component);
-            let mut job = Job::new(
-                plan_id.clone(),
-                config.name.clone(),
-                component,
-                JobDetail::HttpRequest(detail),
-            );
+            let mut job = Job::new(plan_id.clone(), component, JobDetail::HttpRequest(detail));
             job.parallelable = true;
             job.component_url = comp_url;
             job.timeout = config.request_timeout;

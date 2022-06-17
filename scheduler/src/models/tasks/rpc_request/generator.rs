@@ -58,12 +58,7 @@ impl TaskApplicant for RpcRequestGenerator {
         log::debug!("TaskPing apply for component {:?}", component);
         let detail = JobRpcRequest {};
         let comp_url = detail.get_component_url(component);
-        let mut job = Job::new(
-            plan_id.clone(),
-            String::new(),
-            component,
-            JobDetail::RpcRequest(detail),
-        );
+        let mut job = Job::new(plan_id.clone(), component, JobDetail::RpcRequest(detail));
         job.parallelable = true;
         job.component_url = comp_url;
         job.timeout = self.config.ping_timeout_ms;

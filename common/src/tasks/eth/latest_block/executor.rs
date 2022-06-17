@@ -92,6 +92,14 @@ impl LatestBlockExecutor {
             block_hash,
         } = Self::parse_block_data(&response_body)
             .map_err(|err| CallLatestBlockError::GetBodyError(format!("{}", err)))?;
+        let current_time = get_current_time() / 1000;
+        info!(
+            "block_timestamp: {}, current time: {}, late time: {}, block: {}",
+            block_timestamp,
+            current_time,
+            current_time - block_timestamp,
+            block_number
+        );
 
         let latest_block_result = LatestBlockResponse {
             response_time: response_time.as_millis() as i64,
@@ -163,6 +171,7 @@ impl TaskExecutor for LatestBlockExecutor {
         }?;
 
         info!("TaskLatestBlock execute for job {:?}", &job);
+        let execution_timestamp = get_current_time();
         let res = self.call_latest_block(job).await;
         let response = match res {
             Ok(res) => res,
@@ -177,7 +186,7 @@ impl TaskExecutor for LatestBlockExecutor {
             job: job.clone(),
             worker_id: self.worker_id.clone(),
             response,
-            execution_timestamp: get_current_time(),
+            execution_timestamp,
         };
         let res = result_sender
             .send(JobResult::LatestBlock(latest_block_result))
