@@ -2,6 +2,7 @@
   "default": {
     "header":{"content-type":"application/json"},
     "latest_block_request_body": "{ \"jsonrpc\": \"2.0\",  \"method\": \"eth_getBlockByNumber\", \"params\": [\"latest\",  false],\"id\": 1}",
-    "latest_block_timeout_ms": 5000
+    "latest_block_timeout_ms": 5000,
+    "late_duration_threshold_ms":  1200000
   }
 }

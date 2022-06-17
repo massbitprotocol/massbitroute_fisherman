@@ -25,7 +25,7 @@ pub struct JobLatestBlockResult {
 pub struct LatestBlockResponse {
     pub response_time: Timestamp,
     pub block_number: u64,
-    pub block_timestamp: Timestamp,
+    pub block_timestamp: Timestamp, // in sec
     pub block_hash: String,
     pub http_code: u16,
     pub error_code: u32,

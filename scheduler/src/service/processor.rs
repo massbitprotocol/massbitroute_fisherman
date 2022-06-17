@@ -1,15 +1,19 @@
+use crate::models::jobs::JobAssignment;
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::service::judgment::main_judg::MainJudgment;
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, PingJudgment, ReportCheck};
 use crate::service::report_portal::StoreReport;
 use crate::state::ProcessorState;
 use crate::PORTAL_AUTHORIZATION;
+use common::component::ComponentType;
 use common::job_manage::{Job, JobResult, JobRole};
 use common::worker::WorkerInfo;
-use common::DOMAIN;
+use common::{PlanId, DOMAIN};
+use log::info;
 use sea_orm::sea_query::IdenList;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
+use std::default::Default;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -32,7 +36,7 @@ impl ProcessorService {
         job_results: Vec<JobResult>,
         state: Arc<Mutex<ProcessorState>>,
     ) -> Result<impl Reply, Rejection> {
-        print!("Handle report from worker {:?}", &job_results);
+        info!("Handle report from worker {:?}", &job_results);
         if job_results.len() > 0 {
             let plan_ids = Vec::from_iter(
                 job_results
@@ -41,11 +45,19 @@ impl ProcessorService {
                     .collect::<HashSet<String>>(),
             );
             //Store results to persistence storage: csv file, sql db, monitor system v.v...
-            state.lock().await.process_results(job_results).await;
+            state.lock().await.process_results(&job_results).await;
+
             if let (Ok(plans), Ok(all_jobs)) = (
                 self.plan_service.get_plan_by_ids(&plan_ids).await,
                 self.job_service.get_job_by_plan_ids(&plan_ids).await,
             ) {
+                info!(
+                    "get_job_by_plan_ids {} plan_service: {:?}, {} all_jobs: {:?}",
+                    plans.len(),
+                    plans,
+                    all_jobs.len(),
+                    all_jobs
+                );
                 let mut map_plan_jobs = HashMap::<String, Vec<Job>>::new();
                 for job in all_jobs.into_iter() {
                     if let Some(mut jobs) = map_plan_jobs.get_mut(&job.plan_id) {
@@ -57,16 +69,25 @@ impl ProcessorService {
                 for plan in plans.iter() {
                     if let Some(jobs) = map_plan_jobs.get(&plan.plan_id) {
                         let mut plan_result = JudgmentsResult::Pass;
+                        let component_type = match jobs.first() {
+                            None => Default::default(),
+                            Some(job) => job.component_type.clone(),
+                        };
+
                         for job in jobs {
                             let job_result = self
                                 .judgment
                                 .apply(plan, job)
                                 .await
                                 .unwrap_or(JudgmentsResult::Failed);
+                            info!(
+                                "job_result :{:?}, plan: {:?},job: {:?}",
+                                job_result, plan, job
+                            );
                             match job_result {
                                 JudgmentsResult::Pass => {}
-                                JudgmentsResult::Failed => {
-                                    plan_result = JudgmentsResult::Failed;
+                                JudgmentsResult::Failed | JudgmentsResult::Error => {
+                                    plan_result = job_result;
                                     break;
                                 }
                                 JudgmentsResult::Unfinished => {
@@ -75,23 +96,31 @@ impl ProcessorService {
                                 }
                             }
                         }
+                        info!("Plan_result :{:?}", plan_result);
+                        match plan_result {
+                            JudgmentsResult::Pass
+                            | JudgmentsResult::Failed
+                            | JudgmentsResult::Error => {
+                                let plan_phase =
+                                    JobRole::from_str(&*plan.phase).unwrap_or_default();
+                                //Todo: call portal for report bad result
+                                let mut report = StoreReport::build(
+                                    &plan.provider_id,
+                                    &plan_phase,
+                                    &*PORTAL_AUTHORIZATION,
+                                    &DOMAIN,
+                                );
 
-                        if plan_result == JudgmentsResult::Failed {
-                            //Todo: call portal for report bad result
-                            let mut report = StoreReport::build(
-                                &plan.provider_id,
-                                JobRole::from_str(&*plan.phase).unwrap_or_default(),
-                                &*PORTAL_AUTHORIZATION,
-                                &DOMAIN,
-                            );
-
-                            report.set_report_data_short(
-                                false,
-                                &"".to_string(),
-                                &Default::default(),
-                            )
-                        } else if plan_result == JudgmentsResult::Pass {
-                            //Todo: call portal for report good result
+                                let is_data_correct = plan_result.is_pass();
+                                report.set_report_data_short(
+                                    is_data_correct,
+                                    &plan.provider_id,
+                                    &component_type,
+                                );
+                                info!("Send plan report to portal:{:?}", report);
+                                report.send_data(&plan_phase);
+                            }
+                            JudgmentsResult::Unfinished => {}
                         }
                     }
                 }

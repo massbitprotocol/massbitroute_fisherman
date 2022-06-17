@@ -40,13 +40,13 @@ pub struct StoreReport {
 impl StoreReport {
     pub fn build(
         reporter: &String,
-        reporter_role: JobRole,
+        reporter_role: &JobRole,
         authorization: &String,
         domain: &String,
     ) -> StoreReport {
         StoreReport {
             reporter: reporter.clone(),
-            reporter_role,
+            reporter_role: reporter_role.clone(),
             authorization: authorization.clone(),
             domain: domain.clone(),
             ..Default::default()
@@ -73,7 +73,7 @@ impl StoreReport {
         Ok(serde_json::to_string(&self)?)
     }
 
-    fn get_url(&self, job_role: JobRole) -> String {
+    fn get_url(&self, job_role: &JobRole) -> String {
         match job_role {
             JobRole::Verification => {
                 format!(
@@ -90,7 +90,7 @@ impl StoreReport {
         }
     }
 
-    pub async fn send_data(&self, send_purpose: JobRole) -> Result<Response, Error> {
+    pub async fn send_data(&self, send_purpose: &JobRole) -> Result<Response, Error> {
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         // create body

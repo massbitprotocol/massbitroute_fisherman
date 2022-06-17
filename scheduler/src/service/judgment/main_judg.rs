@@ -3,10 +3,10 @@ use crate::persistence::services::PlanService;
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::{CONFIG, CONFIG_DIR, JUDGMENT_PERIOD};
 use anyhow::Error;
-use common::job_manage::Job;
+use common::job_manage::{Job, JobResult};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
-use log::error;
+use log::{error, info};
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 use std::thread::sleep;
@@ -33,14 +33,22 @@ impl MainJudgment {
     ) -> Result<JudgmentsResult, anyhow::Error> {
         let mut final_result = JudgmentsResult::Unfinished;
         for jud in self.judgments.iter() {
-            if jud.can_apply(job) {
+            info!(
+                "Apply plan: {:?}, job: {:?}, jud: {:?}, can_apply: {:?}",
+                plan,
+                job,
+                jud,
+                jud.can_apply(job)
+            );
+            if !jud.can_apply(job) {
                 continue;
             }
+
             match jud.apply(plan, job).await {
                 Ok(res) => {
                     match res {
                         JudgmentsResult::Pass => final_result = res,
-                        JudgmentsResult::Failed => {
+                        JudgmentsResult::Error | JudgmentsResult::Failed => {
                             //Job result is bad, stop check with other judgment and send report
                             final_result = res;
                             break;
@@ -52,8 +60,17 @@ impl MainJudgment {
                         }
                     }
                 }
-                Err(_) => {}
-            }
+                Err(e) => {
+                    error!("Apply Judgments error: {}", e);
+                    final_result = JudgmentsResult::Error;
+                    break;
+                }
+            };
+
+            info!(
+                "Apply plan: {:?}, job: {:?}, jud: {:?},  final_result: {:?}",
+                plan, job, jud, final_result
+            );
         }
         Ok(final_result)
     }

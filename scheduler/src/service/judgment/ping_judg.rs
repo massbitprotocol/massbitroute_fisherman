@@ -2,6 +2,7 @@ use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use anyhow::Error;
 use async_trait::async_trait;
+use common::job_manage::JobDetail::Benchmark;
 use common::job_manage::{Job, JobDetail, JobRole};
 use common::models::PlanEntity;
 use common::tasks::ping::generator::PingConfig;
@@ -12,6 +13,7 @@ use sea_orm::DatabaseConnection;
 use std::str::FromStr;
 use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct PingJudgment {
     verification_config: PingConfig,
     regular_config: PingConfig,
@@ -39,8 +41,8 @@ impl PingJudgment {
 #[async_trait]
 impl ReportCheck for PingJudgment {
     fn can_apply(&self, job: &Job) -> bool {
-        match job.job_detail {
-            Some(JobDetail::Ping(_)) => true,
+        match job.job_name.as_str() {
+            "Ping" => true,
             _ => false,
         }
     }
