@@ -18,7 +18,7 @@ pub struct BenchmarkGenerator {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-struct BenchmarkConfig {
+pub struct BenchmarkConfig {
     benchmark_thread: u32,
     benchmark_connection: u32,
     benchmark_duration: Timestamp,
@@ -26,6 +26,8 @@ struct BenchmarkConfig {
     script: String,
     histograms: Vec<u32>,
     url_path: String,
+    pub judge_histogram_percentile: u32,
+    pub response_threshold: Timestamp,
 }
 
 impl LoadConfig<BenchmarkConfig> for BenchmarkConfig {}
