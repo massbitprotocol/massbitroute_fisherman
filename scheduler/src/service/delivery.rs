@@ -59,8 +59,9 @@ impl JobDelivery {
                     handlers.push(handler);
                 }
             }
-
-            join_all(handlers).await;
+            if !handlers.is_empty() {
+                join_all(handlers).await;
+            }
             sleep(Duration::from_secs(JOB_DELIVERY_PERIOD));
         }
     }
