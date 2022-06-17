@@ -62,7 +62,7 @@ impl From<&workers::Model> for WorkerInfo {
             Err(err) => Zone::default(),
         };
         WorkerInfo {
-            worker_id: info.worker_ip.clone(),
+            worker_id: info.worker_id.clone(),
             worker_ip: info.worker_ip.clone(),
             url: info.url.clone(),
             zone,

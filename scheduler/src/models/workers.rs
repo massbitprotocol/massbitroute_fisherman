@@ -70,10 +70,14 @@ impl WorkerInfoStorage {
                 )
             })
             .unwrap_or(vec![]);
+        let mut all_workers = Vec::new();
+        for (_, workers) in self.map_zone_workers.iter() {
+            workers.iter().for_each(|w| all_workers.push(w.clone()));
+        }
         Ok(MatchedWorkers {
             provider: provider.clone(),
-            nearby_workers: vec![],
-            best_workers: vec![],
+            nearby_workers: zone_workers,
+            best_workers: all_workers,
         })
     }
 }

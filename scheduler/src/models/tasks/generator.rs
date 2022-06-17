@@ -9,7 +9,7 @@ use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
 use common::models::PlanEntity;
 use common::tasks::eth::*;
-use common::workers::MatchedWorkers;
+use common::workers::{MatchedWorkers, Worker};
 use common::PlanId;
 use std::sync::Arc;
 
@@ -23,7 +23,17 @@ pub trait TaskApplicant: Sync + Send {
         jobs: &Vec<Job>,
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
-        Ok(vec![])
+        let mut assignments = Vec::default();
+        let worker_count = workers.nearby_workers.len();
+        if worker_count > 0 {
+            jobs.iter().enumerate().for_each(|(ind, job)| {
+                let wind = ind % worker_count;
+                let worker: &Arc<Worker> = workers.nearby_workers.get(wind).unwrap();
+                let job_assignment = JobAssignment::new(worker.clone(), job);
+                assignments.push(job_assignment);
+            });
+        }
+        Ok(assignments)
     }
 }
 /*
