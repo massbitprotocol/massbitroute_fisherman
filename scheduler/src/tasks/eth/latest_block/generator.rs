@@ -1,4 +1,4 @@
-use crate::models::tasks::generator::TaskApplicant;
+use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
@@ -22,6 +22,9 @@ pub struct LatestBlockGenerator {
 }
 
 impl LatestBlockGenerator {
+    pub fn get_name() -> String {
+        String::from("LatestBlock")
+    }
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
         LatestBlockGenerator {
             config: LatestBlockConfig::load_config(

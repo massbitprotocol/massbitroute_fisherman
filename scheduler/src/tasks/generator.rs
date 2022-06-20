@@ -2,8 +2,8 @@
  * Each Task description can apply to node/gateway to generate a list of jobs.
  * If task is suitable for node or gateway only then result is empty
  */
-use crate::models::tasks::*;
 use crate::persistence::PlanModel;
+use crate::tasks::*;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
@@ -40,19 +40,28 @@ pub trait TaskApplicant: Sync + Send {
  * Todo: can add config to load required task for each phase: verification or regular
  */
 
-pub fn get_tasks(config_dir: &str, role: JobRole) -> Vec<Arc<dyn TaskApplicant>> {
+pub fn get_tasks(
+    config_dir: &str,
+    role: JobRole,
+    task_names: &Vec<String>,
+) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
-    if let Ok(http_request) = HttpRequestGenerator::new(config_dir) {
-        result.push(Arc::new(http_request));
-    }
-    match role {
-        JobRole::Verification => {
-            result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
+    if task_names.contains(&HttpRequestGenerator::get_name()) {
+        if let Ok(http_request) = HttpRequestGenerator::new(config_dir) {
+            result.push(Arc::new(http_request));
         }
-        _ => {}
     }
-    result.push(Arc::new(TaskGWNodeConnection::new()));
-    result.push(Arc::new(LatestBlockGenerator::new(config_dir, &role)));
-    result.push(Arc::new(PingGenerator::new(config_dir, &role)));
+    if task_names.contains(&BenchmarkGenerator::get_name()) {
+        result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
+    }
+    if task_names.contains(&PingGenerator::get_name()) {
+        result.push(Arc::new(PingGenerator::new(config_dir, &role)));
+    }
+    if task_names.contains(&LatestBlockGenerator::get_name()) {
+        result.push(Arc::new(LatestBlockGenerator::new(config_dir, &role)));
+    }
+    if task_names.contains(&TaskGWNodeConnection::get_name()) {
+        result.push(Arc::new(TaskGWNodeConnection::new()));
+    }
     result
 }

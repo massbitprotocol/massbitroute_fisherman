@@ -135,4 +135,8 @@ impl ProviderScanner {
 
         Ok(components)
     }
+    /*
+     * Get provider map from database
+     */
+    pub async fn get_provider_map(&self) {}
 }

@@ -18,7 +18,7 @@ use scheduler::service::delivery::JobDelivery;
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
-use scheduler::{DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
+use scheduler::{CONFIG, DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
 
 use scheduler::persistence::services::job_result_service::JobResultService;
 use scheduler::persistence::services::plan_service::PlanService;
@@ -73,7 +73,7 @@ async fn main() {
         .build();
     let access_control = AccessControl::default();
     //let (tx, mut rx) = mpsc::channel(1024);
-
+    //Scanner for update provider list from portal
     let provider_scanner = ProviderScanner::new(
         URL_NODES_LIST.to_string(),
         URL_GATEWAYS_LIST.to_string(),

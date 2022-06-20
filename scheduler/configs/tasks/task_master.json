@@ -1,4 +1,4 @@
 {
-  "fisherman": ["ping", "benchmark"],
-  "verification": []
+  "regular": ["Ping", "LatestBlock"],
+  "verification": ["Ping", "Benchmark", "LatestBlock"]
 }

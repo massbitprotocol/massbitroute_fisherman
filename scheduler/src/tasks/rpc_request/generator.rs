@@ -2,7 +2,7 @@ use anyhow::Error;
 use async_trait::async_trait;
 use common::tasks::LoadConfig;
 
-use crate::models::tasks::generator::TaskApplicant;
+use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::Job;

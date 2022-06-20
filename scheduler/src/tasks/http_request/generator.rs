@@ -1,4 +1,4 @@
-use crate::models::tasks::generator::TaskApplicant;
+use crate::tasks::generator::TaskApplicant;
 use anyhow::{Context, Error};
 use async_trait::async_trait;
 use common::component::ComponentInfo;
@@ -22,6 +22,9 @@ pub struct HttpRequestGenerator {
 }
 
 impl HttpRequestGenerator {
+    pub fn get_name() -> String {
+        String::from("HttpRequest")
+    }
     pub fn new(config_dir: &str) -> Result<Self, anyhow::Error> {
         let path = format!("{}/rpcrequest.json", config_dir);
         let json_content = std::fs::read_to_string(path.as_str())?;

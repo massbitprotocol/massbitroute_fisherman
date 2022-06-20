@@ -53,6 +53,8 @@ impl ReportProcessor for GenericReportProcessor {
                 _ => {}
             }
         }
+        //update provider map base on ping result
+
         for adapter in self.report_adapters.iter() {
             if ping_results.len() > 0 {
                 adapter.append_ping_results(&ping_results).await;
