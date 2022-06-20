@@ -66,12 +66,11 @@ impl MainJudgment {
                     break;
                 }
             };
-
-            info!(
-                "Apply plan: {:?}, job: {:?}, jud: {:?},  final_result: {:?}",
-                plan, job, jud, final_result
-            );
         }
+        info!(
+            "Apply plan: {:?}, job: {:?}, final_result: {:?}",
+            plan, job, final_result
+        );
         Ok(final_result)
     }
 }
