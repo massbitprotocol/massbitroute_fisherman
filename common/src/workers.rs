@@ -91,7 +91,17 @@ impl Worker {
         self.worker_info.worker_id.eq(id)
     }
     pub fn get_url(&self, path: &str) -> String {
-        format!("{}/{}", self.worker_info.url, path)
+        format!("https://{}/__worker/{}", self.worker_info.worker_ip, path)
+        //format!("{}/{}", self.worker_info.url, path)
+    }
+    pub fn get_host(&self) -> String {
+        let parts = self.worker_info.url.split('/').collect::<Vec<&str>>();
+        if parts.len() >= 3 {
+            parts[2].to_string()
+        } else {
+            String::default()
+        }
+        //format!("{}/{}", self.worker_info.url, path)
     }
     pub async fn send_job(&self, job: &Job) -> Result<(), anyhow::Error> {
         let client_builder = reqwest::ClientBuilder::new();
@@ -121,16 +131,19 @@ impl Worker {
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         let url = self.get_url("jobs_handle");
+        let body = serde_json::to_string(jobs)?;
         log::debug!(
-            "Send {} jobs to worker {:?} by url {:?}",
+            "Send {} jobs to worker {:?} by url {:?} and body {:?}",
             jobs.len(),
             &self.worker_info,
-            url.as_str()
+            url.as_str(),
+            &body
         );
         let request_builder = client
             .post(url.as_str())
             .header("content-type", "application/json")
-            .body(serde_json::to_string(jobs)?);
+            .header("Host", self.get_host())
+            .body(body);
         match request_builder.send().await {
             Ok(res) => {
                 log::debug!("Worker response: {:?}", res);
