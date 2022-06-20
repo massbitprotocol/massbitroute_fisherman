@@ -1,6 +1,6 @@
 use crate::models::component::{ProviderPlan, ZoneComponents};
-use crate::models::tasks::generator::TaskApplicant;
 use crate::persistence::PlanModel;
+use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::{ComponentInfo, ComponentType, Zone};
 use common::jobs::Job;

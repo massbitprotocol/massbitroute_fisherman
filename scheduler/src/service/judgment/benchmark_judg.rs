@@ -1,6 +1,6 @@
-use crate::models::tasks::benchmark::generator::BenchmarkConfig;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
+use crate::tasks::benchmark::generator::BenchmarkConfig;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobDetail, JobRole};

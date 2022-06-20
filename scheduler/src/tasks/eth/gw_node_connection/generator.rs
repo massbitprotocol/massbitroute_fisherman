@@ -2,7 +2,7 @@
  * Check from any gateway can connection to any node
  */
 
-use crate::models::tasks::generator::TaskApplicant;
+use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::jobs::Job;
 use common::{Gateway, Node, PlanId};
@@ -13,6 +13,9 @@ pub struct TaskGWNodeConnection {
     list_gateways: Vec<Arc<Gateway>>,
 }
 impl TaskGWNodeConnection {
+    pub fn get_name() -> String {
+        String::from("GatewayNodeConnection")
+    }
     pub fn new() -> Self {
         TaskGWNodeConnection {
             list_nodes: vec![],

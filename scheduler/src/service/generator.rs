@@ -1,10 +1,10 @@
 use crate::models::component::ProviderPlan;
 use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
-use crate::models::tasks::generator::{get_tasks, TaskApplicant};
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
 use crate::persistence::PlanModel;
+use crate::tasks::generator::{get_tasks, TaskApplicant};
 use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use anyhow::{anyhow, Error};
 use common::component::{ComponentInfo, Zone};
@@ -12,6 +12,7 @@ use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
+use common::tasks::LoadConfig;
 use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{task_spawn, ComponentId, WorkerId};
@@ -20,6 +21,7 @@ use log::{debug, info, warn};
 use minifier::js::Keyword::Default;
 use sea_orm::sea_query::IndexType::Hash;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
+use serde::{Deserialize, Serialize};
 use slog::log;
 use std::collections::HashMap;
 use std::mem::take;
@@ -28,7 +30,6 @@ use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use tokio::task;
 use tokio::time::sleep;
-
 #[derive(Default)]
 pub struct JobGenerator {
     verification: DetailJobGenerator,
@@ -44,6 +45,13 @@ pub struct DetailJobGenerator {
     tasks: Vec<Arc<dyn TaskApplicant>>,
     job_service: Arc<JobService>,
     assignments: Arc<Mutex<AssignmentBuffer>>,
+}
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct TaskConfig {
+    #[serde(default)]
+    pub regular: Vec<String>,
+    #[serde(default)]
+    pub verification: Vec<String>,
 }
 
 impl DetailJobGenerator {
@@ -323,12 +331,19 @@ impl JobGenerator {
         job_service: Arc<JobService>,
         assignments: Arc<Mutex<AssignmentBuffer>>,
     ) -> Self {
+        //Load config
+        let config_dir = CONFIG_DIR.as_str();
+        let path = format!("{}/task_master.json", config_dir);
+        let json = std::fs::read_to_string(path.as_str()).unwrap_or_else(|err| {
+            panic!("Error {:?}. Path not found {}", err, path);
+        });
+        let task_config: TaskConfig = serde_json::from_str(&*json).unwrap();
         let verification = DetailJobGenerator {
             db_conn: db_conn.clone(),
             plan_service: plan_service.clone(),
             providers: providers.clone(),
             worker_infos: worker_infos.clone(),
-            tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Verification),
+            tasks: get_tasks(config_dir, JobRole::Verification, &task_config.verification),
             job_service: job_service.clone(),
             assignments: assignments.clone(),
         };
@@ -338,7 +353,7 @@ impl JobGenerator {
             plan_service,
             providers,
             worker_infos,
-            tasks: get_tasks(CONFIG_DIR.as_str(), JobRole::Regular),
+            tasks: get_tasks(config_dir, JobRole::Regular, &task_config.regular),
             job_service,
             assignments,
         };
