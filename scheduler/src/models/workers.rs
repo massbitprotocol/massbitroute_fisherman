@@ -1,4 +1,4 @@
-use crate::persistence::WorkerProviderConnection;
+use crate::persistence::ProviderMapModel;
 use crate::WORKER_PATH_JOBS_HANDLE;
 use anyhow::anyhow;
 use common::component::{ComponentInfo, Zone};
@@ -17,7 +17,7 @@ use std::sync::Arc;
 #[derive(Default, Debug)]
 pub struct WorkerInfoStorage {
     map_zone_workers: HashMap<Zone, Vec<Arc<Worker>>>,
-    map_worker_provider: Vec<WorkerProviderConnection>,
+    map_worker_provider: Vec<ProviderMapModel>,
 }
 
 impl WorkerInfoStorage {
