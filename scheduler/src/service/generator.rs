@@ -1,8 +1,10 @@
+use crate::models::component::ProviderPlan;
 use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::tasks::generator::{get_tasks, TaskApplicant};
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
+use crate::persistence::PlanModel;
 use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use anyhow::{anyhow, Error};
 use common::component::{ComponentInfo, Zone};
@@ -14,7 +16,8 @@ use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{task_spawn, ComponentId, WorkerId};
 use futures_util::future::join;
-use log::{info, warn};
+use log::{debug, info, warn};
+use minifier::js::Keyword::Default;
 use sea_orm::sea_query::IndexType::Hash;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 use slog::log;
@@ -94,11 +97,10 @@ impl DetailJobGenerator {
                         ) {
                             job_assignments.append(&mut assignments);
                         }
-                        if let Some(current_jobs) = gen_jobs.get_mut(&provider_plan.provider.zone) {
-                            current_jobs.append(&mut applied_jobs);
-                        } else {
-                            gen_jobs.insert(provider_plan.provider.zone.clone(), applied_jobs);
-                        }
+                        gen_jobs
+                            .entry(provider_plan.provider.zone.clone())
+                            .or_insert(Vec::new())
+                            .append(&mut applied_jobs);
                     }
                 }
                 log::debug!(
@@ -146,11 +148,10 @@ impl DetailJobGenerator {
                         ) {
                             job_assignments.append(&mut assignments);
                         }
-                        if let Some(current_jobs) = gen_jobs.get_mut(&provider_plan.provider.zone) {
-                            current_jobs.append(&mut applied_jobs);
-                        } else {
-                            gen_jobs.insert(provider_plan.provider.zone.clone(), applied_jobs);
-                        }
+                        gen_jobs
+                            .entry(provider_plan.provider.zone.clone())
+                            .or_insert(Vec::new())
+                            .append(&mut applied_jobs);
                     }
                 }
             }
@@ -162,112 +163,12 @@ impl DetailJobGenerator {
                 .await
                 .add_assignments(job_assignments);
         }
-        //Distribute job to workers
         if gen_jobs.len() > 0 {
-            //self.assign_jobs(&gen_jobs).await;
             //Store jobs to db
             self.store_jobs(&gen_jobs).await;
         }
     }
-    /*
-    pub async fn generate_verification_jobs_v0(&mut self) {
-        log::debug!("Generate verification jobs");
-        let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
-        let map_plans = self
-            .plan_service
-            .get_verification_plans()
-            .await
-            .and_then(|vec| {
-                let mut map = HashMap::<String, Vec<PlanEntity>>::new();
-                for entity in vec {
-                    if let Some(mut vec) = map.get_mut(&entity.provider_id) {
-                        vec.push(entity);
-                    } else {
-                        map.insert(entity.plan_id.clone(), vec![entity]);
-                    }
-                }
-                Ok(map)
-            });
-        //Generate jobs for nodes
-        if let Ok(plans) = map_plans.as_ref() {
-            let nodes = self
-                .providers
-                .lock()
-                .await
-                .pop_nodes_for_verifications()
-                .await;
 
-            for node in nodes.iter() {
-                if let Some(plan) = plans.get(&node.id) {
-                    if plan.len() == 0 {
-                        return;
-                    }
-                    for task in self.tasks.iter() {
-                        if task.can_apply(node) {
-                            match task.apply(plan.get(0).unwrap(), node) {
-                                Ok(mut jobs) => {
-                                    if jobs.len() > 0 {
-                                        log::debug!(
-                                            "Create {:?} jobs for node {:?}",
-                                            jobs.len(),
-                                            &node
-                                        );
-                                        if let Some(current_jobs) = gen_jobs.get_mut(&node.zone) {
-                                            current_jobs.append(&mut jobs);
-                                        } else {
-                                            gen_jobs.insert(node.zone.clone(), jobs);
-                                        }
-                                    }
-                                }
-                                Err(err) => {
-                                    log::error!("Error: {:?}", &err);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            //Generate jobs for gateways
-            let gateways = self
-                .providers
-                .lock()
-                .await
-                .pop_gateways_for_verifications()
-                .await;
-            for gw in gateways.iter() {
-                if let Some(plan) = plans.get(&gw.id) {
-                    for task in self.tasks.iter() {
-                        if task.can_apply(gw) {
-                            match task.apply(plan.get(0).unwrap(), gw) {
-                                Ok(mut jobs) => {
-                                    if jobs.len() > 0 {
-                                        log::debug!(
-                                            "Create {:?} jobs for gateway {:?}",
-                                            jobs.len(),
-                                            &gw
-                                        );
-                                        if let Some(current_jobs) = gen_jobs.get_mut(&gw.zone) {
-                                            current_jobs.append(&mut jobs);
-                                        } else {
-                                            gen_jobs.insert(gw.zone.clone(), jobs);
-                                        }
-                                    }
-                                }
-                                Err(err) => {
-                                    log::error!("Error: {:?}", &err);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        //Distribute job to workers
-        self.assign_jobs(&gen_jobs).await;
-        //Store jobs to db
-        self.store_jobs(&gen_jobs).await;
-    }
-    */
     pub async fn store_jobs(
         &self,
         map_jobs: &HashMap<Zone, Vec<Job>>,
@@ -328,59 +229,81 @@ impl DetailJobGenerator {
         // Read Schedule to check what schedule already init and generated
         let plans = self
             .plan_service
-            .get_plans(&Some(JobRole::Regular), &vec![])
+            .get_plan_models(&Some(JobRole::Regular), &vec![])
             .await?;
         // Convert Plan vec to hashmap
-        let mut plans: HashMap<ComponentId, PlanEntity> = plans
+        let mut plans: HashMap<ComponentId, PlanModel> = plans
             .into_iter()
             .map(|plan| (plan.provider_id.clone(), plan))
             .collect();
 
         let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
+        let mut job_assignments = Vec::default();
         let mut new_plans: Vec<PlanEntity> = Vec::new();
-        for component in components {
+        for component in components.iter() {
             // Init all the components that not init or generated
-
-            let mut plan = match plans.get(&*component.id) {
-                None => {
-                    let new_plan = PlanEntity::new(
-                        component.id.clone(),
-                        get_current_time(),
-                        JobRole::Regular.to_string(),
-                    );
-                    new_plans.push(new_plan.clone());
-                    new_plan
-                }
-                Some(plan) => plan.clone(),
-            };
-            if !(plan.status == PlanStatus::Init) {
-                continue;
+            if !plans.contains_key(&component.id) {
+                let new_plan = PlanEntity::new(
+                    component.id.clone(),
+                    get_current_time(),
+                    JobRole::Regular.to_string(),
+                );
+                plans.insert(component.id.clone(), PlanModel::from(&new_plan));
+                new_plans.push(new_plan.clone());
             }
+        }
+        if !new_plans.is_empty() {
+            debug!("Store new_plans {}: {:?}", new_plans.len(), new_plans);
+            self.plan_service.store_plans(&new_plans).await;
+        }
+        for component in components {
+            let matched_workers = self
+                .worker_infos
+                .lock()
+                .await
+                .match_workers(&component)
+                .unwrap_or(MatchedWorkers::default());
+            log::debug!(
+                "Found workers {:?} for component {:?}",
+                &matched_workers,
+                &component
+            );
+            let plan = plans.get(&*component.id).unwrap();
+            let provider_plan = ProviderPlan {
+                provider: component,
+                plan: plan.clone(),
+            };
+
             // Generate job
             for task in self.tasks.iter() {
-                if task.can_apply(&component) {
-                    let jobs = task.apply(&plan.plan_id, &component);
-                    if let Ok(jobs) = jobs {
-                        if jobs.is_empty() {
-                            continue;
-                        }
-                        let entry = gen_jobs.entry(component.zone.clone()).or_insert(Vec::new());
-                        entry.extend(jobs);
+                if !task.can_apply(&provider_plan.provider) {
+                    continue;
+                }
+                let jobs = task.apply(&plan.plan_id, &provider_plan.provider);
+                if let Ok(jobs) = jobs {
+                    if jobs.is_empty() {
+                        continue;
                     }
+                    if let Ok(mut assignments) = task.assign_jobs(
+                        &provider_plan.plan,
+                        &provider_plan.provider,
+                        &jobs,
+                        &matched_workers,
+                    ) {
+                        job_assignments.append(&mut assignments);
+                    }
+                    let entry = gen_jobs
+                        .entry(provider_plan.provider.zone.clone())
+                        .or_insert(Vec::new());
+                    entry.extend(jobs);
                 }
             }
             // Change plant status to
             //plan.status = PlanStatus::Generated;
         }
-        warn!("Store new_plans {}: {:?}", new_plans.len(), new_plans);
-        if !new_plans.is_empty() {
-            self.plan_service.store_plans(&new_plans).await;
-        }
-        warn!("assign gen_jobs {}: {:?}", gen_jobs.len(), gen_jobs);
-        if !gen_jobs.is_empty() {
-            // Assign job
-            self.assign_jobs(&gen_jobs).await;
 
+        //warn!("assign gen_jobs {}: {:?}", gen_jobs.len(), gen_jobs);
+        if !gen_jobs.is_empty() {
             // Store job
             match self.store_jobs(&gen_jobs).await {
                 Ok(_) => {}
@@ -457,50 +380,4 @@ impl JobGenerator {
 
         join(verification_task, regular_task).await;
     }
-    /*
-     * For verification job (long job) find next available worker
-     */
-    // pub async fn generate_verification_node_jobsV0(&mut self) {
-    //     log::debug!("Generator verification node jobs");
-    //     /*
-    //      * find all worker in current zone and distribute components to found workers
-    //      */
-    //     let zones = self.providers.lock().await.get_verifying_nodes().await;
-    //
-    //     for (zone, ids) in zones.iter() {
-    //         let mut worker_nodes = HashMap::<WorkerId, Vec<Arc<ComponentInfo>>>::default();
-    //         if let Some(workers) = self.workers.lock().await.get_workers(zone) {
-    //             if workers.len() > 0 {
-    //                 ids.iter().enumerate().for_each(|(ind, item)| {
-    //                     let wind = ind % workers.len();
-    //                     let worker = workers.get(wind).unwrap();
-    //                     if let Some(nodes) = worker_nodes.get_mut(&worker.worker_id) {
-    //                         nodes.push(item.clone());
-    //                     } else {
-    //                         worker_nodes.insert(worker.worker_id.clone(), vec![item.clone()]);
-    //                     }
-    //                 });
-    //             }
-    //         }
-    //         for (worker, comps) in worker_nodes.into_iter() {
-    //             self.generate_verification_node_jobs_for_worker(zone, worker, comps);
-    //         }
-    //     }
-    // }
-    // async fn generate_verification_node_jobs_for_worker(
-    //     &mut self,
-    //     zone: &Zone,
-    //     worker_id: WorkerId,
-    //     comps: Vec<Arc<ComponentInfo>>,
-    // ) {
-    //     //println!("{:?} => {}", &worker_id, &comp_ids.join(","));
-    //     if let Some(worker) = self.workers.lock().await.get_worker_by_id(zone, &worker_id) {
-    //         for comp in comps.iter() {
-    //             for task in self.tasks.iter() {
-    //                 task.apply(comp.clone());
-    //             }
-    //         }
-    //     }
-    //     //Remove component from queue
-    // }
 }

@@ -1,5 +1,6 @@
 use crate::persistence::seaorm::plans;
 use crate::persistence::seaorm::plans::Model;
+use crate::persistence::PlanModel;
 use anyhow::anyhow;
 use common::component::Zone;
 use common::job_manage::JobRole;
@@ -72,6 +73,33 @@ impl PlanService {
             }
             Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }
+    }
+    pub async fn get_plan_models(
+        &self,
+        phase: &Option<JobRole>,
+        statuses: &Vec<PlanStatus>,
+    ) -> Result<Vec<PlanModel>, anyhow::Error> {
+        let mut condition_status = Condition::any();
+        for status in statuses {
+            condition_status = condition_status.add(plans::Column::Status.eq(status.to_string()));
+        }
+        let mut condition = match phase {
+            None => condition_status,
+            Some(phase) => {
+                let mut condition = Condition::all();
+                condition = condition.add(plans::Column::Phase.eq(phase.to_string()));
+                if !statuses.is_empty() {
+                    condition = condition.add(condition_status);
+                }
+                condition
+            }
+        };
+
+        plans::Entity::find()
+            .filter(condition)
+            .all(self.db.as_ref())
+            .await
+            .map_err(|err| anyhow!("{:?}", err))
     }
     pub async fn get_plan_by_ids(
         &self,

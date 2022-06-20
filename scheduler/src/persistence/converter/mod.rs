@@ -1,6 +1,7 @@
 use crate::persistence::seaorm::{
     job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs, plans, workers,
 };
+use crate::persistence::PlanModel;
 use common::component::ComponentType;
 use common::job_manage::{JobBenchmarkResult, JobDetail};
 use common::jobs::Job;
@@ -9,6 +10,7 @@ use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
 use common::workers::WorkerInfo;
 use core::default::Default;
+use diesel::expression::array_comparison::In;
 use log::debug;
 use sea_orm::ActiveValue::Set;
 use sea_orm::NotSet;
@@ -262,6 +264,22 @@ impl From<&PlanEntity> for plans::ActiveModel {
             status: Set(entity.status.to_string()),
             phase: Set(entity.phase.to_owned()),
             ..Default::default()
+        }
+    }
+}
+
+impl From<&PlanEntity> for PlanModel {
+    fn from(entity: &PlanEntity) -> Self {
+        PlanModel {
+            id: entity.id,
+            plan_id: entity.plan_id.clone(),
+            provider_id: entity.provider_id.clone(),
+            request_time: 0,
+            finish_time: None,
+            result: None,
+            message: None,
+            status: entity.status.to_string(),
+            phase: entity.phase.to_string(),
         }
     }
 }
