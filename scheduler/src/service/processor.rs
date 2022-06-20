@@ -3,12 +3,12 @@ use crate::service::judgment::main_judg::MainJudgment;
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, PingJudgment, ReportCheck};
 use crate::service::report_portal::StoreReport;
 use crate::state::ProcessorState;
-use crate::PORTAL_AUTHORIZATION;
+use crate::{CONFIG, PORTAL_AUTHORIZATION};
 use common::job_manage::{JobResult, JobRole};
 use common::jobs::Job;
 use common::workers::WorkerInfo;
 use common::DOMAIN;
-use log::info;
+use log::{debug, info};
 use sea_orm::sea_query::IdenList;
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
@@ -121,8 +121,14 @@ impl ProcessorService {
                                         &plan.provider_id,
                                         &component_type,
                                     );
-                                    info!("Send plan report to portal:{:?}", report);
-                                    report.send_data(&plan_phase);
+                                    debug!("Send plan report to portal:{:?}", report);
+                                    if !CONFIG.is_test_mode {
+                                        let res = report.send_data(&plan_phase).await;
+                                        info!("Send report to portal res: {:?}", res);
+                                    } else {
+                                        let res = report.write_data();
+                                        info!("Write report to file res: {:?}", res);
+                                    }
                                 }
                             }
                             JudgmentsResult::Unfinished => {}

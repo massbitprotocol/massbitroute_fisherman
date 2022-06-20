@@ -11,5 +11,5 @@ Cargo.lock
 .idea
 diesel.toml
 migrations
-
+logs/
 **/.env

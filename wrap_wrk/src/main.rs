@@ -7,23 +7,22 @@ use std::process::Command;
 use std::str::FromStr;
 use std::time::Duration;
 use wrap_wrk::WrkBenchmark;
-
 fn main() {
     //let _res = init_logger(&String::from("CheckComponent"));
     //println!("Log output: {}", res); // Print log output type
-
     let thread = 20;
     let connection = 20;
-    let duration = "20s";
+    let duration = "15s";
     let rate = 10;
     // let dapi_url = "http://34.101.81.225:8545";
-    let dapi_url = "https://34.142.136.135";
-    let token = "LV_gHNH0MDepQ83IWRX16A";
-    let host = "5bd9f624-338e-4f41-b89c-65e9bb9bf3c2.node.mbr.massbitroute.dev";
-    let script = "../scripts/benchmark/massbit.lua";
-    let wrk_path = "../scripts/benchmark/wrk";
+    let dapi_url = "https://34.101.146.31";
+    let token = "lSP1lFN9I_izEzRi_jBapA";
+    let host = "058a6e94-8b65-46ad-ab52-240a7cb2c36a.node.mbr.massbitroute.net";
+    let script = "scripts/benchmark/massbit.lua";
+    let wrk_path = "scripts/benchmark/wrk";
     let wrk_dir = "./";
     let latency_threshold_ms = 500f32;
+    println!("Build wrk");
     let mut wrk = WrkBenchmark::build(
         thread,
         connection,
@@ -37,13 +36,10 @@ fn main() {
         wrk_dir.to_string(),
         latency_threshold_ms,
     );
-    let report = wrk.run(
-        &"node".to_string(),
-        &"/ping".to_string(),
-        &"eth".to_string(),
-    );
+    println!("Run wrk");
+    let report = wrk.run(&"node".to_string(), &"/".to_string(), &"eth".to_string());
 
-    info!("report: {:?}", report)
+    println!("report: {:?}", report)
 
     //assert!(output.status.success());
 }
@@ -55,7 +51,7 @@ fn run_dapi() {
     let duration_sec = total_request / rate;
 
     let _res = init_logger(&String::from("CheckComponent"));
-    info!("Estimate run time:{}s", duration_sec);
+    println!("Estimate run time:{}s", duration_sec);
     //println!("Log output: {}", res); // Print log output type
     let thread = 20;
     let connection = 20;
@@ -84,6 +80,6 @@ fn run_dapi() {
     );
     let report = wrk.run();
 
-    info!("report: {:?}", report)
+    println!("report: {:?}", report)
 }
 */
