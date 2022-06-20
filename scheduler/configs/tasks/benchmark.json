@@ -1,23 +1,23 @@
 {
   "default": {
-    "benchmark_thread": 5,
-    "benchmark_connection": 5,
+    "benchmark_thread": 20,
+    "benchmark_connection": 20,
     "benchmark_duration": 15000,
-    "benchmark_rate": 80,
+    "benchmark_rate": 50,
     "script": "massbit.lua",
     "histograms": [90,95,99,100],
-    "url_path":"/ping",
+    "url_path":"/",
     "judge_histogram_percentile":  95,
     "response_threshold": 500
   },
   "fisherman": {
-    "benchmark_thread": 5,
-    "benchmark_connection": 5,
+    "benchmark_thread": 20,
+    "benchmark_connection": 20,
     "benchmark_duration": 15000,
     "benchmark_rate": 10,
     "script": "massbit.lua",
     "histograms": [90,95,99,100],
-    "url_path":"/ping",
+    "url_path":"/",
     "judge_histogram_percentile":  90,
     "response_threshold": 500
   }

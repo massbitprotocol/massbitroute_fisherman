@@ -84,7 +84,7 @@ impl JobBuffer {
                 None
             }
         } else {
-            log::debug!("Job queue is empty");
+            //log::debug!("Job queue is empty");
             None
         }
     }

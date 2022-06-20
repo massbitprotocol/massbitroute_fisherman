@@ -1,10 +1,16 @@
+use crate::CONFIG;
 use anyhow::Error;
 use common::component::{ComponentInfo, ComponentType};
 use common::job_manage::JobRole;
 use common::{ComponentId, Deserialize, Serialize};
 use log::debug;
 use reqwest::Response;
+use std::fs;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+const report_path: &str = "logs/report.txt";
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct StoreReport {
@@ -107,5 +113,21 @@ impl StoreReport {
         debug!("request_builder: {:?}", request_builder);
         let response = request_builder.send().await?;
         Ok(response)
+    }
+
+    // For testing only
+    pub fn write_data(&self) -> Result<String, Error> {
+        let data = self.create_body()?;
+        let report_file = std::path::Path::new(report_path);
+        if let Some(path) = report_file.parent() {
+            fs::create_dir_all(path);
+        }
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .append(true)
+            .open(report_file)?;
+        writeln!(file, "{}", data)?;
+        Ok(data)
     }
 }

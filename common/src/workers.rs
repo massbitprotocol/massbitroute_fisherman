@@ -91,8 +91,8 @@ impl Worker {
         self.worker_info.worker_id.eq(id)
     }
     pub fn get_url(&self, path: &str) -> String {
-        format!("https://{}/__worker/{}", self.worker_info.worker_ip, path)
-        //format!("{}/{}", self.worker_info.url, path)
+        //format!("https://{}/__worker/{}", self.worker_info.worker_ip, path)
+        format!("{}/{}", self.worker_info.url, path)
     }
     pub fn get_host(&self) -> String {
         let parts = self.worker_info.url.split('/').collect::<Vec<&str>>();

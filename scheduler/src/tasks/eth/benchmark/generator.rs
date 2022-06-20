@@ -8,7 +8,7 @@ use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::Job;
 use common::models::PlanEntity;
 use common::tasks::LoadConfig;
-use common::{PlanId, Timestamp};
+use common::{PlanId, Timestamp, DOMAIN};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -45,7 +45,7 @@ impl BenchmarkGenerator {
         }
     }
     pub fn get_url(&self, component: &ComponentInfo) -> String {
-        format!("https://{}/_ping", component.ip)
+        format!("https://{}", component.ip)
     }
 }
 impl TaskApplicant for BenchmarkGenerator {
@@ -73,6 +73,14 @@ impl TaskApplicant for BenchmarkGenerator {
         let job_detail = JobDetail::Benchmark(job_benchmark);
         let mut job = Job::new(plan_id.clone(), component, job_detail);
         job.component_url = self.get_url(component);
+        job.header.insert(
+            "host".to_lowercase().to_string(),
+            component.get_host_header(&*DOMAIN),
+        );
+        job.header.insert(
+            "x-api-key".to_lowercase().to_string(),
+            component.token.clone(),
+        );
         let vec = vec![job];
         Ok(vec)
     }
