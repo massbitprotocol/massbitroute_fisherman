@@ -51,6 +51,8 @@ impl ProviderScanner {
         loop {
             //info!("Get new providers");
             self.update_providers().await;
+            //Update provider map
+            self.get_provider_map().await;
             sleep(Duration::from_secs(CONFIG.update_provider_list_interval)).await;
         }
     }

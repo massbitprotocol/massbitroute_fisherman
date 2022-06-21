@@ -250,13 +250,14 @@ impl DetailJobGenerator {
             .into_iter()
             .map(|plan| (plan.provider_id.clone(), plan))
             .collect();
-
+        log::debug!("Found plans {:?}", plans.len());
         let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
         let mut job_assignments = Vec::default();
         let mut new_plans: Vec<PlanEntity> = Vec::new();
         for component in components.iter() {
             // Init all the components that not init or generated
             if !plans.contains_key(&component.id) {
+                log::debug!("Plan with provider id {:?} not found", &component.id);
                 let new_plan = PlanEntity::new(
                     component.id.clone(),
                     get_current_time(),
@@ -271,6 +272,10 @@ impl DetailJobGenerator {
             self.plan_service.store_plans(&new_plans).await;
         }
         for component in components {
+            let plan = plans.get(&*component.id).unwrap();
+            if PlanStatus::Init.to_string().as_str() != plan.status.as_str() {
+                continue;
+            }
             let matched_workers = self
                 .worker_infos
                 .lock()
@@ -282,7 +287,7 @@ impl DetailJobGenerator {
             //     &matched_workers,
             //     &component
             // );
-            let plan = plans.get(&*component.id).unwrap();
+
             let provider_plan = ProviderPlan {
                 provider: component,
                 plan: plan.clone(),
