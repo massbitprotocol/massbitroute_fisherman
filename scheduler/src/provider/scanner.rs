@@ -1,5 +1,6 @@
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
+use crate::persistence::services::provider_service::ProviderService;
 use crate::{CONFIG, PORTAL_AUTHORIZATION};
 use anyhow::Error;
 use common::component::{ComponentInfo, ComponentType, Zone};
@@ -17,6 +18,7 @@ pub struct ProviderScanner {
     url_list_gateways: String,
     providers: Arc<Mutex<ProviderStorage>>,
     workers: Arc<Mutex<WorkerInfoStorage>>,
+    provider_service: Arc<ProviderService>,
     client: Client,
 }
 /*
@@ -28,12 +30,14 @@ impl ProviderScanner {
         url_list_gateways: String,
         providers: Arc<Mutex<ProviderStorage>>,
         workers: Arc<Mutex<WorkerInfoStorage>>,
+        provider_service: Arc<ProviderService>,
     ) -> Self {
         ProviderScanner {
             url_list_nodes,
             url_list_gateways,
             providers,
             workers,
+            provider_service,
             client: {
                 reqwest::Client::builder()
                     .danger_accept_invalid_certs(true)
@@ -55,16 +59,15 @@ impl ProviderScanner {
         let nodes = self
             .get_components_list(ComponentType::Node, Some("staked"), &Zone::GB, None)
             .await;
-        debug!("List Nodes: {:?}", nodes);
         let gateways = self
             .get_components_list(ComponentType::Gateway, Some("staked"), &Zone::GB, None)
             .await;
-        debug!("List Gateways: {:?}", gateways);
         let mut res = Ok(());
         {
             let mut lock = self.providers.lock().await;
             match nodes {
                 Ok(nodes) => {
+                    debug!("Found {} Nodes.", nodes.len());
                     lock.update_components_list(ComponentType::Node, nodes)
                         .await;
                 }
@@ -75,6 +78,7 @@ impl ProviderScanner {
             }
             match gateways {
                 Ok(gateways) => {
+                    debug!("Found {} Gateways.", gateways.len());
                     lock.update_components_list(ComponentType::Gateway, gateways)
                         .await;
                 }
@@ -109,9 +113,9 @@ impl ProviderScanner {
             .await?
             .text()
             .await?;
-        debug!("res_data Node: {:?}", res_data);
+        //debug!("res_data Node: {:?}", res_data);
         let mut components: Vec<ComponentInfo> = serde_json::from_str(res_data.as_str())?;
-        debug!("components Node: {:?}", components);
+        //debug!("components Node: {:?}", components);
         // Add component type because Portal did not return the info
         for component in components.iter_mut() {
             component.component_type = component_type.clone();
@@ -138,5 +142,10 @@ impl ProviderScanner {
     /*
      * Get provider map from database
      */
-    pub async fn get_provider_map(&self) {}
+    pub async fn get_provider_map(&mut self) {
+        let map = self.provider_service.get_provider_maps().await;
+        if map.len() > 0 {
+            self.workers.lock().await.set_map_worker_provider(map);
+        }
+    }
 }
