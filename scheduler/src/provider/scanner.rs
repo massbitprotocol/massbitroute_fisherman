@@ -45,7 +45,7 @@ impl ProviderScanner {
 
     pub async fn run(mut self) {
         loop {
-            info!("Get new providers");
+            //info!("Get new providers");
             self.update_providers().await;
             sleep(Duration::from_secs(CONFIG.update_provider_list_interval)).await;
         }
@@ -135,4 +135,8 @@ impl ProviderScanner {
 
         Ok(components)
     }
+    /*
+     * Get provider map from database
+     */
+    pub async fn get_provider_map(&self) {}
 }

@@ -2,7 +2,7 @@
  * Check from any gateway can connection to any node
  */
 
-use crate::models::tasks::generator::TaskApplicant;
+use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::Job;
@@ -33,6 +33,9 @@ pub struct BenchmarkConfig {
 impl LoadConfig<BenchmarkConfig> for BenchmarkConfig {}
 
 impl BenchmarkGenerator {
+    pub fn get_name() -> String {
+        String::from("Benchmark")
+    }
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
         BenchmarkGenerator {
             config: BenchmarkConfig::load_config(

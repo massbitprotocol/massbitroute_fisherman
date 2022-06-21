@@ -1,4 +1,4 @@
-use crate::models::tasks::generator::TaskApplicant;
+use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::ComponentInfo;
 use common::job_manage::{JobDetail, JobPing, JobResult};

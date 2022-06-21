@@ -9,5 +9,5 @@ pub mod job_result_pings;
 pub mod jobs;
 pub mod plans;
 pub mod providers;
-pub mod worker_provider_connections;
+pub mod worker_provider_maps;
 pub mod workers;

@@ -1,7 +1,9 @@
 pub mod job_result_service;
 pub mod job_service;
 pub mod plan_service;
+pub mod provider_service;
 pub mod worker_service;
+
 pub use job_result_service::JobResultService;
 pub use job_service::JobService;
 pub use plan_service::PlanService;

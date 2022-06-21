@@ -1,6 +1,6 @@
-use crate::models::tasks::ping::generator::PingConfig;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
+use crate::tasks::ping::generator::PingConfig;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobDetail, JobRole};

@@ -160,6 +160,7 @@ impl ProcessorServiceBuilder {
         self.result_service = result_service;
         self
     }
+
     pub fn build(self) -> ProcessorService {
         let judgment = MainJudgment::new(self.result_service.clone());
         ProcessorService {

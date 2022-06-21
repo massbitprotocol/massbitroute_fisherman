@@ -16,6 +16,7 @@ pub mod server_builder;
 pub mod server_config;
 pub mod service;
 pub mod state;
+pub mod tasks;
 
 pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds

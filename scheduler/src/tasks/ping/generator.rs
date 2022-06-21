@@ -3,8 +3,8 @@ use async_trait::async_trait;
 use common::job_manage::{JobDetail, JobPing, JobRole};
 use common::tasks::LoadConfig;
 
-use crate::models::tasks::generator::TaskApplicant;
 use crate::persistence::PlanModel;
+use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::jobs::{Job, JobAssignment};
 use common::models::PlanEntity;
@@ -24,6 +24,9 @@ pub struct PingGenerator {
 }
 
 impl PingGenerator {
+    pub fn get_name() -> String {
+        String::from("Ping")
+    }
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
         PingGenerator {
             config: PingConfig::load_config(format!("{}/ping.json", config_dir).as_str(), role),
