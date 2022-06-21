@@ -22,6 +22,7 @@ use scheduler::{CONFIG, DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL
 
 use scheduler::persistence::services::job_result_service::JobResultService;
 use scheduler::persistence::services::plan_service::PlanService;
+use scheduler::persistence::services::provider_service::ProviderService;
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
 use std::sync::Arc;
@@ -55,6 +56,7 @@ async fn main() {
     let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
     //Get worker infos
     let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
+    let provider_service = Arc::new(ProviderService::new(arc_conn.clone()));
     let job_service = Arc::new(JobService::new(arc_conn.clone()));
     let all_workers = worker_service.clone().get_active().await;
 
@@ -79,6 +81,7 @@ async fn main() {
         URL_GATEWAYS_LIST.to_string(),
         provider_storage.clone(),
         worker_infos.clone(),
+        provider_service.clone(),
     );
     let job_generator = JobGenerator::new(
         arc_conn.clone(),

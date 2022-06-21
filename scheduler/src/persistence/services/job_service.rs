@@ -1,8 +1,9 @@
-use crate::persistence::seaorm::jobs;
 use crate::persistence::seaorm::jobs::Model;
+use crate::persistence::seaorm::{job_assignments, jobs};
+use crate::persistence::JobAssignmentActiveModel;
 use anyhow::anyhow;
 use common::component::Zone;
-use common::jobs::Job;
+use common::jobs::{Job, JobAssignment};
 use common::workers::WorkerInfo;
 use log::{debug, error, log};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
@@ -39,6 +40,33 @@ impl JobService {
                 Err(anyhow!("{:?}", &err))
             }
         }
+    }
+    pub async fn save_job_assignments(
+        &self,
+        assignments: &Vec<JobAssignment>,
+    ) -> Result<i32, anyhow::Error> {
+        let models = assignments
+            .iter()
+            .map(|item| JobAssignmentActiveModel::from(item))
+            .collect::<Vec<JobAssignmentActiveModel>>();
+        let length = models.len();
+        debug!("save_job_assignments records:{:?}", length);
+        if length > 0 {
+            match job_assignments::Entity::insert_many(models)
+                .exec(self.db.as_ref())
+                .await
+            {
+                Ok(res) => {
+                    log::debug!("Insert many records {:?}", length);
+                    return Ok(res.last_insert_id);
+                }
+                Err(err) => {
+                    log::debug!("Error save_job_assignments {:?}", &err);
+                    return Err(anyhow!("{:?}", &err));
+                }
+            }
+        }
+        Ok(0)
     }
     pub async fn get_job_by_plan_ids(
         &self,

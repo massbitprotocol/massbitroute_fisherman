@@ -4,6 +4,7 @@ use crate::report_processors::adapters::Appender;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::tasks::ping::JobPingResult;
+use common::util::get_current_time;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -22,6 +23,7 @@ impl ProvidersMapAdapter {
 impl Appender for ProvidersMapAdapter {
     async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {
         log::debug!("ProvidersMapAdapter append ping results");
+        let current_time = get_current_time() as i64;
         let provider_maps = results
             .iter()
             .map(|item| ProviderMapModel {
@@ -33,8 +35,8 @@ impl Appender for ProvidersMapAdapter {
                 bandwidth: None,
                 bandwidth_time: None,
                 status: Some(1),
-                last_connect_time: None,
-                last_check: None,
+                last_connect_time: Some(current_time.clone()),
+                last_check: Some(current_time),
             })
             .collect::<Vec<ProviderMapModel>>();
         self.provider_service

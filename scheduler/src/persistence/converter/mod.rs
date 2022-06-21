@@ -1,13 +1,15 @@
 use crate::persistence::seaorm::{
-    job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs, plans, workers,
+    job_assignments, job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs,
+    plans, workers,
 };
 use crate::persistence::PlanModel;
 use common::component::ComponentType;
 use common::job_manage::{JobBenchmarkResult, JobDetail};
-use common::jobs::Job;
+use common::jobs::{Job, JobAssignment};
 use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
+use common::util::get_current_time;
 use common::workers::WorkerInfo;
 use core::default::Default;
 use diesel::expression::array_comparison::In;
@@ -74,6 +76,20 @@ impl From<&Job> for jobs::ActiveModel {
             interval: Set(job.interval),
             repeat_number: Set(job.repeat_number),
             id: NotSet,
+        }
+    }
+}
+
+impl From<&JobAssignment> for job_assignments::ActiveModel {
+    fn from(assign: &JobAssignment) -> Self {
+        job_assignments::ActiveModel {
+            job_id: Set(assign.job.job_id.to_owned()),
+            job_name: Set(assign.job.job_name.to_owned()),
+            worker_id: Set(assign.worker.get_id()),
+            plan_id: Set(assign.job.plan_id.to_owned()),
+            status: Set(String::from("assigned")),
+            assign_time: Set(get_current_time() as i64),
+            ..Default::default()
         }
     }
 }

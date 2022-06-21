@@ -3,6 +3,7 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
+use crate::persistence::JobAssignmentActiveModel;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::{get_tasks, TaskApplicant};
 use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
@@ -30,6 +31,7 @@ use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use tokio::task;
 use tokio::time::sleep;
+
 #[derive(Default)]
 pub struct JobGenerator {
     verification: DetailJobGenerator,
@@ -79,11 +81,11 @@ impl DetailJobGenerator {
                     .await
                     .match_workers(&provider_plan.provider)
                     .unwrap_or(MatchedWorkers::default());
-                log::debug!(
-                    "Found workers {:?} for plan {:?}",
-                    &matched_workers,
-                    provider_plan
-                );
+                // log::debug!(
+                //     "Found workers {:?} for plan {:?}",
+                //     &matched_workers,
+                //     provider_plan
+                // );
                 for task in self.tasks.iter() {
                     if !task.can_apply(&provider_plan.provider) {
                         continue;
@@ -166,10 +168,14 @@ impl DetailJobGenerator {
         }
         log::debug!("Job assignment length {}", job_assignments.len());
         if job_assignments.len() > 0 {
+            self.job_service
+                .save_job_assignments(&job_assignments)
+                .await;
             self.assignments
                 .lock()
                 .await
                 .add_assignments(job_assignments);
+            //Store job assignments to db
         }
         if gen_jobs.len() > 0 {
             //Store jobs to db
@@ -233,7 +239,7 @@ impl DetailJobGenerator {
         // Get components in system
         let mut components = self.providers.lock().await.clone_nodes_list().await;
         components.append(&mut self.providers.lock().await.clone_gateways_list().await);
-        info!("components list: {:?}", components);
+        //debug!("components list: {:?}", components);
         // Read Schedule to check what schedule already init and generated
         let plans = self
             .plan_service
@@ -271,11 +277,11 @@ impl DetailJobGenerator {
                 .await
                 .match_workers(&component)
                 .unwrap_or(MatchedWorkers::default());
-            log::debug!(
-                "Found workers {:?} for component {:?}",
-                &matched_workers,
-                &component
-            );
+            // log::debug!(
+            //     "Found workers {:?} for component {:?}",
+            //     &matched_workers,
+            //     &component
+            // );
             let plan = plans.get(&*component.id).unwrap();
             let provider_plan = ProviderPlan {
                 provider: component,

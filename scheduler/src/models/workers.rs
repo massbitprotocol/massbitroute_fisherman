@@ -80,4 +80,7 @@ impl WorkerInfoStorage {
             best_workers: all_workers,
         })
     }
+    pub fn set_map_worker_provider(&mut self, map_providers: Vec<ProviderMapModel>) {
+        self.map_worker_provider = map_providers;
+    }
 }
