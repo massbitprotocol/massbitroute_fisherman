@@ -46,11 +46,11 @@ pub fn get_tasks(
     task_names: &Vec<String>,
 ) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
+    //Generic http request task
     if task_names.contains(&HttpRequestGenerator::get_name()) {
-        if let Ok(http_request) = HttpRequestGenerator::new(config_dir) {
-            result.push(Arc::new(http_request));
-        }
+        result.push(Arc::new(HttpRequestGenerator::new(config_dir)));
     }
+
     if task_names.contains(&BenchmarkGenerator::get_name()) {
         result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
     }

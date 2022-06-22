@@ -4,33 +4,51 @@
     "phase": ["verification", "regular"],
     "url_template": "",
     "method": "get",
+    "provider_types": ["*"],
+    "blockchains": ["*"],
+    "networks": ["*"],
+    "request_timeout": 1000,
     "headers": {},
     "repeat_number": 0,
-    "body": ""
+    "body": "",
+    "response" : {
+
+    }
   },
   "tasks": [
     {
-      "name": "ping",
+      "name": "RoundTripTime",
       "request_type": "http",
       "http_method": "get",
       "repeat_number": 10,
-      "url_template": "https://{{component_ip}}/_ping",
-      "condition" : "{{node_type}}=='node'&& blockchain=='eth'"
+      "url_template": "https://{{provider.ip}}/_rtt"
     },
     {
-      "name": "latest_block",
+      "name": "LatestBlock",
       "type": "rpc",
       "http_method": "post",
-      "url_template": "https://{{component_ip}}/",
-      "headers": {},
+      "url_template": "https://{{provider.ip}}/",
+      "provider_types": ["node"],
+      "blockchains": ["eth"],
+      "request_timeout": 5000,
+      "headers": {
+        "content-type":"application/json",
+        "X-Api-Key": "{{provider.appKey}}",
+        "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+      },
       "body": {
         "jsonrpc": "2.0",
         "method": "eth_getBlockByNumber",
-        "params": [
-          "latest",
-          true
-        ],
+        "params": ["latest",true],
         "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "hash": ["result", "hash"],
+          "number": ["result", "number"],
+          "timestamp": ["result", "timestamp"]
+        }
       }
     }
   ]

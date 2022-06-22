@@ -1,11 +1,13 @@
+use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
-use common::jobs::Job;
+use common::jobs::{Job, JobAssignment};
 use common::tasks::eth::{JobLatestBlock, LatestBlockConfig};
 use common::tasks::LoadConfig;
 use common::util::get_current_time;
+use common::workers::MatchedWorkers;
 use common::{Node, PlanId, Timestamp, DOMAIN};
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -64,5 +66,24 @@ impl TaskApplicant for LatestBlockGenerator {
         info!("job header: {:?}", job.header);
         let vec = vec![job];
         Ok(vec)
+    }
+    /*
+     * Todo: for testing send jobs to all worker, remote or update this function
+     */
+    fn assign_jobs(
+        &self,
+        plan: &PlanModel,
+        provider_node: &ComponentInfo,
+        jobs: &Vec<Job>,
+        workers: &MatchedWorkers,
+    ) -> Result<Vec<JobAssignment>, anyhow::Error> {
+        let mut assignments = Vec::default();
+        jobs.iter().enumerate().for_each(|(ind, job)| {
+            for worker in workers.best_workers.iter() {
+                let job_assignment = JobAssignment::new(worker.clone(), job);
+                assignments.push(job_assignment);
+            }
+        });
+        Ok(assignments)
     }
 }
