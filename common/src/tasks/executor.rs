@@ -19,14 +19,3 @@ pub trait TaskExecutor: Sync + Send {
     ) -> Result<(), anyhow::Error>;
     fn can_apply(&self, job: &Job) -> bool;
 }
-
-pub fn get_executors(worker_id: WorkerId, benchmark_wrk_path: &str) -> Vec<Arc<dyn TaskExecutor>> {
-    let mut result: Vec<Arc<dyn TaskExecutor>> = Default::default();
-    result.push(Arc::new(PingExecutor::new(worker_id.clone())));
-    result.push(Arc::new(BenchmarkExecutor::new(
-        worker_id.clone(),
-        benchmark_wrk_path,
-    )));
-    result.push(Arc::new(LatestBlockExecutor::new(worker_id.clone())));
-    result
-}

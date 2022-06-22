@@ -8,7 +8,6 @@ pub mod ping;
 pub mod rpc_request;
 use crate::job_manage::JobRole;
 use crate::Timestamp;
-pub use executor::get_executors;
 use log::{error, info};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
