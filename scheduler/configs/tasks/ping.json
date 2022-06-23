@@ -3,15 +3,18 @@
     "ping_error_percent_threshold": 95,
     "ping_percentile": 95,
     "ping_response_time_threshold": 300,
-    "ping_sample_number": 10,
+    "repeat_number": 10,
+    "interval": 1000,
     "ping_request_response": "pong",
     "ping_timeout_ms": 500
+
   },
-  "fisherman": {
+  "regular": {
     "ping_error_percent_threshold": 50,
     "ping_percentile": 95,
     "ping_response_time_threshold": 500,
-    "ping_sample_number": 10,
+    "repeat_number": 1000000000,
+    "interval": 5000,
     "ping_request_response": "pong",
     "ping_timeout_ms": 1000
   }

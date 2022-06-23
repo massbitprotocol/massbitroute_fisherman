@@ -1,7 +1,7 @@
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::ComponentInfo;
-use common::job_manage::{JobDetail, JobPing, JobResult};
+use common::job_manage::{JobDetail, JobPing, JobResultDetail};
 use common::jobs::Job;
 use common::models::PlanEntity;
 use common::{Node, PlanId};
@@ -27,6 +27,9 @@ impl TaskRandomBlock {
 }
 
 impl TaskApplicant for TaskRandomBlock {
+    fn get_name(&self) -> String {
+        String::from("RandomBlock")
+    }
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }

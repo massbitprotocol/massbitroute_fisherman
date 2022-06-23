@@ -3,7 +3,7 @@ use crate::{
     BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
     WORKER_ID,
 };
-use common::job_manage::JobResult;
+use common::job_manage::JobResultDetail;
 use common::jobs::Job;
 use common::tasks::executor::TaskExecutor;
 use common::tasks::get_executors;
@@ -20,7 +20,7 @@ use tokio::sync::Mutex;
  * For repeated jobs, after execution executor generate new job with new parameters and push back to JobBuffer
  */
 pub struct JobExecution {
-    result_sender: Sender<JobResult>,
+    result_sender: Sender<JobResultDetail>,
     job_sender: Sender<Job>,
     job_receiver: Receiver<Job>,
     job_buffers: Arc<Mutex<JobBuffer>>,
@@ -31,7 +31,7 @@ pub struct JobExecution {
 }
 
 impl JobExecution {
-    pub fn new(result_sender: Sender<JobResult>, job_buffers: Arc<Mutex<JobBuffer>>) -> Self {
+    pub fn new(result_sender: Sender<JobResultDetail>, job_buffers: Arc<Mutex<JobBuffer>>) -> Self {
         let executors = get_executors(WORKER_ID.as_str().to_string(), BENCHMARK_WRK_PATH.as_str());
         let (job_sender, mut job_receiver): (Sender<Job>, Receiver<Job>) = channel(1024);
 

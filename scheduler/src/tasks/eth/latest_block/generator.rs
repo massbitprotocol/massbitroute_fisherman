@@ -7,7 +7,7 @@ use common::tasks::eth::{JobLatestBlock, LatestBlockConfig};
 use common::tasks::LoadConfig;
 use common::util::get_current_time;
 use common::{Node, PlanId, Timestamp, DOMAIN};
-use log::info;
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -39,6 +39,10 @@ impl LatestBlockGenerator {
 }
 
 impl TaskApplicant for LatestBlockGenerator {
+    fn get_name(&self) -> String {
+        Self::get_name()
+    }
+
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         return component.component_type == ComponentType::Node;
     }
@@ -61,7 +65,9 @@ impl TaskApplicant for LatestBlockGenerator {
             "Host".to_string(),
             format!("{}.node.mbr.{}", node.id.clone(), *DOMAIN),
         );
-        info!("job header: {:?}", job.header);
+        job.interval = self.config.interval;
+        job.repeat_number = self.config.repeat_number as i32;
+        debug!("job header: {:?}", job.header);
         let vec = vec![job];
         Ok(vec)
     }

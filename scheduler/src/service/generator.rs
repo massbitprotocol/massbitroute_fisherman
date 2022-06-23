@@ -1,4 +1,5 @@
 use crate::models::component::ProviderPlan;
+use crate::models::job_result_cache::{JobResultCache, TaskName, TaskResultCache};
 use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
@@ -9,7 +10,7 @@ use crate::tasks::generator::{get_tasks, TaskApplicant};
 use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use anyhow::{anyhow, Error};
 use common::component::{ComponentInfo, Zone};
-use common::job_manage::JobRole;
+use common::job_manage::{JobDetail, JobResult, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
@@ -19,12 +20,12 @@ use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{task_spawn, ComponentId, WorkerId};
 use futures_util::future::join;
 use log::{debug, info, warn};
-use minifier::js::Keyword::Default;
 use sea_orm::sea_query::IndexType::Hash;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use slog::log;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+use std::default::Default;
 use std::mem::take;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -47,6 +48,7 @@ pub struct DetailJobGenerator {
     tasks: Vec<Arc<dyn TaskApplicant>>,
     job_service: Arc<JobService>,
     assignments: Arc<Mutex<AssignmentBuffer>>,
+    result_cache: Arc<Mutex<JobResultCache>>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct TaskConfig {
@@ -66,12 +68,14 @@ impl DetailJobGenerator {
     pub async fn generate_verification_jobs(&mut self) {
         let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
         let mut job_assignments = Vec::default();
+        // Get Nodes for verification
         let nodes = self
             .providers
             .lock()
             .await
             .pop_nodes_for_verifications()
             .await;
+
         if nodes.len() > 0 {
             log::debug!("Generate verification jobs for {} nodes", nodes.len());
             for provider_plan in nodes.iter() {
@@ -236,100 +240,131 @@ impl DetailJobGenerator {
     }
 
     pub async fn generate_regular_jobs(&mut self) -> Result<(), Error> {
-        // Get components in system
-        let mut components = self.providers.lock().await.clone_nodes_list().await;
-        components.append(&mut self.providers.lock().await.clone_gateways_list().await);
-        //debug!("components list: {:?}", components);
-        // Read Schedule to check what schedule already init and generated
-        let plans = self
-            .plan_service
-            .get_plan_models(&Some(JobRole::Regular), &vec![])
-            .await?;
-        // Convert Plan vec to hashmap
-        let mut plans: HashMap<ComponentId, PlanModel> = plans
-            .into_iter()
-            .map(|plan| (plan.provider_id.clone(), plan))
-            .collect();
-        log::debug!("Found plans {:?}", plans.len());
         let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
-        let mut job_assignments = Vec::default();
-        let mut new_plans: Vec<PlanEntity> = Vec::new();
-        for component in components.iter() {
-            // Init all the components that not init or generated
-            if !plans.contains_key(&component.id) {
-                log::debug!("Plan with provider id {:?} not found", &component.id);
-                let new_plan = PlanEntity::new(
-                    component.id.clone(),
-                    get_current_time(),
-                    JobRole::Regular.to_string(),
-                );
-                plans.insert(component.id.clone(), PlanModel::from(&new_plan));
-                new_plans.push(new_plan.clone());
+        let mut job_assignments = Vec::new();
+        let mut components;
+        {
+            components = self.providers.lock().await.clone_nodes_list().await;
+            components.append(&mut self.providers.lock().await.clone_gateways_list().await);
+            info!("components list: {:?}", components);
+        }
+
+        {
+            let mut cache = self.result_cache.lock().await;
+            info!("result_cache_map: {:#?}", cache.result_cache_map);
+
+            let task_names: HashMap<TaskName, TaskResultCache> = self
+                .tasks
+                .iter()
+                .map(|task| (task.get_name(), TaskResultCache::default()))
+                .collect();
+
+            for component in components.iter() {
+                let task_map = cache
+                    .result_cache_map
+                    .entry(component.id.clone())
+                    .or_insert(task_names.clone());
+
+                let provider_plan = Self::create_provider_plan(component);
+                self.update_gen_jobs_and_job_assignments(
+                    provider_plan,
+                    &mut gen_jobs,
+                    &mut job_assignments,
+                    task_map,
+                )
+                .await;
             }
         }
-        if !new_plans.is_empty() {
-            debug!("Store new_plans {}: {:?}", new_plans.len(), new_plans);
-            self.plan_service.store_plans(&new_plans).await;
-        }
-        for component in components {
-            let plan = plans.get(&*component.id).unwrap();
-            if PlanStatus::Init.to_string().as_str() != plan.status.as_str() {
-                continue;
-            }
-            let matched_workers = self
-                .worker_infos
+
+        info!(
+            "There is {} job_assignments: {:?}",
+            job_assignments.len(),
+            job_assignments
+        );
+        info!("There is {} gen_jobs: {:?}", gen_jobs.len(), gen_jobs);
+        if job_assignments.len() > 0 {
+            self.job_service
+                .save_job_assignments(&job_assignments)
+                .await;
+            self.assignments
                 .lock()
                 .await
-                .match_workers(&component)
-                .unwrap_or(MatchedWorkers::default());
-            // log::debug!(
-            //     "Found workers {:?} for component {:?}",
-            //     &matched_workers,
-            //     &component
-            // );
-
-            let provider_plan = ProviderPlan {
-                provider: component,
-                plan: plan.clone(),
-            };
-
-            // Generate job
-            for task in self.tasks.iter() {
-                if !task.can_apply(&provider_plan.provider) {
-                    continue;
-                }
-                let jobs = task.apply(&plan.plan_id, &provider_plan.provider);
-                if let Ok(jobs) = jobs {
-                    if jobs.is_empty() {
-                        continue;
-                    }
-                    if let Ok(mut assignments) = task.assign_jobs(
-                        &provider_plan.plan,
-                        &provider_plan.provider,
-                        &jobs,
-                        &matched_workers,
-                    ) {
-                        job_assignments.append(&mut assignments);
-                    }
-                    let entry = gen_jobs
-                        .entry(provider_plan.provider.zone.clone())
-                        .or_insert(Vec::new());
-                    entry.extend(jobs);
-                }
-            }
-            // Change plant status to
-            //plan.status = PlanStatus::Generated;
+                .add_assignments(job_assignments);
+            //Store job assignments to db
         }
-
-        //warn!("assign gen_jobs {}: {:?}", gen_jobs.len(), gen_jobs);
-        if !gen_jobs.is_empty() {
-            // Store job
-            match self.store_jobs(&gen_jobs).await {
-                Ok(_) => {}
-                Err(_) => {}
-            }
+        if gen_jobs.len() > 0 {
+            //Store jobs to db
+            self.store_jobs(&gen_jobs).await;
         }
         Ok(())
+    }
+
+    fn create_provider_plan(component: &ComponentInfo) -> ProviderPlan {
+        let plan_id = format!("{}-{}", JobRole::Regular.to_string(), component.id);
+        let plan = PlanModel {
+            id: Default::default(),
+            plan_id,
+            provider_id: component.id.clone(),
+            request_time: get_current_time(),
+            finish_time: None,
+            result: None,
+            message: None,
+            status: "generated".to_string(),
+            phase: JobRole::Regular.to_string(),
+        };
+        ProviderPlan::new(component.clone(), plan)
+    }
+
+    async fn update_gen_jobs_and_job_assignments(
+        &self,
+        provider_plan: ProviderPlan,
+        gen_jobs: &mut HashMap<Zone, Vec<Job>>,
+        job_assignments: &mut Vec<JobAssignment>,
+        task_map: &mut HashMap<TaskName, TaskResultCache>,
+    ) {
+        let matched_workers = self
+            .worker_infos
+            .lock()
+            .await
+            .match_workers(&provider_plan.provider)
+            .unwrap_or(MatchedWorkers::default());
+        for task in self.tasks.iter() {
+            if !task.can_apply(&provider_plan.provider) {
+                continue;
+            }
+            let task_name = task.get_name();
+            let task_result = task_map.get_mut(&*task_name).unwrap();
+            if !task_result.is_result_too_old() {
+                continue;
+            }
+
+            let mut applied_jobs = task
+                .apply(&provider_plan.plan.plan_id, &provider_plan.provider)
+                .unwrap_or(vec![]);
+
+            if applied_jobs.len() > 0 {
+                log::debug!(
+                    "Create {:?} regular jobs for {:?} {:?}",
+                    applied_jobs.len(),
+                    &provider_plan.provider.component_type,
+                    &provider_plan.provider.id
+                );
+                if let Ok(mut assignments) = task.assign_jobs(
+                    &provider_plan.plan,
+                    &provider_plan.provider,
+                    &applied_jobs,
+                    &matched_workers,
+                ) {
+                    job_assignments.append(&mut assignments);
+                }
+                gen_jobs
+                    .entry(provider_plan.provider.zone.clone())
+                    .or_insert(Vec::new())
+                    .append(&mut applied_jobs);
+            }
+
+            task_result.create_time = get_current_time();
+        }
     }
 }
 
@@ -341,6 +376,7 @@ impl JobGenerator {
         worker_infos: Arc<Mutex<WorkerInfoStorage>>,
         job_service: Arc<JobService>,
         assignments: Arc<Mutex<AssignmentBuffer>>,
+        result_cache: Arc<Mutex<JobResultCache>>,
     ) -> Self {
         //Load config
         let config_dir = CONFIG_DIR.as_str();
@@ -357,6 +393,7 @@ impl JobGenerator {
             tasks: get_tasks(config_dir, JobRole::Verification, &task_config.verification),
             job_service: job_service.clone(),
             assignments: assignments.clone(),
+            result_cache: result_cache.clone(),
         };
 
         let regular = DetailJobGenerator {
@@ -367,6 +404,7 @@ impl JobGenerator {
             tasks: get_tasks(config_dir, JobRole::Regular, &task_config.regular),
             job_service,
             assignments,
+            result_cache: result_cache.clone(),
         };
 
         JobGenerator {
@@ -400,7 +438,10 @@ impl JobGenerator {
                 info!("generate_regular_jobs result 1");
                 let res = regular.generate_regular_jobs().await;
                 info!("generate_regular_jobs result 2: {:?} ", res);
-                sleep(Duration::from_secs(CONFIG.regular_plan_generate_interval)).await;
+                sleep(Duration::from_secs(
+                    CONFIG.regular_plan_generate_interval as u64,
+                ))
+                .await;
             }
         });
 

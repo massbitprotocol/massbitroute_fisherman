@@ -50,6 +50,10 @@ struct RpcRequestConfig {
 impl LoadConfig<RpcRequestConfig> for RpcRequestConfig {}
 
 impl TaskApplicant for RpcRequestGenerator {
+    fn get_name(&self) -> String {
+        String::from("RpcRequest")
+    }
+
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }

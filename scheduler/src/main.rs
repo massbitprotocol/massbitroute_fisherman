@@ -20,6 +20,7 @@ use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
 use scheduler::{CONFIG, DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
 
+use scheduler::models::job_result_cache::JobResultCache;
 use scheduler::persistence::services::job_result_service::JobResultService;
 use scheduler::persistence::services::plan_service::PlanService;
 use scheduler::persistence::services::provider_service::ProviderService;
@@ -68,10 +69,12 @@ async fn main() {
 
     let scheduler_service = SchedulerServiceBuilder::default().build();
     let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
+    let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
     let processor_service = ProcessorServiceBuilder::default()
         .with_plan_service(plan_service.clone())
         .with_result_service(result_service)
         .with_job_service(job_service.clone())
+        .with_result_cache(result_cache.clone())
         .build();
     let access_control = AccessControl::default();
     //let (tx, mut rx) = mpsc::channel(1024);
@@ -90,6 +93,7 @@ async fn main() {
         worker_infos.clone(),
         job_service,
         assigment_buffer.clone(),
+        result_cache.clone(),
     );
     let scheduler_state = SchedulerState::new(
         arc_conn.clone(),
@@ -106,7 +110,7 @@ async fn main() {
     let task_job_generator = task::spawn(async move { job_generator.run().await });
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
 
-    let processor_state = ProcessorState::new(arc_conn.clone());
+    let processor_state = ProcessorState::new(arc_conn.clone(), result_cache.clone());
     info!("Init http service ");
     let server = ServerBuilder::default()
         .with_entry_point(socket_addr)

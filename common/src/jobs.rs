@@ -1,5 +1,5 @@
 use crate::component::{ComponentType, Zone};
-use crate::job_manage::{JobDetail, JobResult};
+use crate::job_manage::{JobDetail, JobResultDetail};
 use crate::workers::{Worker, WorkerInfo};
 use crate::{
     ComponentId, ComponentInfo, JobId, Timestamp, Url, DEFAULT_JOB_INTERVAL, DEFAULT_JOB_TIMEOUT,
@@ -79,7 +79,7 @@ pub struct JobAssignment {
     pub status: JobStatus,
     pub assigned_at: u64, //Timestamp to assign job
     pub finished_at: u64, //Timestamp when result has arrived
-    pub result: Option<JobResult>,
+    pub result: Option<JobResultDetail>,
 }
 
 impl JobAssignment {

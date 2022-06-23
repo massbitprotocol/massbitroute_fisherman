@@ -18,7 +18,7 @@ pub async fn get_sea_db_connection(url: &str) -> Result<DatabaseConnection, DbEr
         .connect_timeout(Duration::from_secs(8))
         .idle_timeout(Duration::from_secs(8))
         .max_lifetime(Duration::from_secs(8))
-        .sqlx_logging(false);
+        .sqlx_logging(false); // Enable logging sqlx
 
     Database::connect(opt).await
 }

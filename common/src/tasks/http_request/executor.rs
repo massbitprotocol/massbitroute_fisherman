@@ -1,4 +1,4 @@
-use crate::job_manage::JobResult;
+use crate::job_manage::JobResultDetail;
 use crate::jobs::Job;
 use crate::logger::helper::message;
 use crate::task_spawn;
@@ -61,7 +61,11 @@ impl RpcRequestExecutor {
 
 #[async_trait]
 impl TaskExecutor for RpcRequestExecutor {
-    async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
+    async fn execute(
+        &self,
+        job: &Job,
+        result_sender: Sender<JobResultDetail>,
+    ) -> Result<(), Error> {
         debug!("TaskPing execute for job {:?}", &job);
         let res = self.call_ping(job).await;
         let response = match res {
@@ -74,7 +78,9 @@ impl TaskExecutor for RpcRequestExecutor {
             //response_timestamp: get_current_time(),
             response,
         };
-        let res = result_sender.send(JobResult::RpcRequest(result)).await;
+        let res = result_sender
+            .send(JobResultDetail::RpcRequest(result))
+            .await;
         debug!("send res: {:?}", res);
         Ok(())
     }

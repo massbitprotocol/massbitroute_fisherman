@@ -49,6 +49,9 @@ impl BenchmarkGenerator {
     }
 }
 impl TaskApplicant for BenchmarkGenerator {
+    fn get_name(&self) -> String {
+        String::from("Benchmark")
+    }
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }
