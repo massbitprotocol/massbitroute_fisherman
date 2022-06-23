@@ -1,5 +1,5 @@
 use crate::job_manage::{JobDetail, JobResultDetail};
-use crate::jobs::Job;
+use crate::jobs::{Job, JobResult};
 use crate::logger::helper::message;
 use crate::tasks::eth::{CallLatestBlockError, JobLatestBlockResult, LatestBlockResponse};
 use crate::tasks::executor::TaskExecutor;
@@ -163,11 +163,7 @@ impl LatestBlockExecutor {
 
 #[async_trait]
 impl TaskExecutor for LatestBlockExecutor {
-    async fn execute(
-        &self,
-        job: &Job,
-        result_sender: Sender<JobResultDetail>,
-    ) -> Result<(), Error> {
+    async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         let job_detail = match job
             .job_detail
             .as_ref()
@@ -196,7 +192,9 @@ impl TaskExecutor for LatestBlockExecutor {
             execution_timestamp,
         };
         let res = result_sender
-            .send(JobResultDetail::LatestBlock(latest_block_result))
+            .send(JobResult::new(JobResultDetail::LatestBlock(
+                latest_block_result,
+            )))
             .await;
         info!("send res: {:?}", res);
 

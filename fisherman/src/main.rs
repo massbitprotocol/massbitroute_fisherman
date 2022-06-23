@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Error};
 use common::job_manage::JobResultDetail;
+use common::jobs::JobResult;
 use common::logger::init_logger;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
 use std::collections::HashMap;
@@ -41,8 +42,7 @@ async fn main() {
             "Successfully register worker {}, report_callback: {}",
             &worker_id, report_callback
         );
-        let (sender, mut receiver): (Sender<JobResultDetail>, Receiver<JobResultDetail>) =
-            channel(1024);
+        let (sender, mut receiver): (Sender<JobResult>, Receiver<JobResult>) = channel(1024);
         let job_buffer = Arc::new(Mutex::new(JobBuffer::new()));
         let mut reporter = JobResultReporter::new(receiver, report_callback);
 

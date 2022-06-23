@@ -1,8 +1,10 @@
 use crate::component::{ComponentType, Zone};
-use crate::job_manage::{JobDetail, JobResultDetail};
+use crate::job_manage::{JobDetail, JobResultDetail, JobRole};
+use crate::util::get_current_time;
 use crate::workers::{Worker, WorkerInfo};
 use crate::{
-    ComponentId, ComponentInfo, JobId, Timestamp, Url, DEFAULT_JOB_INTERVAL, DEFAULT_JOB_TIMEOUT,
+    ComponentId, ComponentInfo, JobId, Timestamp, Url, WorkerId, DEFAULT_JOB_INTERVAL,
+    DEFAULT_JOB_TIMEOUT,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -79,7 +81,7 @@ pub struct JobAssignment {
     pub status: JobStatus,
     pub assigned_at: u64, //Timestamp to assign job
     pub finished_at: u64, //Timestamp when result has arrived
-    pub result: Option<JobResultDetail>,
+    pub result: Option<JobResult>,
 }
 
 impl JobAssignment {
@@ -92,6 +94,32 @@ impl JobAssignment {
             assigned_at: 0,
             finished_at: 0,
             result: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct JobResult {
+    pub job_id: String,
+    pub worker_id: WorkerId,
+    pub provider_id: ComponentId,
+    pub provider_type: ComponentType,
+    pub phase: JobRole,
+    pub result_detail: JobResultDetail,
+    pub receive_timestamp: Timestamp, //time the worker received result
+}
+
+impl JobResult {
+    pub fn new(result_detail: JobResultDetail) -> JobResult {
+        let receive_timestamp = get_current_time();
+        JobResult {
+            job_id: "".to_string(),
+            worker_id: "".to_string(),
+            provider_id: "".to_string(),
+            provider_type: Default::default(),
+            phase: Default::default(),
+            result_detail,
+            receive_timestamp,
         }
     }
 }

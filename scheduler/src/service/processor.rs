@@ -5,8 +5,8 @@ use crate::service::judgment::{get_report_judgments, JudgmentsResult, PingJudgme
 use crate::service::report_portal::StoreReport;
 use crate::state::ProcessorState;
 use crate::{CONFIG, PORTAL_AUTHORIZATION};
-use common::job_manage::{JobResult, JobResultDetail, JobRole};
-use common::jobs::Job;
+use common::job_manage::{JobResultDetail, JobRole};
+use common::jobs::{Job, JobResult};
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
 use common::DOMAIN;
@@ -34,23 +34,24 @@ impl ProcessorService {
     }
     pub async fn process_report(
         &self,
-        job_result_details: Vec<JobResultDetail>,
+        results: Vec<JobResult>,
         state: Arc<Mutex<ProcessorState>>,
     ) -> Result<impl Reply, Rejection> {
-        info!("Handle report from worker {:?}", &job_result_details);
-        if job_result_details.len() > 0 {
+        if results.len() > 0 {
+            let worker_id = results.get(0).unwrap().worker_id.clone();
+            info!(
+                "Handle report from worker {:?} with {} details",
+                &worker_id,
+                results.len()
+            );
             let plan_ids = Vec::from_iter(
-                job_result_details
+                results
                     .iter()
-                    .map(|res| res.get_plan_id())
+                    .map(|res| res.result_detail.get_plan_id())
                     .collect::<HashSet<String>>(),
             );
             //Store results to persistence storage: csv file, sql db, monitor system v.v...
-            let job_results = job_result_details
-                .into_iter()
-                .map(|jrd| JobResult::new(jrd, get_current_time()))
-                .collect();
-            state.lock().await.process_results(&job_results).await;
+            state.lock().await.process_results(&results).await;
 
             if let (Ok(plans), Ok(all_jobs)) = (
                 self.plan_service.get_plan_by_ids(&plan_ids).await,

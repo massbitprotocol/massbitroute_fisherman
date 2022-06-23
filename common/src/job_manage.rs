@@ -128,21 +128,6 @@ impl JobDetail {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct JobResult {
-    pub result_detail: JobResultDetail,
-    pub receive_timestamp: Timestamp,
-}
-
-impl JobResult {
-    pub fn new(result_detail: JobResultDetail, receive_timestamp: Timestamp) -> JobResult {
-        JobResult {
-            result_detail,
-            receive_timestamp,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum JobResultDetail {
     HttpRequest(JobHttpResult),
     RpcRequest(JobRpcResult),

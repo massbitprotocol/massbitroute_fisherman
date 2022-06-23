@@ -14,6 +14,7 @@ use warp::http::{HeaderMap, Method};
 
 use crate::service::{ProcessorService, WebService};
 use common::component::ComponentInfo;
+use common::jobs::JobResult;
 use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
@@ -215,7 +216,7 @@ impl SchedulerServer {
             .and(SchedulerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |job_results: Vec<JobResultDetail>| {
+            .and_then(move |job_results: Vec<JobResult>| {
                 info!("#### Received reports request body {:?} ####", &job_results);
                 let clone_service = service.clone();
                 let clone_state = state.clone();
