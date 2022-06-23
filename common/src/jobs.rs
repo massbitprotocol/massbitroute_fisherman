@@ -101,6 +101,7 @@ impl JobAssignment {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobResult {
     pub job_id: String,
+    pub job_name: String,
     pub worker_id: WorkerId,
     pub provider_id: ComponentId,
     pub provider_type: ComponentType,
@@ -115,6 +116,7 @@ impl JobResult {
         let receive_timestamp = get_current_time();
         JobResult {
             job_id: "".to_string(),
+            job_name: "".to_string(),
             worker_id: "".to_string(),
             provider_id: "".to_string(),
             provider_type: Default::default(),

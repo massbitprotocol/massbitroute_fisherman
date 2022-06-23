@@ -3,6 +3,7 @@ use crate::report_processors::adapters::Appender;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::JobBenchmarkResult;
+use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
 use common::tasks::ping::JobPingResult;
@@ -50,13 +51,12 @@ impl Appender for PostgresAppender {
     }
     async fn append_http_request_results(
         &self,
-        results: &Vec<JobHttpResult>,
+        results: &Vec<JobResult>,
     ) -> Result<(), anyhow::Error> {
-        // log::debug!("PostgresAppender append benchmark results");
-        // self.job_result_service
-        //     .save_result_http_requests(&results)
-        //     .await;
-        todo!();
+        log::debug!("PostgresAppender append benchmark results");
+        self.job_result_service
+            .save_result_http_requests(&results)
+            .await;
         Ok(())
     }
 }

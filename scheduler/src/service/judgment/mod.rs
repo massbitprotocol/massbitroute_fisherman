@@ -13,7 +13,7 @@ pub use ping_judg::PingJudgment;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-use common::jobs::Job;
+use common::jobs::{Job, JobResult};
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -37,12 +37,21 @@ impl JudgmentsResult {
 #[async_trait]
 pub trait ReportCheck: Sync + Send + Debug {
     fn can_apply(&self, job: &Job) -> bool;
+    fn can_apply_for_result(&self, job_name: &String) -> bool {
+        false
+    }
     /*
      * result > 0 result is looked good
      * result = 0 job is not finished
      * result < 0 something is bad
      */
     async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, anyhow::Error>;
+    async fn apply_for_results(
+        &self,
+        result: &Vec<JobResult>,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        Ok(JudgmentsResult::Error)
+    }
 }
 
 pub fn get_report_judgments(
