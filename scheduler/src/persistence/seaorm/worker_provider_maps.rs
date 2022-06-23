@@ -3,7 +3,7 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "worker_provider_connections")]
+#[sea_orm(table_name = "worker_provider_maps")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,

@@ -73,7 +73,9 @@ impl ReportProcessor for GenericReportProcessor {
                 adapter.append_benchmark_results(&benchmark_results).await;
             }
             if http_request_results.len() > 0 {
-                adapter.append_http_results(&http_request_results).await;
+                adapter
+                    .append_http_request_results(&http_request_results)
+                    .await;
             }
         }
         Ok(stored_results)

@@ -1,24 +1,27 @@
 use crate::persistence::seaorm::{
-    job_assignments, job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs,
-    plans, workers,
+    job_assignments, job_result_benchmarks, job_result_http_requests, job_result_latest_blocks,
+    job_result_pings, jobs, plans, workers,
 };
 use crate::persistence::PlanModel;
-use common::component::ComponentType;
-use common::job_manage::{JobBenchmarkResult, JobDetail};
-use common::jobs::{Job, JobAssignment};
+use common::component::{ChainInfo, ComponentType};
+use common::job_manage::{JobBenchmarkResult, JobDetail, JobResultDetail};
+use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
+use common::tasks::http_request::JobHttpResult;
 use common::tasks::ping::JobPingResult;
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
 use core::default::Default;
 use diesel::expression::array_comparison::In;
 use log::debug;
+use sea_orm::sea_query::ConditionHolderContents::Chain;
 use sea_orm::ActiveValue::Set;
 use sea_orm::NotSet;
 use serde_json::{Error, Value};
 use std::collections::HashMap;
 use std::str::FromStr;
+use warp::header::value;
 
 impl From<&WorkerInfo> for workers::ActiveModel {
     fn from(worker: &WorkerInfo) -> Self {
@@ -264,6 +267,38 @@ impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
             execution_timestamp: Set(result.execution_timestamp as i64),
             block_hash: Set(result.response.block_hash.to_owned()),
             ..Default::default()
+        }
+    }
+}
+
+impl From<&JobResult> for job_result_http_requests::ActiveModel {
+    fn from(job_result: &JobResult) -> Self {
+        let mut result = &Default::default();
+        if let JobResultDetail::HttpRequest(_result) = &job_result.result_detail {
+            result = _result;
+        }
+
+        let values = serde_json::to_value(result.response.detail.to_owned()).unwrap_or_default();
+        job_result_http_requests::ActiveModel {
+            id: NotSet,
+            job_id: Set(result.job.job_id.to_owned()),
+            job_name: Set(result.job.job_name.to_owned()),
+            plan_id: Set(result.job.plan_id.to_string()),
+            worker_id: Set(job_result.worker_id.to_owned()),
+            provider_id: Set(result.job.component_id.to_owned()),
+            provider_type: Set(result.job.component_type.to_string()),
+            execution_timestamp: Set(job_result.receive_timestamp),
+            chain_id: Set(job_result
+                .chain_info
+                .as_ref()
+                .unwrap_or(&ChainInfo::default())
+                .chain_id()
+                .clone()),
+            http_code: Set(result.response.http_code as i32),
+            error_code: Set(result.response.error_code as i32),
+            message: Set(result.response.message.to_string()),
+            values: Set(values),
+            response_time: Set(result.response.response_time),
         }
     }
 }

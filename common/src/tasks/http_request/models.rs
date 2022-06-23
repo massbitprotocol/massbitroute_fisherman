@@ -48,7 +48,7 @@ impl JobHttpResponse {
         }
     }
 }
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct JobHttpResult {
     pub job: Job,
     pub response: JobHttpResponse,

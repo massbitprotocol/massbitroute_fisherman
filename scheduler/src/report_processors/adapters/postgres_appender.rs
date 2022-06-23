@@ -4,10 +4,12 @@ use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::JobBenchmarkResult;
 use common::tasks::eth::JobLatestBlockResult;
+use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
 use common::tasks::ping::JobPingResult;
 use sea_orm::DatabaseConnection;
 use serde_json::{Map, Value};
 use std::sync::Arc;
+
 pub struct PostgresAppender {
     job_result_service: JobResultService,
 }
@@ -44,6 +46,16 @@ impl Appender for PostgresAppender {
         self.job_result_service
             .save_result_benchmarks(&results)
             .await;
+        Ok(())
+    }
+    async fn append_http_request_results(
+        &self,
+        results: &Vec<JobHttpResult>,
+    ) -> Result<(), anyhow::Error> {
+        // log::debug!("PostgresAppender append benchmark results");
+        // self.job_result_service
+        //     .save_result_http_requests(&results)
+        //     .await;
         Ok(())
     }
 }

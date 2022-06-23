@@ -1,13 +1,15 @@
 use crate::persistence::seaorm::job_result_pings::Model as ResultPingModel;
 use crate::persistence::seaorm::jobs::Model;
 use crate::persistence::seaorm::{
-    job_result_benchmarks, job_result_latest_blocks, job_result_pings, jobs,
+    job_result_benchmarks, job_result_http_requests, job_result_latest_blocks, job_result_pings,
+    jobs,
 };
 use anyhow::anyhow;
 use common::component::{ChainInfo, Zone};
 use common::job_manage::{BenchmarkResponse, JobBenchmarkResult};
-use common::jobs::Job;
+use common::jobs::{Job, JobResult};
 use common::tasks::eth::{JobLatestBlockResult, LatestBlockResponse};
+use common::tasks::http_request::JobHttpResult;
 use common::tasks::ping::JobPingResult;
 use common::workers::WorkerInfo;
 use log::{debug, error, log};
@@ -131,6 +133,33 @@ impl JobResultService {
             }
         }
     }
+
+    pub async fn save_result_http_requests(
+        &self,
+        vec_results: &Vec<JobResult>,
+    ) -> Result<usize, anyhow::Error> {
+        let records = vec_results
+            .iter()
+            .map(|job| job_result_http_requests::ActiveModel::from(job))
+            .collect::<Vec<job_result_http_requests::ActiveModel>>();
+        let length = records.len();
+        debug!("Save job_result_http_requests with {:?} records", records);
+
+        match job_result_http_requests::Entity::insert_many(records)
+            .exec(self.db.as_ref())
+            .await
+        {
+            Ok(res) => {
+                log::debug!("Insert many records {:?}", length);
+                Ok(res.last_insert_id as usize)
+            }
+            Err(err) => {
+                log::debug!("Error {:?}", &err);
+                Err(anyhow!("{:?}", &err))
+            }
+        }
+    }
+
     pub async fn get_result_ping_by_job_ids(
         &self,
         job_ids: &Vec<String>,
@@ -182,6 +211,29 @@ impl JobResultService {
             Err(err) => Err(anyhow!("{:?}", &err)),
         }
     }
+
+    // pub async fn get_result_http_requests(&self, job_id: &str) -> Result<(Vec<i64>, i64), anyhow::Error> {
+    //     match job_result_pings::Entity::find()
+    //         .filter(job_result_pings::Column::JobId.eq(job_id.to_owned()))
+    //         .all(self.db.as_ref())
+    //         .await
+    //     {
+    //         Ok(results) => results
+    //             .get(0)
+    //             .and_then(|model| {
+    //                 let response_times: serde_json::Value = model.response_times.clone();
+    //                 let values = response_times
+    //                     .as_array()
+    //                     .unwrap()
+    //                     .iter()
+    //                     .map(|val| val.as_i64().unwrap())
+    //                     .collect::<Vec<i64>>();
+    //                 Some((values, model.error_number))
+    //             })
+    //             .ok_or(anyhow!("Result not found for job {:?}", job_id)),
+    //         Err(err) => Err(anyhow!("{:?}", &err)),
+    //     }
+    // }
 
     pub async fn save_result_benchmarks(
         &self,

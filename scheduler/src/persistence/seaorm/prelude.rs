@@ -2,10 +2,11 @@
 
 pub use super::job_assignments::Entity as JobAssignments;
 pub use super::job_result_benchmarks::Entity as JobResultBenchmarks;
+pub use super::job_result_http_requests::Entity as JobResultHttpRequests;
 pub use super::job_result_latest_blocks::Entity as JobResultLatestBlocks;
 pub use super::job_result_pings::Entity as JobResultPings;
 pub use super::jobs::Entity as Jobs;
 pub use super::plans::Entity as Plans;
 pub use super::providers::Entity as Providers;
-pub use super::worker_provider_maps::Entity as WorkerProviderConnections;
+pub use super::worker_provider_maps::Entity as WorkerProviderMaps;
 pub use super::workers::Entity as Workers;
