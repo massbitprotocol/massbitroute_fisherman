@@ -1,7 +1,8 @@
 use crate::models::job_result::StoredJobResult;
 use crate::models::job_result_cache::JobResultCache;
 use crate::report_processors::{get_report_processors, ReportProcessor};
-use common::job_manage::{JobResult, JobResultDetail};
+use common::job_manage::JobResultDetail;
+use common::jobs::JobResult;
 use diesel::PgArrayExpressionMethods;
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;

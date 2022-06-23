@@ -4,6 +4,7 @@ use crate::report_processors::adapters::providers_map_appender::ProvidersMapAdap
 use async_trait::async_trait;
 use common::job_manage::JobBenchmarkResult;
 use common::tasks::eth::JobLatestBlockResult;
+use common::tasks::http_request::JobHttpResult;
 use common::tasks::ping::JobPingResult;
 use sea_orm::DatabaseConnection;
 use serde_json::{Map, Value};
@@ -37,6 +38,9 @@ pub trait Appender: Sync + Send {
         &self,
         result: &Vec<JobBenchmarkResult>,
     ) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
+    async fn append_http_results(&self, result: &Vec<JobHttpResult>) -> Result<(), anyhow::Error> {
         Ok(())
     }
 }
