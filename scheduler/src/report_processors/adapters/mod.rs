@@ -13,6 +13,7 @@ use std::sync::Arc;
 pub mod csv_appender;
 pub mod postgres_appender;
 pub mod providers_map_appender;
+pub mod result_cache_appender;
 
 #[async_trait]
 pub trait Appender: Sync + Send {

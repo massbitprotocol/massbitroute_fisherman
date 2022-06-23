@@ -1,11 +1,13 @@
+use crate::models::job_result_cache::JobResultCache;
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::service::judgment::main_judg::MainJudgment;
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, PingJudgment, ReportCheck};
 use crate::service::report_portal::StoreReport;
 use crate::state::ProcessorState;
 use crate::{CONFIG, PORTAL_AUTHORIZATION};
-use common::job_manage::{JobResult, JobRole};
+use common::job_manage::{JobResult, JobResultDetail, JobRole};
 use common::jobs::Job;
+use common::util::get_current_time;
 use common::workers::WorkerInfo;
 use common::DOMAIN;
 use log::{debug, info};
@@ -32,18 +34,22 @@ impl ProcessorService {
     }
     pub async fn process_report(
         &self,
-        job_results: Vec<JobResult>,
+        job_result_details: Vec<JobResultDetail>,
         state: Arc<Mutex<ProcessorState>>,
     ) -> Result<impl Reply, Rejection> {
-        info!("Handle report from worker {:?}", &job_results);
-        if job_results.len() > 0 {
+        info!("Handle report from worker {:?}", &job_result_details);
+        if job_result_details.len() > 0 {
             let plan_ids = Vec::from_iter(
-                job_results
+                job_result_details
                     .iter()
                     .map(|res| res.get_plan_id())
                     .collect::<HashSet<String>>(),
             );
             //Store results to persistence storage: csv file, sql db, monitor system v.v...
+            let job_results = job_result_details
+                .into_iter()
+                .map(|jrd| JobResult::new(jrd, get_current_time()))
+                .collect();
             state.lock().await.process_results(&job_results).await;
 
             if let (Ok(plans), Ok(all_jobs)) = (
@@ -145,6 +151,7 @@ pub struct ProcessorServiceBuilder {
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
     result_service: Arc<JobResultService>,
+    result_cache: Arc<Mutex<JobResultCache>>,
 }
 
 impl ProcessorServiceBuilder {
@@ -158,6 +165,10 @@ impl ProcessorServiceBuilder {
     }
     pub fn with_result_service(mut self, result_service: Arc<JobResultService>) -> Self {
         self.result_service = result_service;
+        self
+    }
+    pub fn with_result_cache(mut self, result_cache: Arc<Mutex<JobResultCache>>) -> Self {
+        self.result_cache = result_cache;
         self
     }
 

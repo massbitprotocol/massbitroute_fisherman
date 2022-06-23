@@ -1,14 +1,16 @@
+use common::Timestamp;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub checking_component_status: String,
 
-    pub check_ping_pong_interval: u64,
-    pub check_logic_interval: u64,
-    pub check_benchmark_interval: u64,
-    pub update_provider_list_interval: u64,
-    pub regular_plan_generate_interval: u64,
+    pub check_ping_pong_interval: Timestamp,
+    pub check_logic_interval: Timestamp,
+    pub check_benchmark_interval: Timestamp,
+    pub update_provider_list_interval: Timestamp,
+    pub regular_plan_generate_interval: Timestamp,
+    pub generate_new_regular_timeout: Timestamp,
     pub is_test_mode: bool,
 }
 

@@ -16,8 +16,6 @@ use std::fmt::Debug;
 use std::iter::Map;
 
 const DEFAULT_KEY: &str = "default";
-const VERIFICATION_KEY: &str = "verification";
-const FISHERMAN_KEY: &str = "fisherman";
 
 pub trait LoadConfig<T: DeserializeOwned + Default + Debug> {
     fn load_config(path: &str, role: &JobRole) -> T {

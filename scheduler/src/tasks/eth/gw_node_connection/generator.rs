@@ -14,8 +14,9 @@ pub struct TaskGWNodeConnection {
 }
 impl TaskGWNodeConnection {
     pub fn get_name() -> String {
-        String::from("GatewayNodeConnection")
+        String::from("TaskGWNode")
     }
+
     pub fn new() -> Self {
         TaskGWNodeConnection {
             list_nodes: vec![],
@@ -24,6 +25,9 @@ impl TaskGWNodeConnection {
     }
 }
 impl TaskApplicant for TaskGWNodeConnection {
+    fn get_name(&self) -> String {
+        Self::get_name()
+    }
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }

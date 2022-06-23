@@ -31,6 +31,10 @@ pub struct LatestBlockConfig {
     pub latest_block_timeout_ms: Timestamp,
     #[serde(default)]
     pub late_duration_threshold_ms: i64,
+    #[serde(default)]
+    pub repeat_number: i32,
+    #[serde(default)]
+    pub interval: Timestamp,
 }
 impl LoadConfig<LatestBlockConfig> for LatestBlockConfig {}
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]

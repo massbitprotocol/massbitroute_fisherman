@@ -1,5 +1,5 @@
 use common::component::Zone;
-use common::job_manage::JobResult;
+use common::job_manage::JobResultDetail;
 use common::jobs::JobAssignment;
 use common::workers::Worker;
 use common::workers::WorkerInfo;

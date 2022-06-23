@@ -1,4 +1,4 @@
-use crate::job_manage::JobResult;
+use crate::job_manage::JobResultDetail;
 use crate::jobs::Job;
 use crate::tasks::eth::benchmark::executor::BenchmarkExecutor;
 use crate::tasks::eth::latest_block::executor::LatestBlockExecutor;
@@ -15,7 +15,7 @@ pub trait TaskExecutor: Sync + Send {
     async fn execute(
         &self,
         job: &Job,
-        result_sender: Sender<JobResult>,
+        result_sender: Sender<JobResultDetail>,
     ) -> Result<(), anyhow::Error>;
     fn can_apply(&self, job: &Job) -> bool;
 }

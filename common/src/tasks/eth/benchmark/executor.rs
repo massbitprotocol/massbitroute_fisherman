@@ -1,5 +1,5 @@
 use crate::job_manage::{
-    BenchmarkResponse, JobBenchmark, JobBenchmarkResult, JobDetail, JobResult,
+    BenchmarkResponse, JobBenchmark, JobBenchmarkResult, JobDetail, JobResultDetail,
 };
 use crate::jobs::Job;
 use crate::logger::helper::message;
@@ -241,7 +241,11 @@ impl BenchmarkExecutor {
 
 #[async_trait]
 impl TaskExecutor for BenchmarkExecutor {
-    async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
+    async fn execute(
+        &self,
+        job: &Job,
+        result_sender: Sender<JobResultDetail>,
+    ) -> Result<(), Error> {
         debug!("TaskBenchmark execute for job {:?}", &job);
         let res = self.call_benchmark(job).await;
         let response = match res {
@@ -257,7 +261,7 @@ impl TaskExecutor for BenchmarkExecutor {
             response_timestamp: current_time,
             response,
         };
-        let res = result_sender.send(JobResult::Benchmark(result)).await;
+        let res = result_sender.send(JobResultDetail::Benchmark(result)).await;
         debug!("send res: {:?}", res);
 
         Ok(())

@@ -1,6 +1,6 @@
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{JobDetail, JobResult};
+use common::job_manage::{JobDetail, JobResult, JobResultDetail};
 use common::jobs::Job;
 use common::logger::helper::message;
 use common::tasks::executor::TaskExecutor;
@@ -151,7 +151,11 @@ impl HttpRequestExecutor {
 
 #[async_trait]
 impl TaskExecutor for HttpRequestExecutor {
-    async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
+    async fn execute(
+        &self,
+        job: &Job,
+        result_sender: Sender<JobResultDetail>,
+    ) -> Result<(), Error> {
         debug!("HttpRequestExecutor execute job {:?}", &job);
         let res = self.call_http_request(job).await;
         let response = match res {
@@ -164,7 +168,9 @@ impl TaskExecutor for HttpRequestExecutor {
             //response_timestamp: get_current_time(),
             response,
         };
-        let res = result_sender.send(JobResult::HttpRequest(result)).await;
+        let res = result_sender
+            .send(JobResultDetail::HttpRequest(result))
+            .await;
         debug!("send res: {:?}", res);
         Ok(())
     }

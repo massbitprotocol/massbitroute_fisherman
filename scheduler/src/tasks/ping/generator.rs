@@ -2,6 +2,7 @@ use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobDetail, JobPing, JobRole};
 use common::tasks::LoadConfig;
+use std::str::FromStr;
 
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
@@ -46,7 +47,7 @@ pub struct PingConfig {
     #[serde(default)]
     pub ping_response_time_threshold: u64,
     #[serde(default)]
-    pub ping_sample_number: i32,
+    pub repeat_number: i32,
     #[serde(default)]
     pub ping_request_response: String,
     #[serde(default)]
@@ -56,6 +57,9 @@ pub struct PingConfig {
 impl LoadConfig<PingConfig> for PingConfig {}
 
 impl TaskApplicant for PingGenerator {
+    fn get_name(&self) -> String {
+        String::from("Ping")
+    }
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }
@@ -68,7 +72,7 @@ impl TaskApplicant for PingGenerator {
         job.parallelable = true;
         job.component_url = self.get_url(component);
         job.timeout = self.config.ping_timeout_ms;
-        job.repeat_number = self.config.ping_sample_number;
+        job.repeat_number = self.config.repeat_number;
         let vec = vec![job];
         Ok(vec)
     }
@@ -79,13 +83,29 @@ impl TaskApplicant for PingGenerator {
         jobs: &Vec<Job>,
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
+        let phase = JobRole::from_str(plan.phase.as_str())?;
         let mut assignments = Vec::default();
-        jobs.iter().enumerate().for_each(|(ind, job)| {
-            for worker in workers.best_workers.iter() {
-                let job_assignment = JobAssignment::new(worker.clone(), job);
-                assignments.push(job_assignment);
+        match phase {
+            JobRole::Verification => {
+                jobs.iter().enumerate().for_each(|(ind, job)| {
+                    for worker in workers.best_workers.iter() {
+                        let job_assignment = JobAssignment::new(worker.clone(), job);
+                        assignments.push(job_assignment);
+                    }
+                });
             }
-        });
+            JobRole::Regular => {
+                let worker_count = workers.nearby_workers.len();
+                if worker_count > 0 {
+                    jobs.iter().enumerate().for_each(|(ind, job)| {
+                        let wind = ind % worker_count;
+                        let worker: &Arc<Worker> = workers.nearby_workers.get(wind).unwrap();
+                        let job_assignment = JobAssignment::new(worker.clone(), job);
+                        assignments.push(job_assignment);
+                    });
+                }
+            }
+        }
         Ok(assignments)
     }
 }

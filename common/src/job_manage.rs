@@ -18,6 +18,7 @@ use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult
 use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
 use crate::tasks::ping::{CallPingError, JobPingResult};
 use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
+use crate::util::get_current_time;
 use crate::{component, BlockChainType, ComponentId, JobId, NetworkType, Timestamp, WorkerId};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
@@ -127,7 +128,22 @@ impl JobDetail {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub enum JobResult {
+pub struct JobResult {
+    pub result_detail: JobResultDetail,
+    pub receive_timestamp: Timestamp,
+}
+
+impl JobResult {
+    pub fn new(result_detail: JobResultDetail, receive_timestamp: Timestamp) -> JobResult {
+        JobResult {
+            result_detail,
+            receive_timestamp,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub enum JobResultDetail {
     HttpRequest(JobHttpResult),
     RpcRequest(JobRpcResult),
     Command(JobCommandResult),
@@ -140,39 +156,41 @@ pub enum JobResult {
     Compound(JobCompoundResult),
 }
 
-impl JobResult {
+impl JobResultDetail {
     pub fn new(job: &Job) -> Self {
         let current_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis();
         match job.job_detail.as_ref().unwrap() {
-            JobDetail::HttpRequest(rpc) => {
-                JobResult::HttpRequest(JobHttpResult::new(job.clone(), JobHttpResponse::default()))
-            }
-            JobDetail::RpcRequest(rpc) => {
-                JobResult::RpcRequest(JobRpcResult::new(job.clone(), JobRpcResponse::default()))
-            }
-            JobDetail::Command(rpc) => JobResult::Command(JobCommandResult::new(
+            JobDetail::HttpRequest(rpc) => JobResultDetail::HttpRequest(JobHttpResult::new(
+                job.clone(),
+                JobHttpResponse::default(),
+            )),
+            JobDetail::RpcRequest(rpc) => JobResultDetail::RpcRequest(JobRpcResult::new(
+                job.clone(),
+                JobRpcResponse::default(),
+            )),
+            JobDetail::Command(rpc) => JobResultDetail::Command(JobCommandResult::new(
                 job.clone(),
                 JobCommandResponse::default(),
             )),
-            JobDetail::Ping(_) => JobResult::Ping(JobPingResult {
+            JobDetail::Ping(_) => JobResultDetail::Ping(JobPingResult {
                 job: job.clone(),
                 //response_timestamp: current_timestamp,
                 ..Default::default()
             }),
-            JobDetail::LatestBlock(_) => JobResult::LatestBlock(JobLatestBlockResult {
+            JobDetail::LatestBlock(_) => JobResultDetail::LatestBlock(JobLatestBlockResult {
                 job: job.clone(),
                 //response_timestamp: current_timestamp,
                 ..Default::default()
             }),
-            JobDetail::Compound(_) => JobResult::Compound(JobCompoundResult {
+            JobDetail::Compound(_) => JobResultDetail::Compound(JobCompoundResult {
                 job: job.clone(),
                 response_timestamp: current_timestamp as i64,
                 ..Default::default()
             }),
-            JobDetail::Benchmark(_) => JobResult::Benchmark(JobBenchmarkResult {
+            JobDetail::Benchmark(_) => JobResultDetail::Benchmark(JobBenchmarkResult {
                 job: job.clone(),
                 response_timestamp: current_timestamp as i64,
                 ..Default::default()
@@ -199,18 +217,29 @@ impl JobResult {
 
         Ok(sender)
     }
+    pub fn get_job(&self) -> &Job {
+        match self {
+            JobResultDetail::HttpRequest(job_result) => &job_result.job,
+            JobResultDetail::RpcRequest(job_result) => &job_result.job,
+            JobResultDetail::Command(job_result) => &job_result.job,
+            JobResultDetail::Ping(job_result) => &job_result.job,
+            JobResultDetail::LatestBlock(job_result) => &job_result.job,
+            JobResultDetail::Benchmark(job_result) => &job_result.job,
+            JobResultDetail::Compound(job_result) => &job_result.job,
+        }
+    }
 }
 
-impl JobResult {
+impl JobResultDetail {
     pub fn get_plan_id(&self) -> String {
         match self {
-            JobResult::HttpRequest(detail) => detail.job.plan_id.clone(),
-            JobResult::RpcRequest(detail) => detail.job.plan_id.clone(),
-            JobResult::Command(detail) => detail.job.plan_id.clone(),
-            JobResult::Ping(detail) => detail.job.plan_id.clone(),
-            JobResult::LatestBlock(detail) => detail.job.plan_id.clone(),
-            JobResult::Benchmark(detail) => detail.job.plan_id.clone(),
-            JobResult::Compound(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::HttpRequest(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::RpcRequest(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::Command(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::Ping(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::LatestBlock(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::Benchmark(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::Compound(detail) => detail.job.plan_id.clone(),
         }
     }
 }

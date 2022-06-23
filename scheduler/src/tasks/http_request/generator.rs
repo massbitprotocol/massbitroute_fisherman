@@ -77,6 +77,9 @@ impl HttpRequestGenerator {
 
 impl HttpRequestGenerator {}
 impl TaskApplicant for HttpRequestGenerator {
+    fn get_name(&self) -> String {
+        String::from("HttpRequest")
+    }
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }

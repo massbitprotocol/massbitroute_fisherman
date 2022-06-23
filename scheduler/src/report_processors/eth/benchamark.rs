@@ -1,7 +1,7 @@
 use crate::models::job_result::StoredJobResult;
 use crate::report_processors::ReportProcessor;
 use async_trait::async_trait;
-use common::job_manage::JobResult;
+use common::job_manage::JobResultDetail;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -16,16 +16,16 @@ impl BenchmarkReportProcessor {
 }
 #[async_trait]
 impl ReportProcessor for BenchmarkReportProcessor {
-    fn can_apply(&self, report: &JobResult) -> bool {
+    fn can_apply(&self, report: &JobResultDetail) -> bool {
         match report {
-            JobResult::Benchmark(_) => true,
+            JobResultDetail::Benchmark(_) => true,
             _ => false,
         }
     }
 
     async fn process_job(
         &self,
-        report: &JobResult,
+        report: &JobResultDetail,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
@@ -33,7 +33,7 @@ impl ReportProcessor for BenchmarkReportProcessor {
 
     async fn process_jobs(
         &self,
-        report: Vec<JobResult>,
+        report: Vec<JobResultDetail>,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         todo!()
