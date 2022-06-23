@@ -70,7 +70,10 @@ impl LatestBlockExecutor {
         let body = job_detail.request_body.clone();
 
         let now = Instant::now();
-        debug!("call_latest_block builder: {:?}", builder);
+        debug!(
+            "call_latest_block builder: {:?} with body {:?}",
+            builder, &body
+        );
         let resp = builder
             .body(body)
             .send()
@@ -200,14 +203,15 @@ impl TaskExecutor for LatestBlockExecutor {
         Ok(())
     }
     fn can_apply(&self, job: &Job) -> bool {
-        debug!("can_apply LatestBlockExecutor job: {:?}", job.job_detail);
-        return match job.job_detail.as_ref() {
-            None => false,
-            Some(job_detail) => match job_detail {
-                JobDetail::LatestBlock(_) => true,
-                _ => false,
-            },
+        let appliable = match job.job_detail.as_ref() {
+            Some(JobDetail::LatestBlock(_)) => true,
+            _ => false,
         };
+        debug!(
+            "Matched LatestBlockExecutor {} for job: {:?}",
+            appliable, job.job_detail
+        );
+        appliable
     }
 }
 

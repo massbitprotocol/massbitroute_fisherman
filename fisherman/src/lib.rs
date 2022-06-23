@@ -3,6 +3,8 @@ pub mod server_builder;
 pub mod server_config;
 pub mod services;
 pub mod state;
+pub mod tasks;
+
 use dotenv;
 use lazy_static::lazy_static;
 use serde::Deserialize;
