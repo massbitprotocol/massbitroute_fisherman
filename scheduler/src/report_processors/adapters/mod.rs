@@ -3,6 +3,7 @@ use crate::report_processors::adapters::postgres_appender::PostgresAppender;
 use crate::report_processors::adapters::providers_map_appender::ProvidersMapAdapter;
 use async_trait::async_trait;
 use common::job_manage::JobBenchmarkResult;
+use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::JobHttpResult;
 use common::tasks::ping::JobPingResult;
@@ -40,7 +41,7 @@ pub trait Appender: Sync + Send {
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
-    async fn append_http_results(&self, result: &Vec<JobHttpResult>) -> Result<(), anyhow::Error> {
+    async fn append_http_results(&self, result: &Vec<JobResult>) -> Result<(), anyhow::Error> {
         Ok(())
     }
 }

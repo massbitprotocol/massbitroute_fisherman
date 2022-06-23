@@ -1,57 +1,96 @@
 use crate::models::job_result::StoredJobResult;
 use crate::models::job_result_cache::JobResultCache;
-use crate::report_processors::{get_report_processors, ReportProcessor};
-use common::job_manage::JobResultDetail;
+use crate::persistence::services::JobResultService;
+use crate::report_processors::generic_processor::VerificationReportProcessor;
+use crate::report_processors::regular_processor::RegularReportProcessor;
+use crate::report_processors::{
+    get_regular_processor, get_verification_processor, ReportProcessor,
+};
+use crate::service::judgment::MainJudgment;
+use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::JobResult;
 use diesel::PgArrayExpressionMethods;
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ProcessorState {
     connection: Arc<DatabaseConnection>,
-    processors: Vec<Arc<dyn ReportProcessor>>,
+    regular_processor: Arc<dyn ReportProcessor>,
+    verification_processor: Arc<dyn ReportProcessor>,
+    result_service: Arc<JobResultService>,
+    judgment: MainJudgment,
 }
 
 impl ProcessorState {
     pub fn new(
         connection: Arc<DatabaseConnection>,
         result_cache: Arc<Mutex<JobResultCache>>,
+        result_service: Arc<JobResultService>,
     ) -> ProcessorState {
-        let processors = get_report_processors(connection.clone(), result_cache);
+        let regular_processor = get_regular_processor(connection.clone(), result_cache.clone());
+        let verification_processor =
+            get_verification_processor(connection.clone(), result_cache.clone());
+        let judgment = MainJudgment::new(result_service.clone());
         ProcessorState {
             connection,
-            processors,
+            regular_processor,
+            verification_processor,
+            result_service,
+            judgment,
         }
     }
+}
+
+impl Default for ProcessorState {
+    fn default() -> Self {
+        ProcessorState {
+            connection: Arc::new(Default::default()),
+            regular_processor: Arc::new(RegularReportProcessor::default()),
+            verification_processor: Arc::new(VerificationReportProcessor::default()),
+            result_service: Arc::new(Default::default()),
+            judgment: Default::default(),
+        }
+    }
+}
+impl ProcessorState {
     pub async fn process_results(
         &mut self,
-        job_results: &Vec<JobResult>,
+        results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
-        let mut map_processor_reports = HashMap::<usize, Vec<JobResultDetail>>::new();
-        //Group result by processor then process result by list
-        for report in job_results.iter() {
-            /// add process for Regular job
-            for (ind, processor) in self.processors.iter().enumerate() {
-                if processor.can_apply(&report.result_detail) {
-                    if let Some(mut list) = map_processor_reports.get_mut(&ind) {
-                        list.push(report.result_detail.clone())
-                    } else {
-                        map_processor_reports
-                            .insert(ind.clone(), vec![report.result_detail.clone()]);
-                    }
-                }
+        let mut regular_results = Vec::new();
+        let mut verification_result = Vec::new();
+        for result in results {
+            match result.phase {
+                JobRole::Regular => regular_results.push(result),
+                JobRole::Verification => verification_result.push(result),
             }
         }
-        let mut stored_results = HashMap::<String, StoredJobResult>::new();
-        for (ind, jobs) in map_processor_reports {
-            let connection = self.connection.clone();
-            if let Some(processor) = self.processors.get(ind) {
-                processor.process_jobs(jobs, connection).await;
-            };
+        if regular_results.len() > 0 {
+            self.process_regular_results(regular_results);
         }
+        if verification_result.len() > 0 {
+            self.process_verification_results(verification_result);
+        }
+        Ok(HashMap::new())
+    }
+    pub async fn process_regular_results(
+        &mut self,
+        job_results: Vec<JobResult>,
+    ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
+        Ok(HashMap::new())
+    }
+    pub async fn process_verification_results(
+        &mut self,
+        job_results: Vec<JobResult>,
+    ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
+        let mut stored_results = HashMap::<String, StoredJobResult>::new();
+        let connection = self.connection.clone();
+        self.verification_processor
+            .process_jobs(job_results, connection)
+            .await;
         Ok(stored_results)
     }
 }

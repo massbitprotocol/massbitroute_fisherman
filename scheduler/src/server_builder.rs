@@ -54,7 +54,14 @@ pub struct SimpleResponse {
 
 impl SchedulerServer {
     pub fn builder() -> ServerBuilder {
-        ServerBuilder::default()
+        ServerBuilder {
+            entry_point: "".to_string(),
+            access_control: Default::default(),
+            scheduler_service: Default::default(),
+            processor_service: Default::default(),
+            scheduler_state: Arc::new(Default::default()),
+            processor_state: Arc::new(Default::default()),
+        }
     }
     pub async fn serve(&self) {
         let allow_headers: Vec<String> = self.access_control.get_access_control_allow_headers();
