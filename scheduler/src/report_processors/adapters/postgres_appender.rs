@@ -56,6 +56,7 @@ impl Appender for PostgresAppender {
         // self.job_result_service
         //     .save_result_http_requests(&results)
         //     .await;
+        todo!();
         Ok(())
     }
 }
