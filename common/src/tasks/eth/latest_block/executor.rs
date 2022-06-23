@@ -188,13 +188,14 @@ impl TaskExecutor for LatestBlockExecutor {
         let latest_block_result = JobLatestBlockResult {
             job: job.clone(),
             worker_id: self.worker_id.clone(),
-            response,
+            response: response.clone(),
             execution_timestamp,
         };
         let res = result_sender
-            .send(JobResult::new(JobResultDetail::LatestBlock(
-                latest_block_result,
-            )))
+            .send(JobResult::new(
+                JobResultDetail::LatestBlock(latest_block_result),
+                Some(response.chain_info.clone()),
+            ))
             .await;
         info!("send res: {:?}", res);
 

@@ -1,4 +1,4 @@
-use crate::component::{ComponentType, Zone};
+use crate::component::{ChainInfo, ComponentType, Zone};
 use crate::job_manage::{JobDetail, JobResultDetail, JobRole};
 use crate::util::get_current_time;
 use crate::workers::{Worker, WorkerInfo};
@@ -107,10 +107,11 @@ pub struct JobResult {
     pub phase: JobRole,
     pub result_detail: JobResultDetail,
     pub receive_timestamp: Timestamp, //time the worker received result
+    pub chain_info: Option<ChainInfo>,
 }
 
 impl JobResult {
-    pub fn new(result_detail: JobResultDetail) -> JobResult {
+    pub fn new(result_detail: JobResultDetail, chain_info: Option<ChainInfo>) -> JobResult {
         let receive_timestamp = get_current_time();
         JobResult {
             job_id: "".to_string(),
@@ -120,6 +121,7 @@ impl JobResult {
             phase: Default::default(),
             result_detail,
             receive_timestamp,
+            chain_info,
         }
     }
 }

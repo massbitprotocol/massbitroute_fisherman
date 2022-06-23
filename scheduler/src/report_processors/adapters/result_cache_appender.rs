@@ -34,7 +34,7 @@ impl Appender for ResultCacheAppender {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
                 let component_id = &result.job.component_id;
-                let job_result = JobResult::new(JobResultDetail::Ping(result.clone()));
+                let job_result = JobResult::new(JobResultDetail::Ping(result.clone()), None);
                 let result_by_task = result_cache
                     .result_cache_map
                     .entry(component_id.clone())
@@ -62,7 +62,7 @@ impl Appender for ResultCacheAppender {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
                 let component_id = &result.job.component_id;
-                let job_result = JobResult::new(JobResultDetail::LatestBlock(result.clone()));
+                let job_result = JobResult::new(JobResultDetail::LatestBlock(result.clone()), None);
                 let result_by_task = result_cache
                     .result_cache_map
                     .entry(component_id.clone())
@@ -90,7 +90,7 @@ impl Appender for ResultCacheAppender {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
                 let component_id = &result.job.component_id;
-                let job_result = JobResult::new(JobResultDetail::Benchmark(result.clone()));
+                let job_result = JobResult::new(JobResultDetail::Benchmark(result.clone()), None);
                 let result_by_task = result_cache
                     .result_cache_map
                     .entry(component_id.clone())

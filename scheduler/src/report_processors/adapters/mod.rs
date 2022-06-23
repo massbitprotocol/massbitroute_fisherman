@@ -40,7 +40,10 @@ pub trait Appender: Sync + Send {
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
-    async fn append_http_results(&self, result: &Vec<JobHttpResult>) -> Result<(), anyhow::Error> {
+    async fn append_http_request_results(
+        &self,
+        results: &Vec<JobHttpResult>,
+    ) -> Result<(), anyhow::Error> {
         Ok(())
     }
 }

@@ -1,3 +1,4 @@
+use crate::component::ChainInfo;
 use crate::job_manage::{
     BenchmarkResponse, JobBenchmark, JobBenchmarkResult, JobDetail, JobResultDetail,
 };
@@ -243,26 +244,33 @@ impl BenchmarkExecutor {
 impl TaskExecutor for BenchmarkExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         debug!("TaskBenchmark execute for job {:?}", &job);
-        let res = self.call_benchmark(job).await;
-        let response = match res {
-            Ok(res) => res,
-            Err(err) => err.into(),
-        };
-        let current_time = get_current_time();
-        debug!("Benchmark result {:?}", &response);
-        // Send result
-        let result = JobBenchmarkResult {
-            job: job.clone(),
-            worker_id: self.worker_id.clone(),
-            response_timestamp: current_time,
-            response,
-        };
-        let res = result_sender
-            .send(JobResult::new(JobResultDetail::Benchmark(result)))
-            .await;
-        debug!("send res: {:?}", res);
-
-        Ok(())
+        if let Some(JobDetail::Benchmark(job_detail)) = &job.job_detail {
+            let res = self.call_benchmark(job).await;
+            let response = match res {
+                Ok(res) => res,
+                Err(err) => err.into(),
+            };
+            let current_time = get_current_time();
+            debug!("Benchmark result {:?}", &response);
+            // Send result
+            let result = JobBenchmarkResult {
+                job: job.clone(),
+                worker_id: self.worker_id.clone(),
+                response_timestamp: current_time,
+                response,
+            };
+            let chain_info = ChainInfo::new(job_detail.chain_type.to_string(), "".to_string());
+            let res = result_sender
+                .send(JobResult::new(
+                    JobResultDetail::Benchmark(result),
+                    Some(chain_info),
+                ))
+                .await;
+            debug!("send res: {:?}", res);
+            Ok(())
+        } else {
+            Err(Error::msg("Execute wrong job type"))
+        }
     }
     fn can_apply(&self, job: &Job) -> bool {
         return match job.job_detail.as_ref() {
