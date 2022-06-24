@@ -4,13 +4,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct ProviderTask {
     pub provider_id: String,
-    pub task_name: String,
+    pub task_type: String, //HttpRequest, Command
+    pub task_name: String, //RoundTripTime, LatestBlock
 }
 
 impl ProviderTask {
-    pub fn new(provider_id: String, task_name: String) -> Self {
+    pub fn new(provider_id: String, task_type: String, task_name: String) -> Self {
         Self {
             provider_id,
+            task_type,
             task_name,
         }
     }

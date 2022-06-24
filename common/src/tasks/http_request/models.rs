@@ -6,6 +6,7 @@ use handlebars::{Handlebars, RenderError};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -31,14 +32,34 @@ pub struct JobHttpResponse {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum JobHttpResponseDetail {
     Body(String),
-    Values(HashMap<String, Value>),
+    Values(HttpResponseValues),
 }
-//
-// impl<T> Into<T> for JobHttpResponseDetail {
-//     fn into(self) -> T {
-//         todo!()
-//     }
-// }
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+pub struct HttpResponseValues {
+    inner: HashMap<String, Value>,
+}
+
+impl HttpResponseValues {
+    pub fn new(inner: HashMap<String, Value>) -> Self {
+        HttpResponseValues { inner }
+    }
+}
+
+impl Deref for HttpResponseValues {
+    type Target = HashMap<String, Value>;
+
+    fn deref(&self) -> &HashMap<String, Value> {
+        &self.inner
+    }
+}
+
+impl DerefMut for HttpResponseValues {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 impl Default for JobHttpResponseDetail {
     fn default() -> Self {
         JobHttpResponseDetail::Body(String::new())

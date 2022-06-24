@@ -1,4 +1,5 @@
 pub mod benchmark_judg;
+pub mod http_latestblock_judg;
 pub mod latestblock_judg;
 pub mod main_judg;
 pub mod ping_judg;
@@ -38,7 +39,7 @@ impl JudgmentsResult {
 #[async_trait]
 pub trait ReportCheck: Sync + Send + Debug {
     fn can_apply(&self, job: &Job) -> bool;
-    fn can_apply_for_result(&self, job_name: &String) -> bool {
+    fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         false
     }
     /*

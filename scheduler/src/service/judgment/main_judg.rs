@@ -90,7 +90,7 @@ impl MainJudgment {
             .unwrap_or_default();
 
         for judgment in self.judgments.iter() {
-            if !judgment.can_apply_for_result(&provider_task.task_name) {
+            if !judgment.can_apply_for_result(&provider_task) {
                 continue;
             }
             let judg_result = judgment
