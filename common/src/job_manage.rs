@@ -216,6 +216,17 @@ impl JobResultDetail {
 }
 
 impl JobResultDetail {
+    pub fn get_name(&self) -> String {
+        match self {
+            JobResultDetail::HttpRequest(_) => "HttpRequest".to_string(),
+            JobResultDetail::RpcRequest(_) => "RpcRequest".to_string(),
+            JobResultDetail::Command(_) => "Command".to_string(),
+            JobResultDetail::Ping(_) => "Ping".to_string(),
+            JobResultDetail::LatestBlock(_) => "LatestBlock".to_string(),
+            JobResultDetail::Benchmark(_) => "Benchmark".to_string(),
+            JobResultDetail::Compound(_) => "Compound".to_string(),
+        }
+    }
     pub fn get_plan_id(&self) -> String {
         match self {
             JobResultDetail::HttpRequest(detail) => detail.job.plan_id.clone(),

@@ -109,7 +109,7 @@ impl JobAssignment {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobResult {
     pub job_id: String,
-    pub job_name: String,
+    pub job_name: String, //For http request us task_name in task config ex: RoundTripTime/LatestBlock
     pub worker_id: WorkerId,
     pub provider_id: ComponentId,
     pub provider_type: ComponentType,

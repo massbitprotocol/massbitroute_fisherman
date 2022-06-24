@@ -5,7 +5,7 @@ use common::jobs::{Job, JobResult};
 use common::logger::helper::message;
 use common::tasks::executor::TaskExecutor;
 use common::tasks::http_request::{
-    HttpRequestError, JobHttpResponse, JobHttpResponseDetail, JobHttpResult,
+    HttpRequestError, HttpResponseValues, JobHttpResponse, JobHttpResponseDetail, JobHttpResult,
 };
 use common::tasks::ping::{CallPingError, JobPingResult};
 use common::tasks::rpc_request::{JobRpcResponse, JobRpcResult, RpcRequestError};
@@ -130,7 +130,7 @@ impl HttpRequestExecutor {
             HttpRequestError::GetBodyError(format!("Err {} when parsing response", e))
         })?;
 
-        let mut results = HashMap::<String, Value>::new();
+        let mut results = HttpResponseValues::default();
         for (key, paths) in values.iter() {
             let mut ind = 0_usize;
             let mut tmp_value = &body;

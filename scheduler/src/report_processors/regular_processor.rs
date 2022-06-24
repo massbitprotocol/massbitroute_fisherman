@@ -54,7 +54,11 @@ impl ReportProcessor for RegularReportProcessor {
         let mut stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         for report in reports {
-            let key = ProviderTask::new(report.provider_id.clone(), report.job_name.clone());
+            let key = ProviderTask::new(
+                report.provider_id.clone(),
+                report.result_detail.get_name(),
+                report.job_name.clone(),
+            );
             let mut jobs = provider_task_results.entry(key).or_insert(Vec::default());
             jobs.push(report);
         }
