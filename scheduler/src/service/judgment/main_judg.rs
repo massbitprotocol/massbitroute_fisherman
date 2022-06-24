@@ -1,18 +1,22 @@
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::persistence::services::PlanService;
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
-use crate::{CONFIG, CONFIG_DIR, JUDGMENT_PERIOD};
+use crate::service::report_portal::StoreReport;
+use crate::{CONFIG, CONFIG_DIR, JUDGMENT_PERIOD, PORTAL_AUTHORIZATION};
 use anyhow::Error;
-use common::jobs::Job;
+use common::job_manage::JobRole;
+use common::jobs::{Job, JobResult};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
-use log::{error, info};
+use common::DOMAIN;
+use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct MainJudgment {
     result_service: Arc<JobResultService>,
     judgments: Vec<Arc<dyn ReportCheck>>,
@@ -72,5 +76,59 @@ impl MainJudgment {
             plan, job, final_result
         );
         Ok(final_result)
+    }
+    pub async fn apply_for_provider(
+        &self,
+        provider_id: String,
+        results: Vec<JobResult>,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        //Separate jobs by job name
+        let provider_type = results
+            .get(0)
+            .map(|res| res.provider_type.clone())
+            .unwrap_or_default();
+        let mut map_results = HashMap::<String, Vec<JobResult>>::new();
+        for result in results {
+            let mut results = map_results
+                .entry(result.job_name.clone())
+                .or_insert(Vec::default());
+            results.push(result);
+        }
+        for (job_name, results) in map_results.iter() {
+            for judgment in self.judgments.iter() {
+                if !judgment.can_apply_for_result(job_name) {
+                    continue;
+                }
+                let judg_result = judgment
+                    .apply_for_results(results)
+                    .await
+                    .unwrap_or(JudgmentsResult::Failed);
+                debug!(
+                    "Judgment result {:?} for provider {:?} with results {:?}",
+                    &judg_result, &provider_id, results
+                );
+                match judg_result {
+                    JudgmentsResult::Failed | JudgmentsResult::Error => {
+                        let mut report = StoreReport::build(
+                            &"Scheduler".to_string(),
+                            &JobRole::Regular,
+                            &*PORTAL_AUTHORIZATION,
+                            &DOMAIN,
+                        );
+                        report.set_report_data_short(false, &provider_id, &provider_type);
+                        debug!("Send plan report to portal:{:?}", report);
+                        if !CONFIG.is_test_mode {
+                            let res = report.send_data(&JobRole::Verification).await;
+                            info!("Send report to portal res: {:?}", res);
+                        } else {
+                            let res = report.write_data();
+                            info!("Write report to file res: {:?}", res);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Ok(JudgmentsResult::Unfinished)
     }
 }

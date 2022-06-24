@@ -1,3 +1,4 @@
+use crate::component::ChainInfo;
 use crate::job_manage::JobRole;
 use crate::jobs::Job;
 use crate::{ComponentInfo, Timestamp};
@@ -10,6 +11,7 @@ use thiserror::Error;
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobHttpRequest {
     pub url: String,
+    pub chain_info: Option<ChainInfo>,
     pub method: String,
     pub headers: HashMap<String, String>,
     pub body: Option<Value>,
@@ -197,6 +199,7 @@ impl HttpRequestJobConfig {
         self.render_template_value(handlebars, &body, context)
         //.map(|value| value.to_string())
     }
+
     pub fn render_template_value(
         &self,
         handlebars: &Handlebars,

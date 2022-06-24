@@ -164,10 +164,16 @@ impl TaskExecutor for HttpRequestExecutor {
             //response_timestamp: get_current_time(),
             response,
         };
-        let res = result_sender
-            .send(JobResult::new(JobResultDetail::HttpRequest(result), None))
-            .await;
-        debug!("send res: {:?}", res);
+        if let Some(JobDetail::HttpRequest(request)) = &job.job_detail {
+            let res = result_sender
+                .send(JobResult::new(
+                    JobResultDetail::HttpRequest(result),
+                    request.chain_info.clone(),
+                ))
+                .await;
+            debug!("send res: {:?}", res);
+        };
+
         Ok(())
     }
 

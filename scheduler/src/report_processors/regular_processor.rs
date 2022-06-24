@@ -1,36 +1,45 @@
 use crate::models::job_result::StoredJobResult;
 use crate::report_processors::adapters::{get_report_adapters, Appender};
 use crate::report_processors::ReportProcessor;
+use crate::service::judgment::{JudgmentsResult, MainJudgment};
+use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobBenchmarkResult, JobResultDetail};
+use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
+use log::error;
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Clone, Default)]
-pub struct GenericReportProcessor {
+pub struct RegularReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
+    judgment: MainJudgment,
 }
 
-impl GenericReportProcessor {
-    pub fn new(report_adapters: Vec<Arc<dyn Appender>>) -> Self {
-        GenericReportProcessor { report_adapters }
+impl RegularReportProcessor {
+    pub fn new(report_adapters: Vec<Arc<dyn Appender>>, judgment: MainJudgment) -> Self {
+        RegularReportProcessor {
+            report_adapters,
+            judgment,
+        }
     }
     pub fn add_adapter(&mut self, adapter: Arc<dyn Appender>) {
         self.report_adapters.push(adapter);
     }
 }
 #[async_trait]
-impl ReportProcessor for GenericReportProcessor {
-    fn can_apply(&self, report: &JobResultDetail) -> bool {
+impl ReportProcessor for RegularReportProcessor {
+    fn can_apply(&self, report: &JobResult) -> bool {
         true
     }
 
     async fn process_job(
         &self,
-        report: &JobResultDetail,
+        report: &JobResult,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
@@ -38,23 +47,24 @@ impl ReportProcessor for GenericReportProcessor {
 
     async fn process_jobs(
         &self,
-        reports: Vec<JobResultDetail>,
+        reports: Vec<JobResult>,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
-        log::debug!("Generic report process jobs");
+        log::debug!("Regular report process jobs");
+        let mut stored_results = Vec::<StoredJobResult>::new();
         let mut ping_results = Vec::new();
         let mut benchmark_results: Vec<JobBenchmarkResult> = Vec::new();
         let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
-        let mut stored_results = Vec::<StoredJobResult>::new();
-        let mut http_request_results: Vec<JobHttpResult> = Vec::new();
+        let mut http_request_results: Vec<JobResult> = Vec::new();
         for report in reports {
-            match report {
+            match report.result_detail {
                 JobResultDetail::Ping(result) => {
                     ping_results.push(result);
                     //println!("{:?}", &ping_result);
                 }
                 JobResultDetail::LatestBlock(result) => latest_block_results.push(result),
                 JobResultDetail::Benchmark(result) => benchmark_results.push(result),
+                JobResultDetail::HttpRequest(_) => http_request_results.push(report),
                 _ => {}
             }
         }
@@ -69,13 +79,44 @@ impl ReportProcessor for GenericReportProcessor {
                     .append_latest_block_results(&latest_block_results)
                     .await;
             }
-            if benchmark_results.len() > 0 {
+        }
+        if benchmark_results.len() > 0 {
+            for adapter in self.report_adapters.iter() {
                 adapter.append_benchmark_results(&benchmark_results).await;
             }
-            if http_request_results.len() > 0 {
-                adapter.append_http_results(&http_request_results).await;
+        }
+        if http_request_results.len() > 0 {
+            for adapter in self.report_adapters.iter() {
+                adapter
+                    .append_http_request_results(&http_request_results)
+                    .await;
+            }
+            self.judg_http_request_results(http_request_results).await;
+        }
+
+        Ok(stored_results)
+    }
+}
+
+impl RegularReportProcessor {
+    pub async fn judg_http_request_results(&self, results: Vec<JobResult>) {
+        //Separate result by provider id
+        let mut map_results = HashMap::<String, Vec<JobResult>>::new();
+        for result in results {
+            let mut results = map_results
+                .entry(result.provider_id.clone())
+                .or_insert(Vec::default());
+            results.push(result);
+        }
+        for (provider_id, results) in map_results.into_iter() {
+            if results.len() > 0 {
+                match self.judgment.apply_for_provider(provider_id, results).await {
+                    Ok(res) => {}
+                    Err(err) => {
+                        error!("{:?}", &err);
+                    }
+                }
             }
         }
-        Ok(stored_results)
     }
 }

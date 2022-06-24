@@ -2,8 +2,8 @@ use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::{anyhow, Context, Error};
 use async_trait::async_trait;
-use common::component::{ComponentInfo, ComponentType};
-use common::job_manage::{JobDetail, JobRole};
+use common::component::{ChainInfo, ComponentInfo, ComponentType};
+use common::job_manage::JobDetail;
 use common::jobs::{Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::workers::MatchedWorkers;
@@ -92,6 +92,7 @@ impl TaskApplicant for HttpRequestGenerator {
         phase: JobRole,
     ) -> Result<Vec<Job>, Error> {
         let mut jobs = Vec::new();
+        let chain_info = ChainInfo::new(component.blockchain.clone(), component.network.clone());
         let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
         if let Some(obj) = context["provider"].as_object_mut() {
             match component.component_type {
@@ -115,6 +116,7 @@ impl TaskApplicant for HttpRequestGenerator {
                     let body = config.generate_body(&self.handlebars, &context).ok();
                     let detail = JobHttpRequest {
                         url: url.clone(),
+                        chain_info: Some(chain_info.clone()),
                         method: config.http_method.clone(),
                         headers,
                         body,
