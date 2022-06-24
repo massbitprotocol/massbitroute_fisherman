@@ -5,6 +5,7 @@ use crate::service::judgment::{JudgmentsResult, MainJudgment};
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobBenchmarkResult, JobResultDetail};
+use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
 use log::error;
@@ -14,7 +15,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Clone, Default)]
-pub struct GenericReportProcessor {
+pub struct RegularReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
     judgment: MainJudgment,
 }
@@ -31,14 +32,14 @@ impl RegularReportProcessor {
     }
 }
 #[async_trait]
-impl ReportProcessor for GenericReportProcessor {
-    fn can_apply(&self, report: &JobResultDetail) -> bool {
+impl ReportProcessor for RegularReportProcessor {
+    fn can_apply(&self, report: &JobResult) -> bool {
         true
     }
 
     async fn process_job(
         &self,
-        report: &JobResultDetail,
+        report: &JobResult,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
@@ -46,7 +47,7 @@ impl ReportProcessor for GenericReportProcessor {
 
     async fn process_jobs(
         &self,
-        reports: Vec<JobResultDetail>,
+        reports: Vec<JobResult>,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         log::debug!("Regular report process jobs");
@@ -56,13 +57,14 @@ impl ReportProcessor for GenericReportProcessor {
         let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
         let mut http_request_results: Vec<JobResult> = Vec::new();
         for report in reports {
-            match report {
+            match report.result_detail {
                 JobResultDetail::Ping(result) => {
                     ping_results.push(result);
                     //println!("{:?}", &ping_result);
                 }
                 JobResultDetail::LatestBlock(result) => latest_block_results.push(result),
                 JobResultDetail::Benchmark(result) => benchmark_results.push(result),
+                JobResultDetail::HttpRequest(_) => http_request_results.push(report),
                 _ => {}
             }
         }
@@ -77,7 +79,9 @@ impl ReportProcessor for GenericReportProcessor {
                     .append_latest_block_results(&latest_block_results)
                     .await;
             }
-            if benchmark_results.len() > 0 {
+        }
+        if benchmark_results.len() > 0 {
+            for adapter in self.report_adapters.iter() {
                 adapter.append_benchmark_results(&benchmark_results).await;
             }
         }

@@ -11,11 +11,11 @@ use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::JobResult;
 use diesel::PgArrayExpressionMethods;
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ProcessorState {
     connection: Arc<DatabaseConnection>,
     regular_processor: Arc<dyn ReportProcessor>,
@@ -30,9 +30,9 @@ impl ProcessorState {
     pub fn new(
         connection: Arc<DatabaseConnection>,
         result_cache: Arc<Mutex<JobResultCache>>,
-        result_service: Arc<JobResultService>,
         plan_service: Arc<PlanService>,
         job_service: Arc<JobService>,
+        result_service: Arc<JobResultService>,
     ) -> ProcessorState {
         //For verification processor
         let mut report_adapters = get_report_adapters(connection.clone());
@@ -72,24 +72,19 @@ impl Default for ProcessorState {
         }
     }
 }
+impl ProcessorState {}
+
 impl ProcessorState {
     pub async fn process_results(
         &mut self,
-        job_results: &Vec<JobResult>,
+        results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
-        let mut map_processor_reports = HashMap::<usize, Vec<JobResultDetail>>::new();
-        //Group result by processor then process result by list
-        for report in job_results.iter() {
-            /// add process for Regular job
-            for (ind, processor) in self.processors.iter().enumerate() {
-                if processor.can_apply(&report.result_detail) {
-                    if let Some(mut list) = map_processor_reports.get_mut(&ind) {
-                        list.push(report.result_detail.clone())
-                    } else {
-                        map_processor_reports
-                            .insert(ind.clone(), vec![report.result_detail.clone()]);
-                    }
-                }
+        let mut regular_results = Vec::new();
+        let mut verification_result = Vec::new();
+        for result in results {
+            match result.phase {
+                JobRole::Regular => regular_results.push(result),
+                JobRole::Verification => verification_result.push(result),
             }
         }
         if regular_results.len() > 0 {
@@ -109,19 +104,17 @@ impl ProcessorState {
         self.regular_processor
             .process_jobs(job_results, connection)
             .await;
-        Ok(HashMap::new())
+        Ok(stored_results)
     }
     pub async fn process_verification_results(
         &mut self,
         job_results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut stored_results = HashMap::<String, StoredJobResult>::new();
-        for (ind, jobs) in map_processor_reports {
-            let connection = self.connection.clone();
-            if let Some(processor) = self.processors.get(ind) {
-                processor.process_jobs(jobs, connection).await;
-            };
-        }
+        let connection = self.connection.clone();
+        self.verification_processor
+            .process_jobs(job_results, connection)
+            .await;
         Ok(stored_results)
     }
 }

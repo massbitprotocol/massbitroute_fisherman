@@ -13,6 +13,7 @@ use crate::report_processors::verification_processor::VerificationReportProcesso
 use async_trait::async_trait;
 pub use channel::ReportChannel;
 use common::job_manage::JobResultDetail;
+use common::jobs::JobResult;
 pub use dot::*;
 pub use eth::*;
 use sea_orm::DatabaseConnection;
@@ -21,15 +22,15 @@ use tokio::sync::Mutex;
 
 #[async_trait]
 pub trait ReportProcessor: Sync + Send {
-    fn can_apply(&self, report: &JobResultDetail) -> bool;
+    fn can_apply(&self, report: &JobResult) -> bool;
     async fn process_job(
         &self,
-        report: &JobResultDetail,
+        report: &JobResult,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<StoredJobResult, anyhow::Error>;
     async fn process_jobs(
         &self,
-        report: Vec<JobResultDetail>,
+        report: Vec<JobResult>,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error>;
 }

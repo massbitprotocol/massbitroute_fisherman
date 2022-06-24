@@ -72,7 +72,7 @@ async fn main() {
     let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
     let processor_service = ProcessorServiceBuilder::default()
         .with_plan_service(plan_service.clone())
-        .with_result_service(result_service)
+        .with_result_service(result_service.clone())
         .with_job_service(job_service.clone())
         .with_result_cache(result_cache.clone())
         .build();
@@ -113,9 +113,9 @@ async fn main() {
     let processor_state = ProcessorState::new(
         arc_conn.clone(),
         result_cache.clone(),
-        result_service.clone(),
         plan_service.clone(),
         job_service.clone(),
+        result_service.clone(),
     );
     info!("Init http service ");
     let server = ServerBuilder::default()

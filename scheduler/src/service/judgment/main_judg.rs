@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct MainJudgment {
     result_service: Arc<JobResultService>,
     judgments: Vec<Arc<dyn ReportCheck>>,
