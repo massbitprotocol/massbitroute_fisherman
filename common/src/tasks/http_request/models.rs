@@ -33,7 +33,12 @@ pub enum JobHttpResponseDetail {
     Body(String),
     Values(HashMap<String, Value>),
 }
-
+//
+// impl<T> Into<T> for JobHttpResponseDetail {
+//     fn into(self) -> T {
+//         todo!()
+//     }
+// }
 impl Default for JobHttpResponseDetail {
     fn default() -> Self {
         JobHttpResponseDetail::Body(String::new())

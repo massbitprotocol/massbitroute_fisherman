@@ -1,3 +1,4 @@
+use crate::models::job_result::ProviderTask;
 use crate::report_processors::adapters::csv_appender::CsvAppender;
 use crate::report_processors::adapters::postgres_appender::PostgresAppender;
 use crate::report_processors::adapters::providers_map_appender::ProvidersMapAdapter;
@@ -26,6 +27,14 @@ pub trait Appender: Sync + Send {
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
+    async fn append_job_results(
+        &self,
+        key: &ProviderTask,
+        results: &Vec<JobResult>,
+    ) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
+
     async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), anyhow::Error> {
         Ok(())
     }

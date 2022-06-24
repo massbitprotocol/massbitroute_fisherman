@@ -1,10 +1,11 @@
+use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use crate::tasks::benchmark::generator::BenchmarkConfig;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobDetail, JobRole};
-use common::jobs::Job;
+use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::tasks::LoadConfig;
 use common::Timestamp;
@@ -87,5 +88,12 @@ impl ReportCheck for BenchmarkJudgment {
                 }
             }
         };
+    }
+    async fn apply_for_results(
+        &self,
+        provider_task: &ProviderTask,
+        result: &Vec<JobResult>,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        Ok(JudgmentsResult::Error)
     }
 }

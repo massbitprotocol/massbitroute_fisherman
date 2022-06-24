@@ -1,23 +1,56 @@
+use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use crate::tasks::ping::generator::PingConfig;
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{JobDetail, JobRole};
-use common::jobs::Job;
+use common::job_manage::{JobDetail, JobResultDetail, JobRole};
+use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
+use common::tasks::http_request::{JobHttpResponse, JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
 use histogram::Histogram;
 use log::log;
 use sea_orm::DatabaseConnection;
+use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+#[derive(Debug, Default)]
+pub struct PingResultCache {
+    response_times: Mutex<HashMap<ProviderTask, Vec<u64>>>,
+}
+
+impl PingResultCache {
+    pub fn append_results(
+        &self,
+        provider_task: &ProviderTask,
+        results: &Vec<JobResult>,
+    ) -> Vec<u64> {
+        let mut res_times = Vec::new();
+        for res in results.iter() {
+            if let JobResultDetail::HttpRequest(JobHttpResult { response, .. }) = &res.result_detail
+            {
+                if let JobHttpResponseDetail::Body(val) = &response.detail {
+                    if let Ok(time) = val.parse::<u64>() {
+                        res_times.push(time);
+                    }
+                }
+            }
+        }
+        let mut values = self.response_times.lock().unwrap();
+        let values = values.entry(provider_task.clone()).or_insert(Vec::new());
+        values.append(&mut res_times);
+        res_times = values.clone();
+        res_times
+    }
+}
 #[derive(Debug)]
 pub struct PingJudgment {
     verification_config: PingConfig,
     regular_config: PingConfig,
     result_service: Arc<JobResultService>,
+    result_cache: PingResultCache,
 }
 
 impl PingJudgment {
@@ -34,6 +67,7 @@ impl PingJudgment {
             verification_config,
             regular_config,
             result_service,
+            result_cache: PingResultCache::default(),
         }
     }
 }
@@ -84,5 +118,13 @@ impl ReportCheck for PingJudgment {
                     }
                 }
             })
+    }
+    async fn apply_for_results(
+        &self,
+        provider_task: &ProviderTask,
+        result: &Vec<JobResult>,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        let response_times = self.result_cache.append_results(provider_task, result);
+        Ok(JudgmentsResult::Error)
     }
 }

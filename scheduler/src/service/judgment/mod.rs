@@ -13,9 +13,10 @@ pub use ping_judg::PingJudgment;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+use crate::models::job_result::ProviderTask;
 use common::jobs::{Job, JobResult};
 use sea_orm::DatabaseConnection;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum JudgmentsResult {
@@ -48,6 +49,7 @@ pub trait ReportCheck: Sync + Send + Debug {
     async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, anyhow::Error>;
     async fn apply_for_results(
         &self,
+        provider_task: &ProviderTask,
         result: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         Ok(JudgmentsResult::Error)
