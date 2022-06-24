@@ -95,7 +95,11 @@ impl DetailJobGenerator {
                         continue;
                     }
                     let mut applied_jobs = task
-                        .apply(&provider_plan.plan.plan_id, &provider_plan.provider)
+                        .apply(
+                            &provider_plan.plan.plan_id,
+                            &provider_plan.provider,
+                            JobRole::Verification,
+                        )
                         .unwrap_or(vec![]);
                     if applied_jobs.len() > 0 {
                         log::debug!(
@@ -145,7 +149,11 @@ impl DetailJobGenerator {
                         continue;
                     }
                     let mut applied_jobs = task
-                        .apply(&provider_plan.plan.plan_id, &provider_plan.provider)
+                        .apply(
+                            &provider_plan.plan.plan_id,
+                            &provider_plan.provider,
+                            JobRole::Verification,
+                        )
                         .unwrap_or(vec![]);
 
                     if applied_jobs.len() > 0 {
@@ -266,7 +274,7 @@ impl DetailJobGenerator {
                     .or_insert(task_names.clone());
 
                 let provider_plan = Self::create_provider_plan(component);
-                self.update_gen_jobs_and_job_assignments(
+                self.regular_update_gen_jobs_and_job_assignments(
                     provider_plan,
                     &mut gen_jobs,
                     &mut job_assignments,
@@ -315,7 +323,7 @@ impl DetailJobGenerator {
         ProviderPlan::new(component.clone(), plan)
     }
 
-    async fn update_gen_jobs_and_job_assignments(
+    async fn regular_update_gen_jobs_and_job_assignments(
         &self,
         provider_plan: ProviderPlan,
         gen_jobs: &mut HashMap<Zone, Vec<Job>>,
@@ -339,7 +347,11 @@ impl DetailJobGenerator {
             }
 
             let mut applied_jobs = task
-                .apply(&provider_plan.plan.plan_id, &provider_plan.provider)
+                .apply(
+                    &provider_plan.plan.plan_id,
+                    &provider_plan.provider,
+                    JobRole::Regular,
+                )
                 .unwrap_or(vec![]);
 
             if applied_jobs.len() > 0 {

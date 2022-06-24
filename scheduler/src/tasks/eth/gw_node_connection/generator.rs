@@ -4,6 +4,7 @@
 
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
+use common::job_manage::JobRole;
 use common::jobs::Job;
 use common::{Gateway, Node, PlanId};
 use std::sync::Arc;
@@ -36,6 +37,7 @@ impl TaskApplicant for TaskGWNodeConnection {
         &self,
         plan_id: &PlanId,
         component: &ComponentInfo,
+        phase: JobRole,
     ) -> Result<Vec<Job>, anyhow::Error> {
         let vec = Vec::default();
         Ok(vec)

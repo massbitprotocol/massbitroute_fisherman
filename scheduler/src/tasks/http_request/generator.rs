@@ -3,7 +3,7 @@ use crate::tasks::generator::TaskApplicant;
 use anyhow::{anyhow, Context, Error};
 use async_trait::async_trait;
 use common::component::{ComponentInfo, ComponentType};
-use common::job_manage::JobDetail;
+use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::workers::MatchedWorkers;
@@ -46,7 +46,7 @@ impl HttpRequestGenerator {
             let mut task_config = config.as_object().unwrap().clone();
             map_config.append(&mut task_config);
             let value = serde_json::Value::Object(map_config);
-            log::debug!("{:?}", &value);
+            log::info!("{:?}", &value);
             match serde_json::from_value(value) {
                 Ok(config) => task_configs.push(config),
                 Err(err) => {
@@ -54,6 +54,7 @@ impl HttpRequestGenerator {
                 }
             }
         }
+        log::info!("configs HttpRequestGenerator: {:?}", &configs);
         HttpRequestGenerator {
             root_config: configs,
             task_configs,
@@ -84,7 +85,12 @@ impl TaskApplicant for HttpRequestGenerator {
         true
     }
 
-    fn apply(&self, plan_id: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+    fn apply(
+        &self,
+        plan_id: &PlanId,
+        component: &ComponentInfo,
+        phase: JobRole,
+    ) -> Result<Vec<Job>, Error> {
         let mut jobs = Vec::new();
         let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
         if let Some(obj) = context["provider"].as_object_mut() {
@@ -99,7 +105,7 @@ impl TaskApplicant for HttpRequestGenerator {
             &context
         );
         for config in self.task_configs.iter() {
-            if !config.can_apply(component) {
+            if !config.can_apply(component, &phase) {
                 debug!("Can not apply config {:?} for {:?}", config, component);
                 continue;
             }
@@ -121,6 +127,7 @@ impl TaskApplicant for HttpRequestGenerator {
                     job.component_url = url;
                     job.timeout = config.request_timeout;
                     job.repeat_number = config.repeat_number;
+                    job.interval = config.interval;
                     jobs.push(job);
                 }
                 Err(err) => {

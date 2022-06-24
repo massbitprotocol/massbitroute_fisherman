@@ -165,7 +165,7 @@ impl TaskExecutor for HttpRequestExecutor {
             response,
         };
         let res = result_sender
-            .send(JobResult::new(JobResultDetail::HttpRequest(result)))
+            .send(JobResult::new(JobResultDetail::HttpRequest(result), None))
             .await;
         debug!("send res: {:?}", res);
         Ok(())

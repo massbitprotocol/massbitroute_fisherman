@@ -99,12 +99,12 @@ impl JobExecution {
             sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD));
         }
     }
-    pub async fn get_jobs_from_executions(&mut self) {
-        let mut jobs = Vec::new();
-        while let Ok(job) = self.job_receiver.try_recv() {
-            debug!("Received job: {:?} from executors", &job);
-            jobs.push(job);
-        }
-        self.job_buffers.lock().await.add_jobs(jobs);
-    }
+    // pub async fn get_jobs_from_executions(&mut self) {
+    //     let mut jobs = Vec::new();
+    //     while let Ok(job) = self.job_receiver.try_recv() {
+    //         debug!("Received job: {:?} from executors", &job);
+    //         jobs.push(job);
+    //     }
+    //     self.job_buffers.lock().await.add_jobs(jobs);
+    // }
 }

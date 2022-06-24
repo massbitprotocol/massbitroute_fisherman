@@ -1,3 +1,4 @@
+use crate::job_manage::JobRole;
 use crate::jobs::Job;
 use crate::{ComponentInfo, Timestamp};
 use handlebars::{Handlebars, RenderError};
@@ -117,6 +118,7 @@ pub struct HttpRequestJobConfig {
     pub headers: serde_json::Map<String, serde_json::Value>,
     pub body: serde_json::Value,
     pub response: HttpResponseConfig,
+    pub interval: Timestamp,
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct HttpResponseConfig {
@@ -126,7 +128,12 @@ pub struct HttpResponseConfig {
     pub values: HashMap<String, Vec<Value>>, //Path to values
 }
 impl HttpRequestJobConfig {
-    pub fn can_apply(&self, provider: &ComponentInfo) -> bool {
+    pub fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
+        // Check phase
+        if !self.phases.contains(&phase.to_string()) {
+            return false;
+        }
+
         let any = String::from("*");
         let comp_type = provider.component_type.to_string().to_lowercase();
         if !self.provider_types.contains(&any) && !self.provider_types.contains(&comp_type) {

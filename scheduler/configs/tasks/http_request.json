@@ -1,7 +1,7 @@
 {
   "default": {
     "name": "http_request",
-    "phase": ["verification", "regular"],
+    "phases": ["verification", "regular"],
     "url_template": "",
     "method": "get",
     "provider_types": ["*"],
@@ -12,24 +12,38 @@
     "repeat_number": 0,
     "body": "",
     "response" : {
-
+    "interval": 1000
     }
   },
   "tasks": [
     {
       "name": "RoundTripTime",
-      "request_type": "http",
+      "phases": ["verification"],
+      "repeat_number": 5,
+      "interval": 1000,
       "http_method": "get",
-      "repeat_number": 10,
+      "request_type": "http",
+      "url_template": "https://{{provider.ip}}/_rtt"
+    },
+    {
+      "name": "RoundTripTime",
+      "phases": ["regular"],
+      "repeat_number": 1000000000,
+      "interval": 5000,
+      "http_method": "get",
+      "request_type": "http",
       "url_template": "https://{{provider.ip}}/_rtt"
     },
     {
       "name": "LatestBlock",
+      "phases": ["verification"],
+      "blockchains": ["eth"],
+      "repeat_number": 0,
+      "interval": 0,
       "type": "rpc",
       "http_method": "post",
       "url_template": "https://{{provider.ip}}/",
       "provider_types": ["node"],
-      "blockchains": ["eth"],
       "request_timeout": 5000,
       "headers": {
         "content-type":"application/json",
@@ -48,6 +62,97 @@
           "hash": ["result", "hash"],
           "number": ["result", "number"],
           "timestamp": ["result", "timestamp"]
+        }
+      }
+    },
+    {
+      "name": "LatestBlock",
+      "phases": ["regular"],
+      "blockchains": ["eth"],
+      "repeat_number": 1000000000,
+      "interval": 30000,
+      "type": "rpc",
+      "http_method": "post",
+      "url_template": "https://{{provider.ip}}/",
+      "provider_types": ["node"],
+      "request_timeout": 5000,
+      "headers": {
+        "content-type":"application/json",
+        "X-Api-Key": "{{provider.appKey}}",
+        "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "eth_getBlockByNumber",
+        "params": ["latest",true],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "hash": ["result", "hash"],
+          "number": ["result", "number"],
+          "timestamp": ["result", "timestamp"]
+        }
+      }
+    },
+    {
+      "name": "LatestBlock",
+      "phases": ["verification"],
+      "blockchains": ["dot"],
+      "repeat_number": 0,
+      "interval": 0,
+      "type": "rpc",
+      "http_method": "post",
+      "url_template": "https://{{provider.ip}}/",
+      "provider_types": ["node"],
+      "request_timeout": 5000,
+      "headers": {
+        "content-type":"application/json",
+        "X-Api-Key": "{{provider.appKey}}",
+        "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "chain_getBlock",
+        "params": [],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "parent_hash": ["result", "block","header","parentHash"],
+          "number": ["result", "block","header","number"]
+        }
+      }
+    },
+    {
+      "name": "LatestBlock",
+      "phases": ["regular"],
+      "blockchains": ["dot"],
+      "repeat_number": 1000000000,
+      "interval": 30000,
+      "type": "rpc",
+      "http_method": "post",
+      "url_template": "https://{{provider.ip}}/",
+      "provider_types": ["node"],
+      "request_timeout": 5000,
+      "headers": {
+        "content-type":"application/json",
+        "X-Api-Key": "{{provider.appKey}}",
+        "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "chain_getBlock",
+        "params": [],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "parent_hash": ["result", "block","header","parentHash"],
+          "number": ["result", "block","header","number"]
         }
       }
     }

@@ -60,6 +60,7 @@ impl TaskApplicant for BenchmarkGenerator {
         &self,
         plan_id: &PlanId,
         component: &ComponentInfo,
+        phase: JobRole,
     ) -> Result<Vec<Job>, anyhow::Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_benchmark = JobBenchmark {

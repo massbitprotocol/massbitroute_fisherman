@@ -64,7 +64,12 @@ impl TaskApplicant for PingGenerator {
         true
     }
 
-    fn apply(&self, plan_id: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+    fn apply(
+        &self,
+        plan_id: &PlanId,
+        component: &ComponentInfo,
+        phase: JobRole,
+    ) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};
         let job_detail = JobDetail::Ping(job_ping);

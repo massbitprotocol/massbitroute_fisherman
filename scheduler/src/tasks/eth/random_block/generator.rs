@@ -1,7 +1,7 @@
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::ComponentInfo;
-use common::job_manage::{JobDetail, JobPing, JobResultDetail};
+use common::job_manage::{JobDetail, JobPing, JobResultDetail, JobRole};
 use common::jobs::Job;
 use common::models::PlanEntity;
 use common::{Node, PlanId};
@@ -34,7 +34,7 @@ impl TaskApplicant for TaskRandomBlock {
         true
     }
 
-    fn apply(&self, plan_id: &PlanId, node: &Node) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan_id: &PlanId, node: &Node, phase: JobRole) -> Result<Vec<Job>, Error> {
         let vec = Vec::default();
         Ok(vec)
     }
