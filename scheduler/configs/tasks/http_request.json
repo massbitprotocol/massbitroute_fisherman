@@ -4,15 +4,17 @@
     "phases": ["verification", "regular"],
     "url_template": "",
     "method": "get",
+    "request_type": "http",
     "provider_types": ["*"],
     "blockchains": ["*"],
     "networks": ["*"],
     "request_timeout": 1000,
     "headers": {},
     "repeat_number": 0,
+    "interval": 1000,
     "body": "",
     "response" : {
-    "interval": 1000
+      "response_type" : "text"
     }
   },
   "tasks": [
@@ -21,8 +23,6 @@
       "phases": ["verification"],
       "repeat_number": 5,
       "interval": 1000,
-      "http_method": "get",
-      "request_type": "http",
       "url_template": "https://{{provider.ip}}/_rtt"
     },
     {
@@ -30,8 +30,6 @@
       "phases": ["regular"],
       "repeat_number": 1000000000,
       "interval": 5000,
-      "http_method": "get",
-      "request_type": "http",
       "url_template": "https://{{provider.ip}}/_rtt"
     },
     {

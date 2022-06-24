@@ -3,7 +3,7 @@ use crate::tasks::generator::TaskApplicant;
 use anyhow::{anyhow, Context, Error};
 use async_trait::async_trait;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
-use common::job_manage::JobDetail;
+use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::workers::MatchedWorkers;

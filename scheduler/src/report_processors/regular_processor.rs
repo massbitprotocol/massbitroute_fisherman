@@ -1,4 +1,4 @@
-use crate::models::job_result::StoredJobResult;
+use crate::models::job_result::{ProviderTask, StoredJobResult};
 use crate::report_processors::adapters::{get_report_adapters, Appender};
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::{JudgmentsResult, MainJudgment};
@@ -52,71 +52,25 @@ impl ReportProcessor for RegularReportProcessor {
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         log::debug!("Regular report process jobs");
         let mut stored_results = Vec::<StoredJobResult>::new();
-        let mut ping_results = Vec::new();
-        let mut benchmark_results: Vec<JobBenchmarkResult> = Vec::new();
-        let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
-        let mut http_request_results: Vec<JobResult> = Vec::new();
+        let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         for report in reports {
-            match report.result_detail {
-                JobResultDetail::Ping(result) => {
-                    ping_results.push(result);
-                    //println!("{:?}", &ping_result);
+            let key = ProviderTask::new(report.provider_id.clone(), report.job_name.clone());
+            let mut jobs = provider_task_results.entry(key).or_insert(Vec::default());
+            jobs.push(report);
+        }
+        for (key, results) in provider_task_results {
+            log::debug!("Process results {:?} for task {:?}", &results, &key);
+            for adapter in self.report_adapters.iter() {
+                adapter.append_job_results(&key, &results).await;
+            }
+            match self.judgment.apply_for_provider(&key, &results).await {
+                Ok(res) => {}
+                Err(err) => {
+                    error!("{:?}", &err);
                 }
-                JobResultDetail::LatestBlock(result) => latest_block_results.push(result),
-                JobResultDetail::Benchmark(result) => benchmark_results.push(result),
-                JobResultDetail::HttpRequest(_) => http_request_results.push(report),
-                _ => {}
             }
-        }
-        //update provider map base on ping result
-        // Todo: Add response time for each Job result
-        for adapter in self.report_adapters.iter() {
-            if ping_results.len() > 0 {
-                adapter.append_ping_results(&ping_results).await;
-            }
-            if latest_block_results.len() > 0 {
-                adapter
-                    .append_latest_block_results(&latest_block_results)
-                    .await;
-            }
-        }
-        if benchmark_results.len() > 0 {
-            for adapter in self.report_adapters.iter() {
-                adapter.append_benchmark_results(&benchmark_results).await;
-            }
-        }
-        if http_request_results.len() > 0 {
-            for adapter in self.report_adapters.iter() {
-                adapter
-                    .append_http_request_results(&http_request_results)
-                    .await;
-            }
-            self.judg_http_request_results(http_request_results).await;
         }
 
         Ok(stored_results)
-    }
-}
-
-impl RegularReportProcessor {
-    pub async fn judg_http_request_results(&self, results: Vec<JobResult>) {
-        //Separate result by provider id
-        let mut map_results = HashMap::<String, Vec<JobResult>>::new();
-        for result in results {
-            let mut results = map_results
-                .entry(result.provider_id.clone())
-                .or_insert(Vec::default());
-            results.push(result);
-        }
-        for (provider_id, results) in map_results.into_iter() {
-            if results.len() > 0 {
-                match self.judgment.apply_for_provider(provider_id, results).await {
-                    Ok(res) => {}
-                    Err(err) => {
-                        error!("{:?}", &err);
-                    }
-                }
-            }
-        }
     }
 }

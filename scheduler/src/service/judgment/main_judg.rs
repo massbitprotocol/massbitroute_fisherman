@@ -1,3 +1,4 @@
+use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::persistence::services::PlanService;
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
@@ -79,56 +80,49 @@ impl MainJudgment {
     }
     pub async fn apply_for_provider(
         &self,
-        provider_id: String,
-        results: Vec<JobResult>,
+        provider_task: &ProviderTask,
+        results: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         //Separate jobs by job name
         let provider_type = results
             .get(0)
             .map(|res| res.provider_type.clone())
             .unwrap_or_default();
-        let mut map_results = HashMap::<String, Vec<JobResult>>::new();
-        for result in results {
-            let mut results = map_results
-                .entry(result.job_name.clone())
-                .or_insert(Vec::default());
-            results.push(result);
-        }
-        for (job_name, results) in map_results.iter() {
-            for judgment in self.judgments.iter() {
-                if !judgment.can_apply_for_result(job_name) {
-                    continue;
-                }
-                let judg_result = judgment
-                    .apply_for_results(results)
-                    .await
-                    .unwrap_or(JudgmentsResult::Failed);
-                debug!(
-                    "Judgment result {:?} for provider {:?} with results {:?}",
-                    &judg_result, &provider_id, results
-                );
-                match judg_result {
-                    JudgmentsResult::Failed | JudgmentsResult::Error => {
-                        let mut report = StoreReport::build(
-                            &"Scheduler".to_string(),
-                            &JobRole::Regular,
-                            &*PORTAL_AUTHORIZATION,
-                            &DOMAIN,
-                        );
-                        report.set_report_data_short(false, &provider_id, &provider_type);
-                        debug!("Send plan report to portal:{:?}", report);
-                        if !CONFIG.is_test_mode {
-                            let res = report.send_data(&JobRole::Verification).await;
-                            info!("Send report to portal res: {:?}", res);
-                        } else {
-                            let res = report.write_data();
-                            info!("Write report to file res: {:?}", res);
-                        }
+
+        for judgment in self.judgments.iter() {
+            if !judgment.can_apply_for_result(&provider_task.task_name) {
+                continue;
+            }
+            let judg_result = judgment
+                .apply_for_results(provider_task, results)
+                .await
+                .unwrap_or(JudgmentsResult::Failed);
+            debug!(
+                "Judgment result {:?} for provider {:?} with results {:?}",
+                &judg_result, provider_task, results
+            );
+            match judg_result {
+                JudgmentsResult::Failed | JudgmentsResult::Error => {
+                    let mut report = StoreReport::build(
+                        &"Scheduler".to_string(),
+                        &JobRole::Regular,
+                        &*PORTAL_AUTHORIZATION,
+                        &DOMAIN,
+                    );
+                    report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
+                    debug!("Send plan report to portal:{:?}", report);
+                    if !CONFIG.is_test_mode {
+                        let res = report.send_data(&JobRole::Verification).await;
+                        info!("Send report to portal res: {:?}", res);
+                    } else {
+                        let res = report.write_data();
+                        info!("Write report to file res: {:?}", res);
                     }
-                    _ => {}
                 }
+                _ => {}
             }
         }
+
         Ok(JudgmentsResult::Unfinished)
     }
 }

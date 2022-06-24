@@ -1,6 +1,20 @@
 use common::Timestamp;
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct ProviderTask {
+    pub provider_id: String,
+    pub task_name: String,
+}
+
+impl ProviderTask {
+    pub fn new(provider_id: String, task_name: String) -> Self {
+        Self {
+            provider_id,
+            task_name,
+        }
+    }
+}
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct StoredJobResult {
     pub plan_id: String,
