@@ -4,10 +4,11 @@ use crate::util::get_current_time;
 use crate::workers::{Worker, WorkerInfo};
 use crate::{
     ComponentId, ComponentInfo, JobId, Timestamp, Url, WorkerId, DEFAULT_JOB_INTERVAL,
-    DEFAULT_JOB_TIMEOUT,
+    DEFAULT_JOB_TIMEOUT, WORKER_ID,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::env::join_paths;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -44,6 +45,7 @@ pub struct Job {
     pub interval: Timestamp, //
     pub header: HashMap<String, String>,
     pub job_detail: Option<JobDetail>,
+    pub phase: JobRole,
 }
 
 impl From<&Job> for reqwest::Body {
@@ -52,7 +54,12 @@ impl From<&Job> for reqwest::Body {
     }
 }
 impl Job {
-    pub fn new(plan_id: String, component: &ComponentInfo, job_detail: JobDetail) -> Self {
+    pub fn new(
+        plan_id: String,
+        component: &ComponentInfo,
+        job_detail: JobDetail,
+        phase: JobRole,
+    ) -> Self {
         let uuid = Uuid::new_v4();
         Job {
             job_id: uuid.to_string(),
@@ -69,6 +76,7 @@ impl Job {
             job_detail: Some(job_detail),
             parallelable: false,
             component_url: "".to_string(),
+            phase,
         }
     }
 }
@@ -112,15 +120,19 @@ pub struct JobResult {
 }
 
 impl JobResult {
-    pub fn new(result_detail: JobResultDetail, chain_info: Option<ChainInfo>) -> JobResult {
+    pub fn new(
+        result_detail: JobResultDetail,
+        chain_info: Option<ChainInfo>,
+        job: &Job,
+    ) -> JobResult {
         let receive_timestamp = get_current_time();
         JobResult {
-            job_id: "".to_string(),
-            job_name: "".to_string(),
-            worker_id: "".to_string(),
-            provider_id: "".to_string(),
-            provider_type: Default::default(),
-            phase: Default::default(),
+            job_id: job.job_id.clone(),
+            job_name: job.job_name.clone(),
+            worker_id: WORKER_ID.clone(),
+            provider_id: job.component_id.clone(),
+            provider_type: job.component_type.clone(),
+            phase: job.phase.clone(),
             result_detail,
             receive_timestamp,
             chain_info,

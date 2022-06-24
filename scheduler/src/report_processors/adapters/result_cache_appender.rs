@@ -3,7 +3,7 @@ use crate::report_processors::adapters::Appender;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobBenchmarkResult, JobResultDetail};
-use common::jobs::JobResult;
+use common::jobs::{Job, JobResult};
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
 use common::util::get_current_time;
@@ -34,7 +34,8 @@ impl Appender for ResultCacheAppender {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
                 let component_id = &result.job.component_id;
-                let job_result = JobResult::new(JobResultDetail::Ping(result.clone()), None);
+                let job_result =
+                    JobResult::new(JobResultDetail::Ping(result.clone()), None, &Job::default());
                 let result_by_task = result_cache
                     .result_cache_map
                     .entry(component_id.clone())
@@ -62,7 +63,11 @@ impl Appender for ResultCacheAppender {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
                 let component_id = &result.job.component_id;
-                let job_result = JobResult::new(JobResultDetail::LatestBlock(result.clone()), None);
+                let job_result = JobResult::new(
+                    JobResultDetail::LatestBlock(result.clone()),
+                    None,
+                    &Job::default(),
+                );
                 let result_by_task = result_cache
                     .result_cache_map
                     .entry(component_id.clone())
@@ -90,7 +95,11 @@ impl Appender for ResultCacheAppender {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
                 let component_id = &result.job.component_id;
-                let job_result = JobResult::new(JobResultDetail::Benchmark(result.clone()), None);
+                let job_result = JobResult::new(
+                    JobResultDetail::Benchmark(result.clone()),
+                    None,
+                    &Job::default(),
+                );
                 let result_by_task = result_cache
                     .result_cache_map
                     .entry(component_id.clone())

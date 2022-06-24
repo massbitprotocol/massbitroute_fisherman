@@ -56,7 +56,7 @@ impl TaskApplicant for LatestBlockGenerator {
             chain_info: ChainInfo::new(node.blockchain.clone(), node.network.clone()),
         };
         let job_detail = JobDetail::LatestBlock(job);
-        let mut job = Job::new(plan_id.clone(), node, job_detail);
+        let mut job = Job::new(plan_id.clone(), node, job_detail, phase);
         job.parallelable = true;
         job.timeout = self.config.latest_block_timeout_ms;
         job.component_url = self.get_url(node);

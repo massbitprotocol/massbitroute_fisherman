@@ -75,7 +75,7 @@ impl TaskApplicant for BenchmarkGenerator {
             url_path: self.config.url_path.clone(),
         };
         let job_detail = JobDetail::Benchmark(job_benchmark);
-        let mut job = Job::new(plan_id.clone(), component, job_detail);
+        let mut job = Job::new(plan_id.clone(), component, job_detail, phase);
         job.component_url = self.get_url(component);
         job.header.insert(
             "host".to_lowercase().to_string(),

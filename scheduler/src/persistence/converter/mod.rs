@@ -4,7 +4,7 @@ use crate::persistence::seaorm::{
 };
 use crate::persistence::PlanModel;
 use common::component::{ChainInfo, ComponentType};
-use common::job_manage::{JobBenchmarkResult, JobDetail, JobResultDetail};
+use common::job_manage::{JobBenchmarkResult, JobDetail, JobResultDetail, JobRole};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
@@ -79,6 +79,7 @@ impl From<&Job> for jobs::ActiveModel {
             interval: Set(job.interval),
             repeat_number: Set(job.repeat_number),
             id: NotSet,
+            phase: Set(job.phase.to_string()),
         }
     }
 }
@@ -122,13 +123,7 @@ impl From<&jobs::Model> for Job {
                 }
             }
         }
-        // let mut header: HashMap<String, String> = serde_json::from_str(json).unwrap();
-        // let mut map = HashMap::new();
-        // for key in keys {
-        //     let (k, v) = lookup.remove_entry (key).unwrap();
-        //     map.insert(k, v);
-        // }
-        // Ok(map)
+
         Job {
             job_id: model.job_id.to_string(),
             job_name: model.job_name.to_string(),
@@ -146,6 +141,7 @@ impl From<&jobs::Model> for Job {
             header: headers,
             //Fixme: add converter here
             job_detail: None,
+            phase: JobRole::from_str(model.phase.as_str()).unwrap_or_default(),
         }
     }
 }

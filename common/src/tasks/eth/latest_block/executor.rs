@@ -195,6 +195,7 @@ impl TaskExecutor for LatestBlockExecutor {
             .send(JobResult::new(
                 JobResultDetail::LatestBlock(latest_block_result),
                 Some(response.chain_info.clone()),
+                job,
             ))
             .await;
         info!("send res: {:?}", res);
