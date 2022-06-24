@@ -72,7 +72,7 @@ async fn main() {
     let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
     let processor_service = ProcessorServiceBuilder::default()
         .with_plan_service(plan_service.clone())
-        .with_result_service(result_service)
+        .with_result_service(result_service.clone())
         .with_job_service(job_service.clone())
         .with_result_cache(result_cache.clone())
         .build();
@@ -91,13 +91,13 @@ async fn main() {
         plan_service.clone(),
         provider_storage.clone(),
         worker_infos.clone(),
-        job_service,
+        job_service.clone(),
         assigment_buffer.clone(),
         result_cache.clone(),
     );
     let scheduler_state = SchedulerState::new(
         arc_conn.clone(),
-        plan_service,
+        plan_service.clone(),
         worker_service,
         worker_infos.clone(),
         provider_storage.clone(),
@@ -110,7 +110,13 @@ async fn main() {
     let task_job_generator = task::spawn(async move { job_generator.run().await });
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
 
-    let processor_state = ProcessorState::new(arc_conn.clone(), result_cache.clone());
+    let processor_state = ProcessorState::new(
+        arc_conn.clone(),
+        result_cache.clone(),
+        plan_service.clone(),
+        job_service.clone(),
+        result_service.clone(),
+    );
     info!("Init http service ");
     let server = ServerBuilder::default()
         .with_entry_point(socket_addr)
