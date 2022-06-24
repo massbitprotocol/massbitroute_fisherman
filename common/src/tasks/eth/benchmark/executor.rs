@@ -7,7 +7,7 @@ use crate::logger::helper::message;
 use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::executor::TaskExecutor;
 use crate::util::get_current_time;
-use crate::{task_spawn, Timestamp, WorkerId};
+use crate::{task_spawn, Timestamp, WorkerId, WORKER_ID};
 use anyhow::Error;
 use async_trait::async_trait;
 use bytesize::ByteSize;
@@ -264,6 +264,7 @@ impl TaskExecutor for BenchmarkExecutor {
                 .send(JobResult::new(
                     JobResultDetail::Benchmark(result),
                     Some(chain_info),
+                    job,
                 ))
                 .await;
             debug!("send res: {:?}", res);

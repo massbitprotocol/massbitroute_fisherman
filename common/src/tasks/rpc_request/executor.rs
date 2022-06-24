@@ -74,7 +74,7 @@ impl TaskExecutor for RpcRequestExecutor {
             //response_timestamp: get_current_time(),
             response,
         };
-        let job_result = JobResult::new(JobResultDetail::RpcRequest(result), None);
+        let job_result = JobResult::new(JobResultDetail::RpcRequest(result), None, job);
         let res = result_sender.send(job_result).await;
         debug!("send res: {:?}", res);
         Ok(())

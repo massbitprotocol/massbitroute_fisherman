@@ -17,4 +17,6 @@ const DEFAULT_JOB_INTERVAL: Timestamp = 1000;
 const DEFAULT_JOB_TIMEOUT: Timestamp = 5000;
 lazy_static! {
     pub static ref DOMAIN: String = env::var("DOMAIN").expect("There is no env var DOMAIN");
+    pub static ref WORKER_ID: String =
+        env::var("WORKER_ID").expect("There is no env var WORKER_ID");
 }

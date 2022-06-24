@@ -75,7 +75,7 @@ impl TaskExecutor for PingExecutor {
             worker_id: self.worker_id.clone(),
             response,
         };
-        let job_result = JobResult::new(JobResultDetail::Ping(ping_result), None);
+        let job_result = JobResult::new(JobResultDetail::Ping(ping_result), None, job);
         let res = result_sender.send(job_result).await;
         debug!("send res: {:?}", res);
 

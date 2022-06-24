@@ -21,6 +21,7 @@ pub struct Model {
     pub job_name: String,
     pub plan_id: String,
     pub component_type: String,
+    pub phase: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

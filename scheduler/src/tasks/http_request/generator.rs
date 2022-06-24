@@ -123,8 +123,12 @@ impl TaskApplicant for HttpRequestGenerator {
                         response_type: config.response.response_type.clone(),
                         response_values: config.response.values.clone(),
                     };
-                    let mut job =
-                        Job::new(plan_id.clone(), component, JobDetail::HttpRequest(detail));
+                    let mut job = Job::new(
+                        plan_id.clone(),
+                        component,
+                        JobDetail::HttpRequest(detail),
+                        phase.clone(),
+                    );
                     job.parallelable = true;
                     job.component_url = url;
                     job.timeout = config.request_timeout;
