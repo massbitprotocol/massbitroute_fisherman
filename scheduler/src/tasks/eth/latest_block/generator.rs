@@ -49,7 +49,7 @@ impl TaskApplicant for LatestBlockGenerator {
         return component.component_type == ComponentType::Node;
     }
 
-    fn apply(&self, plan_id: &PlanId, node: &Node) -> Result<Vec<Job>, Error> {
+    fn apply(&self, plan_id: &PlanId, node: &Node, phase: JobRole) -> Result<Vec<Job>, Error> {
         let job = JobLatestBlock {
             assigned_at: get_current_time(),
             request_body: self.config.latest_block_request_body.clone(),

@@ -58,7 +58,12 @@ impl TaskApplicant for RpcRequestGenerator {
         true
     }
 
-    fn apply(&self, plan_id: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, Error> {
+    fn apply(
+        &self,
+        plan_id: &PlanId,
+        component: &ComponentInfo,
+        phase: JobRole,
+    ) -> Result<Vec<Job>, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let detail = JobRpcRequest {};
         let comp_url = detail.get_component_url(component);

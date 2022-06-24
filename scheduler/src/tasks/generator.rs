@@ -16,7 +16,12 @@ use std::sync::Arc;
 pub trait TaskApplicant: Sync + Send {
     fn get_name(&self) -> String;
     fn can_apply(&self, component: &ComponentInfo) -> bool;
-    fn apply(&self, plan: &PlanId, component: &ComponentInfo) -> Result<Vec<Job>, anyhow::Error>;
+    fn apply(
+        &self,
+        plan: &PlanId,
+        component: &ComponentInfo,
+        phase: JobRole,
+    ) -> Result<Vec<Job>, anyhow::Error>;
     fn assign_jobs(
         &self,
         plan: &PlanModel,
