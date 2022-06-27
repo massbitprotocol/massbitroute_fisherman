@@ -10,13 +10,15 @@ use common::job_manage::{JobBenchmarkResult, JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
-use common::{PlanId, DOMAIN};
+use common::{JobId, PlanId, DOMAIN};
+use futures_util::{FutureExt, TryFutureExt};
 use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
+
 #[derive(Clone, Default)]
 pub struct VerificationReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
@@ -67,12 +69,15 @@ impl ReportProcessor for VerificationReportProcessor {
         log::debug!("Regular report process jobs");
         let mut stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
+        let mut plan_ids = HashSet::<PlanId>::new();
+        let mut job_ids = HashSet::<JobId>::new();
         for report in reports {
             let key = ProviderTask::new(
                 report.provider_id.clone(),
                 report.result_detail.get_name(),
                 report.job_name.clone(),
             );
+            job_ids.insert(report.job_id.clone());
             let mut jobs = provider_task_results.entry(key).or_insert(Vec::default());
             jobs.push(report);
         }
@@ -81,18 +86,22 @@ impl ReportProcessor for VerificationReportProcessor {
             for adapter in self.report_adapters.iter() {
                 adapter.append_job_results(&key, &results).await;
             }
-            //Judgment by plan_ids
-
-            /*
-            match self.judgment.apply_for_provider(&key, &results).await {
-                Ok(res) => {}
-                Err(err) => {
-                    error!("{:?}", &err);
-                }
-            }
-             */
         }
-
+        //Judgment by plan_ids
+        if job_ids.len() > 0 {
+            let plan_ids = self
+                .job_service
+                .get_job_by_ids(&job_ids)
+                .await
+                .ok()
+                .map(|jobs| {
+                    jobs.iter()
+                        .map(|job| job.plan_id.clone())
+                        .collect::<HashSet<PlanId>>()
+                })
+                .unwrap_or_default();
+            self.judg_results(Vec::from_iter(plan_ids)).await;
+        }
         Ok(stored_results)
     }
     /*

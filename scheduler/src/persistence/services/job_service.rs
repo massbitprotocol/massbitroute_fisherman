@@ -5,9 +5,11 @@ use anyhow::anyhow;
 use common::component::Zone;
 use common::jobs::{Job, JobAssignment};
 use common::workers::WorkerInfo;
+use common::JobId;
 use log::{debug, error, log};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -67,6 +69,26 @@ impl JobService {
             }
         }
         Ok(0)
+    }
+    pub async fn get_job_by_ids(
+        &self,
+        job_ids: &HashSet<JobId>,
+    ) -> Result<Vec<Job>, anyhow::Error> {
+        let mut id_conditions = Condition::any();
+        for id in job_ids {
+            id_conditions = id_conditions.add(jobs::Column::JobId.eq(id.to_string()));
+        }
+        match jobs::Entity::find()
+            .filter(id_conditions)
+            .all(self.db.as_ref())
+            .await
+        {
+            Ok(entities) => Ok(entities
+                .iter()
+                .map(|entity| Job::from((entity)))
+                .collect::<Vec<Job>>()),
+            Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
+        }
     }
     pub async fn get_job_by_plan_ids(
         &self,
