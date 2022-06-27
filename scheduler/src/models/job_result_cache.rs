@@ -1,3 +1,5 @@
+use crate::models::job_result::ProviderTask;
+use crate::service::judgment::http_latestblock_judg::CacheKey;
 use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
 use anyhow::Error;
@@ -7,15 +9,22 @@ use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::{ComponentId, Timestamp};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
 pub type TaskName = String;
+pub type TaskType = String;
+#[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct TaskKey {
+    pub task_type: String,
+    pub task_name: String,
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct JobResultCache {
-    pub result_cache_map: HashMap<ComponentId, HashMap<TaskName, TaskResultCache>>,
+    pub result_cache_map: HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>,
 }
 
 #[derive(Clone, Debug)]
@@ -38,6 +47,12 @@ impl DerefMut for TaskResultCache {
 }
 
 impl TaskResultCache {
+    pub fn new(create_time: Timestamp) -> Self {
+        Self {
+            results: VecDeque::new(),
+            create_time,
+        }
+    }
     pub fn is_result_too_old(&self) -> bool {
         let update_time = if self.results.is_empty() {
             self.create_time
@@ -46,11 +61,16 @@ impl TaskResultCache {
         };
         (get_current_time() - update_time) > (CONFIG.generate_new_regular_timeout * 1000)
     }
-    pub fn new(create_time: Timestamp) -> Self {
-        Self {
-            results: VecDeque::new(),
-            create_time,
+    pub fn get_latest_time(&self) -> Timestamp {
+        if self.results.is_empty() {
+            self.create_time
+        } else {
+            self.results.back().unwrap().receive_timestamp
         }
+    }
+    pub fn reset_timestamp(&mut self, timestamp: Timestamp) {
+        self.create_time = timestamp;
+        self.results.clear()
     }
 }
 

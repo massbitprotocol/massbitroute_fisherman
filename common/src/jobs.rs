@@ -56,6 +56,7 @@ impl From<&Job> for reqwest::Body {
 impl Job {
     pub fn new(
         plan_id: String,
+        job_name: String,
         component: &ComponentInfo,
         job_detail: JobDetail,
         phase: JobRole,
@@ -63,7 +64,7 @@ impl Job {
         let uuid = Uuid::new_v4();
         Job {
             job_id: uuid.to_string(),
-            job_name: job_detail.get_job_name(),
+            job_name,
             plan_id,
             component_id: component.id.clone(),
             component_type: component.component_type.clone(),
@@ -109,7 +110,7 @@ impl JobAssignment {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobResult {
     pub job_id: String,
-    pub job_name: String, //For http request us task_name in task config ex: RoundTripTime/LatestBlock
+    pub job_name: String, //For http request use task_name in task config ex: RoundTripTime/LatestBlock
     pub worker_id: WorkerId,
     pub provider_id: ComponentId,
     pub provider_type: ComponentType,

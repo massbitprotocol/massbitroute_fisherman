@@ -171,7 +171,7 @@ impl HttpRequestJobConfig {
             let mut task_config = config.as_object().unwrap().clone();
             map_config.append(&mut task_config);
             let value = serde_json::Value::Object(map_config);
-            log::info!("{:?}", &value);
+            //log::info!("{:?}", &value);
             match serde_json::from_value(value) {
                 Ok(config) => task_configs.push(config),
                 Err(err) => {

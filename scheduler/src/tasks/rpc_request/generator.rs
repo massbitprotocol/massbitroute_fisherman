@@ -69,6 +69,7 @@ impl TaskApplicant for RpcRequestGenerator {
         let comp_url = detail.get_component_url(component);
         let mut job = Job::new(
             plan_id.clone(),
+            String::from("RpcRequest"),
             component,
             JobDetail::RpcRequest(detail),
             phase,
