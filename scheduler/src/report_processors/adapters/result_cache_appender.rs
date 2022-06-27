@@ -31,6 +31,32 @@ impl Appender for ResultCacheAppender {
         key: &ProviderTask,
         results: &Vec<JobResult>,
     ) -> Result<(), anyhow::Error> {
+        log::debug!("ResultCacheAppender append results");
+        if results.is_empty() {
+            return Ok(());
+        }
+        {
+            let mut result_cache = self.result_cache.lock().await;
+            for result in results {
+                let component_id = &key.provider_id;
+
+                let task_key = TaskKey {
+                    task_type: key.task_type.clone(),
+                    task_name: key.task_name.clone(),
+                };
+                let result_by_task = result_cache
+                    .result_cache_map
+                    .entry(component_id.clone())
+                    .or_insert(HashMap::new());
+                let e = result_by_task
+                    .entry(task_key)
+                    .or_insert(TaskResultCache::new(get_current_time()));
+                e.push_back(result.clone());
+                while e.len() > RESULT_CACHE_MAX_LENGTH {
+                    e.pop_front();
+                }
+            }
+        }
         Ok(())
     }
     /*
