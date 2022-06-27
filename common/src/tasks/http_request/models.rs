@@ -147,6 +147,8 @@ pub struct HttpRequestJobConfig {
     pub body: serde_json::Value,
     pub response: HttpResponseConfig,
     pub interval: Timestamp,
+    #[serde(default)]
+    pub thresholds: serde_json::Map<String, serde_json::Value>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct HttpResponseConfig {
@@ -155,10 +157,77 @@ pub struct HttpResponseConfig {
     #[serde(default)]
     pub values: HashMap<String, Vec<Value>>, //Path to values
 }
+
 impl HttpRequestJobConfig {
+    pub fn read_config(path: &str) -> Vec<HttpRequestJobConfig> {
+        let json_content = std::fs::read_to_string(path).unwrap_or_default();
+        let mut configs: Map<String, serde_json::Value> =
+            serde_json::from_str(&*json_content).unwrap_or_default();
+        let mut task_configs = Vec::new();
+        let default = configs["default"].as_object().unwrap();
+        let mut tasks = configs["tasks"].as_array().unwrap();
+        for config in tasks.iter() {
+            let mut map_config = serde_json::Map::from(default.clone());
+            let mut task_config = config.as_object().unwrap().clone();
+            map_config.append(&mut task_config);
+            let value = serde_json::Value::Object(map_config);
+            //log::info!("{:?}", &value);
+            match serde_json::from_value(value) {
+                Ok(config) => task_configs.push(config),
+                Err(err) => {
+                    log::error!("{:?}", &err);
+                }
+            }
+        }
+        task_configs
+    }
+}
+impl HttpRequestJobConfig {
+    pub fn match_phase(&self, phase: &JobRole) -> bool {
+        self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
+    }
+    pub fn match_blockchain(&self, blockchain: &String) -> bool {
+        let blockchain = blockchain.to_lowercase();
+        if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
+        {
+            log::debug!(
+                "Blockchain {:?} not match with {:?}",
+                &blockchain,
+                &self.blockchains
+            );
+            return false;
+        }
+        true
+    }
+    pub fn match_network(&self, network: &String) -> bool {
+        let network = network.to_lowercase();
+        if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
+            log::debug!(
+                "Networks {:?} not match with {:?}",
+                &network,
+                &self.networks
+            );
+            return false;
+        }
+        true
+    }
+    pub fn match_provider_type(&self, provider_type: &String) -> bool {
+        let provider_type = provider_type.to_lowercase();
+        if !self.provider_types.contains(&String::from("*"))
+            && !self.provider_types.contains(&provider_type)
+        {
+            log::debug!(
+                "Provider type {:?} not match with {:?}",
+                &provider_type,
+                &self.networks
+            );
+            return false;
+        }
+        true
+    }
     pub fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
         // Check phase
-        if !self.phases.contains(&phase.to_string()) {
+        if !self.match_phase(phase) {
             return false;
         }
 

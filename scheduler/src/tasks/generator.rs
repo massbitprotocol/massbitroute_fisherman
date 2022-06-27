@@ -4,13 +4,16 @@
  */
 use crate::persistence::PlanModel;
 use crate::tasks::*;
+use crate::CONFIG;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
 use common::models::PlanEntity;
 use common::tasks::eth::*;
+use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker};
-use common::PlanId;
+use common::{PlanId, Timestamp};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub trait TaskApplicant: Sync + Send {
@@ -22,6 +25,24 @@ pub trait TaskApplicant: Sync + Send {
         component: &ComponentInfo,
         phase: JobRole,
     ) -> Result<Vec<Job>, anyhow::Error>;
+    fn apply_with_cache(
+        &self,
+        plan: &PlanId,
+        component: &ComponentInfo,
+        phase: JobRole,
+        latest_update: HashMap<String, Timestamp>,
+    ) -> Result<Vec<Job>, anyhow::Error> {
+        let task_name = self.get_name();
+        let timestamp = latest_update
+            .get(&task_name)
+            .map(|val| val.clone())
+            .unwrap_or_default();
+        if get_current_time() - timestamp > CONFIG.generate_new_regular_timeout * 1000 {
+            self.apply(plan, component, phase)
+        } else {
+            Ok(Vec::new())
+        }
+    }
     fn assign_jobs(
         &self,
         plan: &PlanModel,

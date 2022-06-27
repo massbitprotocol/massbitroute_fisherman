@@ -7,7 +7,8 @@ use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::workers::MatchedWorkers;
-use common::{PlanId, DOMAIN};
+use common::{PlanId, Timestamp, DOMAIN};
+use handlebars::template::TemplateMapping;
 use handlebars::Handlebars;
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -24,7 +25,7 @@ use warp::reply::json;
  */
 #[derive(Clone, Debug, Default)]
 pub struct HttpRequestGenerator {
-    root_config: serde_json::Map<String, serde_json::Value>,
+    //root_config: serde_json::Map<String, serde_json::Value>,
     task_configs: Vec<HttpRequestJobConfig>,
     handlebars: Handlebars<'static>,
 }
@@ -35,28 +36,29 @@ impl HttpRequestGenerator {
     }
     pub fn new(config_dir: &str) -> Self {
         let path = format!("{}/http_request.json", config_dir);
-        let json_content = std::fs::read_to_string(path.as_str()).unwrap_or_default();
-        let mut configs: Map<String, serde_json::Value> =
-            serde_json::from_str(&*json_content).unwrap_or_default();
-        let mut task_configs = Vec::new();
-        let default = configs["default"].as_object().unwrap();
-        let mut tasks = configs["tasks"].as_array().unwrap();
-        for config in tasks.iter() {
-            let mut map_config = serde_json::Map::from(default.clone());
-            let mut task_config = config.as_object().unwrap().clone();
-            map_config.append(&mut task_config);
-            let value = serde_json::Value::Object(map_config);
-            log::info!("{:?}", &value);
-            match serde_json::from_value(value) {
-                Ok(config) => task_configs.push(config),
-                Err(err) => {
-                    log::error!("{:?}", &err);
-                }
-            }
-        }
-        log::info!("configs HttpRequestGenerator: {:?}", &configs);
+        let task_configs = HttpRequestJobConfig::read_config(path.as_str());
+        // let json_content = std::fs::read_to_string(path.as_str()).unwrap_or_default();
+        // let mut configs: Map<String, serde_json::Value> =
+        //     serde_json::from_str(&*json_content).unwrap_or_default();
+        // let mut task_configs = Vec::new();
+        // let default = configs["default"].as_object().unwrap();
+        // let mut tasks = configs["tasks"].as_array().unwrap();
+        // for config in tasks.iter() {
+        //     let mut map_config = serde_json::Map::from(default.clone());
+        //     let mut task_config = config.as_object().unwrap().clone();
+        //     map_config.append(&mut task_config);
+        //     let value = serde_json::Value::Object(map_config);
+        //     log::info!("{:?}", &value);
+        //     match serde_json::from_value(value) {
+        //         Ok(config) => task_configs.push(config),
+        //         Err(err) => {
+        //             log::error!("{:?}", &err);
+        //         }
+        //     }
+        // }
+        //log::info!("configs HttpRequestGenerator: {:?}", &configs);
         HttpRequestGenerator {
-            root_config: configs,
+            //root_config: configs,
             task_configs,
             handlebars: Handlebars::new(),
         }
@@ -125,6 +127,68 @@ impl TaskApplicant for HttpRequestGenerator {
                     };
                     let mut job = Job::new(
                         plan_id.clone(),
+                        config.name.clone(),
+                        component,
+                        JobDetail::HttpRequest(detail),
+                        phase.clone(),
+                    );
+                    job.parallelable = true;
+                    job.component_url = url;
+                    job.timeout = config.request_timeout;
+                    job.repeat_number = config.repeat_number;
+                    job.interval = config.interval;
+                    jobs.push(job);
+                }
+                Err(err) => {
+                    log::error!("{:?}", &err);
+                }
+            }
+        }
+        log::debug!("Generated {} jobs {:?}", jobs.len(), &jobs);
+        Ok(jobs)
+    }
+    fn apply_with_cache(
+        &self,
+        plan_id: &PlanId,
+        component: &ComponentInfo,
+        phase: JobRole,
+        latest_update: HashMap<String, Timestamp>,
+    ) -> Result<Vec<Job>, Error> {
+        let mut jobs = Vec::new();
+        let chain_info = ChainInfo::new(component.blockchain.clone(), component.network.clone());
+        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
+        if let Some(obj) = context["provider"].as_object_mut() {
+            match component.component_type {
+                ComponentType::Node => obj.insert(String::from("type"), Value::from("node")),
+                ComponentType::Gateway => obj.insert(String::from("type"), Value::from("gw")),
+            };
+        }
+        log::debug!(
+            "Http Request apply for component {:?} with context {:?}",
+            component,
+            &context
+        );
+        for config in self.task_configs.iter() {
+            if !config.can_apply(component, &phase) {
+                debug!("Can not apply config {:?} for {:?}", config, component);
+                continue;
+            }
+            match self.get_url(config, &context) {
+                Ok(url) => {
+                    let headers = config.generate_header(&self.handlebars, &context);
+                    let body = config.generate_body(&self.handlebars, &context).ok();
+                    let detail = JobHttpRequest {
+                        url: url.clone(),
+                        chain_info: Some(chain_info.clone()),
+                        method: config.http_method.clone(),
+                        headers,
+                        body,
+                        response_type: config.response.response_type.clone(),
+                        response_values: config.response.values.clone(),
+                    };
+                    let mut job = Job::new(
+                        plan_id.clone(),
+                        config.name.clone(),
                         component,
                         JobDetail::HttpRequest(detail),
                         phase.clone(),

@@ -1,11 +1,12 @@
 use crate::models::component::ProviderPlan;
-use crate::models::job_result_cache::{JobResultCache, TaskName, TaskResultCache};
+use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskName, TaskResultCache};
 use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
 use crate::persistence::JobAssignmentActiveModel;
 use crate::persistence::PlanModel;
+use crate::service::judgment::http_latestblock_judg::CacheKey;
 use crate::tasks::generator::{get_tasks, TaskApplicant};
 use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use anyhow::{anyhow, Error};
@@ -17,7 +18,7 @@ use common::models::PlanEntity;
 use common::tasks::LoadConfig;
 use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
-use common::{task_spawn, ComponentId, WorkerId};
+use common::{task_spawn, ComponentId, Timestamp, WorkerId};
 use futures_util::future::join;
 use log::{debug, info, warn};
 use sea_orm::sea_query::IndexType::Hash;
@@ -259,26 +260,25 @@ impl DetailJobGenerator {
 
         {
             let mut cache = self.result_cache.lock().await;
-            info!("result_cache_map: {:#?}", cache.result_cache_map);
-
-            let task_names: HashMap<TaskName, TaskResultCache> = self
-                .tasks
-                .iter()
-                .map(|task| (task.get_name(), TaskResultCache::default()))
-                .collect();
+            // info!("result_cache_map: {:#?}", cache.result_cache_map);
+            //
+            // let task_names: HashMap<TaskName, TaskResultCache> = self
+            //     .tasks
+            //     .iter()
+            //     .map(|task| (task.get_name(), TaskResultCache::default()))
+            //     .collect();
 
             for component in components.iter() {
-                let task_map = cache
+                let provider_cache = cache
                     .result_cache_map
                     .entry(component.id.clone())
-                    .or_insert(task_names.clone());
-
+                    .or_insert(Default::default());
                 let provider_plan = Self::create_provider_plan(component);
                 self.regular_update_gen_jobs_and_job_assignments(
                     provider_plan,
                     &mut gen_jobs,
                     &mut job_assignments,
-                    task_map,
+                    provider_cache,
                 )
                 .await;
             }
@@ -328,7 +328,7 @@ impl DetailJobGenerator {
         provider_plan: ProviderPlan,
         gen_jobs: &mut HashMap<Zone, Vec<Job>>,
         job_assignments: &mut Vec<JobAssignment>,
-        task_map: &mut HashMap<TaskName, TaskResultCache>,
+        provider_result_cache: &mut HashMap<TaskKey, TaskResultCache>,
     ) {
         let matched_workers = self
             .worker_infos
@@ -336,21 +336,23 @@ impl DetailJobGenerator {
             .await
             .match_workers(&provider_plan.provider)
             .unwrap_or(MatchedWorkers::default());
+
         for task in self.tasks.iter() {
             if !task.can_apply(&provider_plan.provider) {
                 continue;
             }
-            let task_name = task.get_name();
-            let task_result = task_map.get_mut(&*task_name).unwrap();
-            if !task_result.is_result_too_old() {
-                continue;
-            }
+            let latest_task_update = provider_result_cache
+                .iter()
+                .filter(|(key, _)| key.task_type.as_str() == task.get_name().as_str())
+                .map(|(key, value)| (key.task_name.clone(), value.get_latest_time()))
+                .collect::<HashMap<String, Timestamp>>();
 
             let mut applied_jobs = task
-                .apply(
+                .apply_with_cache(
                     &provider_plan.plan.plan_id,
                     &provider_plan.provider,
                     JobRole::Regular,
+                    latest_task_update,
                 )
                 .unwrap_or(vec![]);
 
@@ -361,6 +363,21 @@ impl DetailJobGenerator {
                     &provider_plan.provider.component_type,
                     &provider_plan.provider.id
                 );
+                //Update latest timestamp in cache
+                for job in applied_jobs.iter() {
+                    let key = TaskKey {
+                        task_type: job
+                            .job_detail
+                            .as_ref()
+                            .map(|detail| detail.get_job_name())
+                            .unwrap_or(job.job_name.clone()),
+                        task_name: job.job_name.clone(),
+                    };
+                    let cache = provider_result_cache
+                        .entry(key)
+                        .or_insert(TaskResultCache::new(get_current_time()));
+                    cache.reset_timestamp(get_current_time());
+                }
                 if let Ok(mut assignments) = task.assign_jobs(
                     &provider_plan.plan,
                     &provider_plan.provider,
@@ -375,7 +392,7 @@ impl DetailJobGenerator {
                     .append(&mut applied_jobs);
             }
 
-            task_result.create_time = get_current_time();
+            //task_result.create_time = get_current_time();
         }
     }
 }
