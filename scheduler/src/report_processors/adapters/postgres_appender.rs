@@ -1,9 +1,9 @@
-use crate::models::job_result::ProviderTask;
+use crate::models::job_result::{ProviderTask, StoredJobResult};
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::report_processors::adapters::Appender;
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::JobBenchmarkResult;
+use common::job_manage::{JobBenchmarkResult, JobResultDetail};
 use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
@@ -28,8 +28,52 @@ impl Appender for PostgresAppender {
     async fn append_job_results(
         &self,
         key: &ProviderTask,
-        results: &Vec<JobResult>,
+        reports: &Vec<JobResult>,
     ) -> Result<(), anyhow::Error> {
+        let mut ping_results = Vec::new();
+        let mut benchmark_results: Vec<JobBenchmarkResult> = Vec::new();
+        let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
+        let mut stored_results = Vec::<StoredJobResult>::new();
+        let mut http_request_results: Vec<JobResult> = Vec::new();
+        for report in reports {
+            match &report.result_detail {
+                JobResultDetail::Ping(result) => {
+                    ping_results.push(result.clone());
+                }
+                JobResultDetail::LatestBlock(result) => {
+                    latest_block_results.push(result.clone());
+                }
+                JobResultDetail::Benchmark(result) => {
+                    benchmark_results.push(result.clone());
+                }
+                JobResultDetail::HttpRequest(ref result) => {
+                    http_request_results.push(report.clone());
+                }
+                _ => {}
+            }
+        }
+        //update provider map base on ping result
+        // Todo: Add response time for each Job result
+        if ping_results.len() > 0 {
+            self.job_result_service
+                .save_result_pings(&ping_results)
+                .await;
+        }
+        if latest_block_results.len() > 0 {
+            self.job_result_service
+                .save_result_latest_blocks(&latest_block_results)
+                .await;
+        }
+        if benchmark_results.len() > 0 {
+            self.job_result_service
+                .save_result_benchmarks(&benchmark_results)
+                .await;
+        }
+        if http_request_results.len() > 0 {
+            self.job_result_service
+                .save_result_http_requests(&http_request_results)
+                .await;
+        }
         Ok(())
     }
     async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {
