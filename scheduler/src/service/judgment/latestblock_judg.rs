@@ -8,7 +8,6 @@ use common::models::PlanEntity;
 use common::tasks::eth::LatestBlockConfig;
 use common::tasks::LoadConfig;
 use log::{debug, info};
-use minifier::js::Keyword::Default;
 use sea_orm::DatabaseConnection;
 use std::str::FromStr;
 use std::sync::Arc;

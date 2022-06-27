@@ -1,6 +1,5 @@
 use crate::service::comparator::Comparator;
 use common::tasks::http_request::HttpResponseValues;
-use minifier::js::Keyword::Default;
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct LatestBlockDotComparator {}

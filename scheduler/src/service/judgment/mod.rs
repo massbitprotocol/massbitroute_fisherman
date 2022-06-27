@@ -1,4 +1,5 @@
 pub mod benchmark_judg;
+pub mod http_ping_judg;
 pub mod http_latestblock_judg;
 pub mod latestblock_judg;
 pub mod main_judg;
@@ -42,12 +43,10 @@ pub trait ReportCheck: Sync + Send + Debug {
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         false
     }
-    /*
-     * result > 0 result is looked good
-     * result = 0 job is not finished
-     * result < 0 something is bad
-     */
+
+    /// For Verification phase
     async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, anyhow::Error>;
+    /// For Regular phase
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
@@ -67,6 +66,10 @@ pub fn get_report_judgments(
         result_service.clone(),
     )));
     result.push(Arc::new(LatestBlockJudgment::new(
+        config_dir,
+        result_service.clone(),
+    )));
+    result.push(Arc::new(BenchmarkJudgment::new(
         config_dir,
         result_service.clone(),
     )));
