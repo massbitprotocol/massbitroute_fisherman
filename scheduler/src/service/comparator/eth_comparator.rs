@@ -1,29 +1,29 @@
 use crate::service::comparator::Comparator;
 use common::tasks::http_request::HttpResponseValues;
+use common::util::get_current_time;
+use log::info;
 use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct LatestBlockEthComparator {}
 
 impl LatestBlockEthComparator {
-    pub fn get_block_time(values: &HttpResponseValues) -> u64 {
-        todo!()
+    pub fn get_block_time(values: &HttpResponseValues) -> i64 {
+        let timestamp = values
+            .get("timestamp")
+            .and_then(|val| val.as_str())
+            .and_then(|str| i64::from_str_radix(str, 16).ok())
+            .unwrap_or_default();
+        timestamp
     }
 }
 impl Comparator for LatestBlockEthComparator {
+    fn get_latest_value(&self, value: &HttpResponseValues) -> Option<i64> {
+        self.get_number_value(value, "timestamp")
+    }
     fn compare(&self, value1: &HttpResponseValues, value2: &HttpResponseValues) -> i64 {
-        // let block_timestamp = block_timestamp
-        //     .trim_start_matches("\"0x")
-        //     .trim_end_matches("\"");
-        // info!(
-        //     "result: {}, block_hash: {}, block_number: {}, block_timestamp: {}",
-        //     result, block_hash, block_number, block_timestamp
-        // );
-        //
-        // Ok(BlockData {
-        //     block_number: u64::from_str_radix(block_number, 16)?,
-        //     block_timestamp: i64::from_str_radix(block_timestamp, 16)?,
-        //     block_hash,
-        // })
-        todo!()
+        let block_time1 = Self::get_block_time(value1);
+        let block_time2 = Self::get_block_time(value2);
+        block_time1 - block_time2
     }
 }

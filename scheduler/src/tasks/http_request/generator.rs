@@ -24,7 +24,7 @@ use warp::reply::json;
  */
 #[derive(Clone, Debug, Default)]
 pub struct HttpRequestGenerator {
-    root_config: serde_json::Map<String, serde_json::Value>,
+    //root_config: serde_json::Map<String, serde_json::Value>,
     task_configs: Vec<HttpRequestJobConfig>,
     handlebars: Handlebars<'static>,
 }
@@ -35,28 +35,29 @@ impl HttpRequestGenerator {
     }
     pub fn new(config_dir: &str) -> Self {
         let path = format!("{}/http_request.json", config_dir);
-        let json_content = std::fs::read_to_string(path.as_str()).unwrap_or_default();
-        let mut configs: Map<String, serde_json::Value> =
-            serde_json::from_str(&*json_content).unwrap_or_default();
-        let mut task_configs = Vec::new();
-        let default = configs["default"].as_object().unwrap();
-        let mut tasks = configs["tasks"].as_array().unwrap();
-        for config in tasks.iter() {
-            let mut map_config = serde_json::Map::from(default.clone());
-            let mut task_config = config.as_object().unwrap().clone();
-            map_config.append(&mut task_config);
-            let value = serde_json::Value::Object(map_config);
-            log::info!("{:?}", &value);
-            match serde_json::from_value(value) {
-                Ok(config) => task_configs.push(config),
-                Err(err) => {
-                    log::error!("{:?}", &err);
-                }
-            }
-        }
-        log::info!("configs HttpRequestGenerator: {:?}", &configs);
+        let task_configs = HttpRequestJobConfig::read_config(path.as_str());
+        // let json_content = std::fs::read_to_string(path.as_str()).unwrap_or_default();
+        // let mut configs: Map<String, serde_json::Value> =
+        //     serde_json::from_str(&*json_content).unwrap_or_default();
+        // let mut task_configs = Vec::new();
+        // let default = configs["default"].as_object().unwrap();
+        // let mut tasks = configs["tasks"].as_array().unwrap();
+        // for config in tasks.iter() {
+        //     let mut map_config = serde_json::Map::from(default.clone());
+        //     let mut task_config = config.as_object().unwrap().clone();
+        //     map_config.append(&mut task_config);
+        //     let value = serde_json::Value::Object(map_config);
+        //     log::info!("{:?}", &value);
+        //     match serde_json::from_value(value) {
+        //         Ok(config) => task_configs.push(config),
+        //         Err(err) => {
+        //             log::error!("{:?}", &err);
+        //         }
+        //     }
+        // }
+        //log::info!("configs HttpRequestGenerator: {:?}", &configs);
         HttpRequestGenerator {
-            root_config: configs,
+            //root_config: configs,
             task_configs,
             handlebars: Handlebars::new(),
         }
