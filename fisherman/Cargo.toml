@@ -11,7 +11,6 @@ serde_json = "1.0"
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 
-minifier = "0.0.42"
 clap = "3.0"
 reqwest =  { version = "0.11" , features = ["multipart","native-tls","json"] }
 tokio = { version = "1.16" , features = ["full"] }

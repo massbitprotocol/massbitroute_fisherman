@@ -40,18 +40,13 @@ impl PingGenerator {
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct PingConfig {
-    #[serde(default)]
-    pub ping_error_percent_threshold: f64, //
-    #[serde(default)]
+    pub ping_success_percent_threshold: f64, //
     pub ping_percentile: f64,
-    #[serde(default)]
     pub ping_response_time_threshold: u64,
-    #[serde(default)]
     pub repeat_number: i32,
-    #[serde(default)]
     pub ping_request_response: String,
-    #[serde(default)]
     pub ping_timeout_ms: Timestamp,
+    pub ping_number_for_decide: i32,
 }
 
 impl LoadConfig<PingConfig> for PingConfig {}

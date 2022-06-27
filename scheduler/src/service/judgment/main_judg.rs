@@ -38,14 +38,12 @@ impl MainJudgment {
     ) -> Result<JudgmentsResult, anyhow::Error> {
         let mut final_result = JudgmentsResult::Unfinished;
         for jud in self.judgments.iter() {
+            let can_apply = jud.can_apply(job);
             info!(
                 "Apply plan: {:?}, job: {:?}, jud: {:?}, can_apply: {:?}",
-                plan,
-                job,
-                jud,
-                jud.can_apply(job)
+                plan, job, jud, can_apply
             );
-            if !jud.can_apply(job) {
+            if !can_apply {
                 continue;
             }
 

@@ -1,4 +1,4 @@
 {
   "regular": ["HttpRequest"],
-  "verification": ["Benchmark", "HttpRequest"]
+  "verification": ["Ping", "Benchmark", "LatestBlock"]
 }
