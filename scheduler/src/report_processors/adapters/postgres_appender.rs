@@ -1,3 +1,4 @@
+use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::report_processors::adapters::Appender;
 use anyhow::Error;
@@ -24,6 +25,13 @@ impl PostgresAppender {
 
 #[async_trait]
 impl Appender for PostgresAppender {
+    async fn append_job_results(
+        &self,
+        key: &ProviderTask,
+        results: &Vec<JobResult>,
+    ) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
     async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {
         log::debug!("PostgresAppender append ping results");
         self.job_result_service.save_result_pings(&results).await;
