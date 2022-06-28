@@ -110,7 +110,7 @@ impl WorkerServer {
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |jobs: Vec<Job>| {
-                info!("#### Received request body {:?} ####", &jobs);
+                info!("#### Received handle_jobs request body {:?} ####", &jobs);
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move { clone_service.handle_jobs(jobs, clone_state).await }
@@ -126,7 +126,7 @@ impl WorkerServer {
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |jobs: Vec<Job>| {
-                info!("#### Received request body {:?} ####", &jobs);
+                info!("#### Received update_jobs request body {:?} ####", &jobs);
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move { clone_service.update_jobs(jobs, clone_state).await }

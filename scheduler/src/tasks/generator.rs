@@ -14,6 +14,7 @@ use common::tasks::eth::*;
 use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
+use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 

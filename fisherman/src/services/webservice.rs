@@ -34,7 +34,8 @@ impl WebService {
             .collect();
         {
             let mut lock = state.lock().await;
-            lock.push_jobs(jobs).await;
+            let size = lock.push_jobs(jobs).await;
+            info!("There are {} jobs in queue", size);
         }
 
         //serde_json::to_string(jds);

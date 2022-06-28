@@ -12,7 +12,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-const RESULT_CACHE_MAX_LENGTH: usize = 3;
+const RESULT_CACHE_MAX_LENGTH: usize = 10;
 
 pub struct ResultCacheAppender {
     result_cache: Arc<Mutex<JobResultCache>>,
@@ -31,7 +31,7 @@ impl Appender for ResultCacheAppender {
         key: &ProviderTask,
         results: &Vec<JobResult>,
     ) -> Result<(), anyhow::Error> {
-        log::debug!("ResultCacheAppender append results");
+        log::info!("ResultCacheAppender append results");
         if results.is_empty() {
             return Ok(());
         }
@@ -56,6 +56,11 @@ impl Appender for ResultCacheAppender {
                     e.pop_front();
                 }
             }
+            log::info!(
+                "{} result_cache: {:?}",
+                result_cache.result_cache_map.len(),
+                result_cache.result_cache_map
+            );
         }
         Ok(())
     }

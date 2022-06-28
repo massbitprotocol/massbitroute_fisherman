@@ -33,7 +33,7 @@ impl JobBuffer {
         log::debug!("insert job {:?} to index of queue {}", &job, next_ind);
         self.jobs.insert(next_ind, job);
     }
-    pub fn add_jobs(&mut self, mut jobs: Vec<Job>) {
+    pub fn add_jobs(&mut self, mut jobs: Vec<Job>) -> usize {
         for job in jobs {
             //Find index for new job
             let mut next_ind = self.jobs.len();
@@ -50,6 +50,7 @@ impl JobBuffer {
             }
             self.jobs.insert(next_ind, job);
         }
+        self.jobs.len()
     }
     pub fn pop_job(&mut self) -> Option<Job> {
         let first_expected_time = self.jobs.front().and_then(|job| {

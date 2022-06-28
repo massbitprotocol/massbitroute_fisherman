@@ -13,7 +13,7 @@ impl WorkerState {
     pub fn new(job_buffer: Arc<Mutex<JobBuffer>>) -> Self {
         WorkerState { job_buffer }
     }
-    pub async fn push_jobs(&mut self, mut jobs: Vec<Job>) {
+    pub async fn push_jobs(&mut self, mut jobs: Vec<Job>) -> usize {
         self.job_buffer.lock().await.add_jobs(jobs)
     }
 }

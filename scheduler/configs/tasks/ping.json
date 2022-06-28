@@ -17,6 +17,6 @@
     "interval": 5000,
     "ping_request_response": "pong",
     "ping_timeout_ms": 1000,
-    "ping_number_for_decide": 10
+    "ping_number_for_decide": 3
   }
 }

@@ -1,6 +1,6 @@
 pub mod benchmark_judg;
-pub mod http_ping_judg;
 pub mod http_latestblock_judg;
+pub mod http_ping_judg;
 pub mod latestblock_judg;
 pub mod main_judg;
 pub mod ping_judg;
@@ -16,6 +16,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 use crate::models::job_result::ProviderTask;
+use crate::service::judgment::http_latestblock_judg::HttpLatestBlockJudgment;
+use crate::service::judgment::http_ping_judg::HttpPingJudgment;
 use common::jobs::{Job, JobResult};
 use sea_orm::DatabaseConnection;
 use std::sync::{Arc, Mutex};
@@ -73,9 +75,13 @@ pub fn get_report_judgments(
         config_dir,
         result_service.clone(),
     )));
-    result.push(Arc::new(BenchmarkJudgment::new(
+    result.push(Arc::new(HttpPingJudgment::new(
         config_dir,
         result_service.clone(),
     )));
+    // result.push(Arc::new(HttpLatestBlockJudgment::new(
+    //     config_dir,
+    //     result_service.clone(),
+    // )));
     result
 }
