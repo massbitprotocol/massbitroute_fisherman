@@ -53,6 +53,7 @@ impl HttpRequestExecutor {
             for (key, value) in request.headers.iter() {
                 req_builder = req_builder.header(key, value);
             }
+            log::debug!("Request header {:?}", &request.headers);
             //Body
             if let Some(body) = &request.body {
                 let req_body = body.clone().to_string();

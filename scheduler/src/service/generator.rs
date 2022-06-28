@@ -25,7 +25,7 @@ use sea_orm::sea_query::IndexType::Hash;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use slog::log;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::mem::take;
 use std::sync::Arc;
@@ -67,8 +67,8 @@ impl DetailJobGenerator {
      * For verification job (long job) find next available worker
      */
     pub async fn generate_verification_jobs(&mut self) {
-        let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
-        let mut job_assignments = Vec::default();
+        //let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
+        let mut total_assignment_buffer = AssignmentBuffer::default();
         // Get Nodes for verification
         let nodes = self
             .providers
@@ -95,13 +95,15 @@ impl DetailJobGenerator {
                     if !task.can_apply(&provider_plan.provider) {
                         continue;
                     }
-                    let mut applied_jobs = task
-                        .apply(
-                            &provider_plan.plan.plan_id,
-                            &provider_plan.provider,
-                            JobRole::Verification,
-                        )
-                        .unwrap_or(vec![]);
+                    if let Ok(applied_jobs) = task.apply(
+                        &provider_plan.plan.plan_id,
+                        &provider_plan.provider,
+                        JobRole::Verification,
+                        &matched_workers,
+                    ) {
+                        total_assignment_buffer.append(applied_jobs);
+                    }
+                    /*
                     if applied_jobs.len() > 0 {
                         log::debug!(
                             "Create {:?} jobs for node {:?}",
@@ -121,12 +123,8 @@ impl DetailJobGenerator {
                             .or_insert(Vec::new())
                             .append(&mut applied_jobs);
                     }
+                     */
                 }
-                log::debug!(
-                    "Create {:?} assignments for provider plan {:?}",
-                    job_assignments.len(),
-                    &provider_plan
-                );
             }
         }
         //Generate jobs for gateways
@@ -149,14 +147,15 @@ impl DetailJobGenerator {
                     if !task.can_apply(&provider_plan.provider) {
                         continue;
                     }
-                    let mut applied_jobs = task
-                        .apply(
-                            &provider_plan.plan.plan_id,
-                            &provider_plan.provider,
-                            JobRole::Verification,
-                        )
-                        .unwrap_or(vec![]);
-
+                    if let Ok(applied_jobs) = task.apply(
+                        &provider_plan.plan.plan_id,
+                        &provider_plan.provider,
+                        JobRole::Verification,
+                        &matched_workers,
+                    ) {
+                        total_assignment_buffer.append(applied_jobs);
+                    }
+                    /*
                     if applied_jobs.len() > 0 {
                         log::debug!(
                             "Create {:?} jobs for gateway {:?}",
@@ -176,26 +175,56 @@ impl DetailJobGenerator {
                             .or_insert(Vec::new())
                             .append(&mut applied_jobs);
                     }
+                     */
                 }
             }
         }
-        log::debug!("Job assignment length {}", job_assignments.len());
-        if job_assignments.len() > 0 {
+        let AssignmentBuffer {
+            mut jobs,
+            mut list_assignments,
+        } = total_assignment_buffer;
+        if list_assignments.len() > 0 {
             self.job_service
-                .save_job_assignments(&job_assignments)
+                .save_job_assignments(&list_assignments)
                 .await;
             self.assignments
                 .lock()
                 .await
-                .add_assignments(job_assignments);
+                .add_assignments(list_assignments);
             //Store job assignments to db
         }
-        if gen_jobs.len() > 0 {
+        if jobs.len() > 0 {
             //Store jobs to db
-            self.store_jobs(&gen_jobs).await;
+            self.store_jobs(jobs).await;
         }
     }
-
+    pub async fn store_jobs(&self, jobs: Vec<Job>) -> Result<(), anyhow::Error> {
+        let mut gen_plans = HashSet::<String>::default();
+        for job in jobs.iter() {
+            gen_plans.insert(job.plan_id.clone());
+        }
+        warn!(
+            "update_plans_as_generated {}: {:?}",
+            gen_plans.len(),
+            gen_plans
+        );
+        let tnx = self.db_conn.begin().await?;
+        self.job_service.save_jobs(&jobs).await;
+        self.plan_service
+            .update_plans_as_generated(Vec::from_iter(gen_plans))
+            .await;
+        match tnx.commit().await {
+            Ok(_) => {
+                log::debug!("Transaction commited successful");
+                Ok(())
+            }
+            Err(err) => {
+                log::debug!("Transaction commited with error {:?}", &err);
+                Err(anyhow!("{:?}", &err))
+            }
+        }
+    }
+    /*
     pub async fn store_jobs(
         &self,
         map_jobs: &HashMap<Zone, Vec<Job>>,
@@ -230,7 +259,8 @@ impl DetailJobGenerator {
             }
         }
     }
-
+     */
+    /*
     pub async fn assign_jobs(&self, map_jobs: &HashMap<Zone, Vec<Job>>) {
         let mut assignments = Vec::default();
         for (zone, jobs) in map_jobs.iter() {
@@ -247,62 +277,55 @@ impl DetailJobGenerator {
         }
         self.assignments.lock().await.add_assignments(assignments);
     }
-
+    */
     pub async fn generate_regular_jobs(&mut self) -> Result<(), Error> {
-        let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
-        let mut job_assignments = Vec::new();
+        let mut total_assignment_buffer = AssignmentBuffer::default();
         let mut components;
         {
             components = self.providers.lock().await.clone_nodes_list().await;
             components.append(&mut self.providers.lock().await.clone_gateways_list().await);
-            info!("components list: {:?}", components);
+            //info!("components list: {:?}", components);
         }
 
         {
             let mut cache = self.result_cache.lock().await;
-            // info!("result_cache_map: {:#?}", cache.result_cache_map);
-            //
-            // let task_names: HashMap<TaskName, TaskResultCache> = self
-            //     .tasks
-            //     .iter()
-            //     .map(|task| (task.get_name(), TaskResultCache::default()))
-            //     .collect();
-
             for component in components.iter() {
                 let provider_cache = cache
                     .result_cache_map
                     .entry(component.id.clone())
                     .or_insert(Default::default());
                 let provider_plan = Self::create_provider_plan(component);
-                self.regular_update_gen_jobs_and_job_assignments(
-                    provider_plan,
-                    &mut gen_jobs,
-                    &mut job_assignments,
-                    provider_cache,
-                )
-                .await;
+                if let Ok(assignment_buffer) = self
+                    .generate_regular_provider_jobs(provider_plan, provider_cache)
+                    .await
+                {
+                    total_assignment_buffer.append(assignment_buffer);
+                }
             }
         }
-
+        let AssignmentBuffer {
+            mut jobs,
+            mut list_assignments,
+        } = total_assignment_buffer;
         info!(
             "There is {} job_assignments: {:?}",
-            job_assignments.len(),
-            job_assignments
+            list_assignments.len(),
+            list_assignments
         );
-        info!("There is {} gen_jobs: {:?}", gen_jobs.len(), gen_jobs);
-        if job_assignments.len() > 0 {
+        info!("There is {} gen_jobs: {:?}", jobs.len(), jobs);
+        if list_assignments.len() > 0 {
             self.job_service
-                .save_job_assignments(&job_assignments)
+                .save_job_assignments(&list_assignments)
                 .await;
             self.assignments
                 .lock()
                 .await
-                .add_assignments(job_assignments);
+                .add_assignments(list_assignments);
             //Store job assignments to db
         }
-        if gen_jobs.len() > 0 {
+        if jobs.len() > 0 {
             //Store jobs to db
-            self.store_jobs(&gen_jobs).await;
+            self.store_jobs(jobs).await;
         }
         Ok(())
     }
@@ -323,13 +346,12 @@ impl DetailJobGenerator {
         ProviderPlan::new(component.clone(), plan)
     }
 
-    async fn regular_update_gen_jobs_and_job_assignments(
+    async fn generate_regular_provider_jobs(
         &self,
         provider_plan: ProviderPlan,
-        gen_jobs: &mut HashMap<Zone, Vec<Job>>,
-        job_assignments: &mut Vec<JobAssignment>,
         provider_result_cache: &mut HashMap<TaskKey, TaskResultCache>,
-    ) {
+    ) -> Result<AssignmentBuffer, anyhow::Error> {
+        let mut assignment_buffer = AssignmentBuffer::default();
         let matched_workers = self
             .worker_infos
             .lock()
@@ -347,15 +369,16 @@ impl DetailJobGenerator {
                 .map(|(key, value)| (key.task_name.clone(), value.get_latest_time()))
                 .collect::<HashMap<String, Timestamp>>();
 
-            let mut applied_jobs = task
-                .apply_with_cache(
-                    &provider_plan.plan.plan_id,
-                    &provider_plan.provider,
-                    JobRole::Regular,
-                    latest_task_update,
-                )
-                .unwrap_or(vec![]);
-
+            if let Ok(applied_jobs) = task.apply_with_cache(
+                &provider_plan.plan.plan_id,
+                &provider_plan.provider,
+                JobRole::Regular,
+                &matched_workers,
+                latest_task_update,
+            ) {
+                assignment_buffer.append(applied_jobs);
+            }
+            /*
             if applied_jobs.len() > 0 {
                 log::debug!(
                     "Create {:?} regular jobs for {:?} {:?}",
@@ -391,9 +414,10 @@ impl DetailJobGenerator {
                     .or_insert(Vec::new())
                     .append(&mut applied_jobs);
             }
-
+            */
             //task_result.create_time = get_current_time();
         }
+        Ok(assignment_buffer)
     }
 }
 

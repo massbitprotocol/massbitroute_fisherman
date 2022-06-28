@@ -1,3 +1,4 @@
+use crate::models::jobs::AssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
@@ -49,7 +50,13 @@ impl TaskApplicant for LatestBlockGenerator {
         return component.component_type == ComponentType::Node;
     }
 
-    fn apply(&self, plan_id: &PlanId, node: &Node, phase: JobRole) -> Result<Vec<Job>, Error> {
+    fn apply(
+        &self,
+        plan_id: &PlanId,
+        node: &Node,
+        phase: JobRole,
+        workers: &MatchedWorkers,
+    ) -> Result<AssignmentBuffer, Error> {
         let job = JobLatestBlock {
             assigned_at: get_current_time(),
             request_body: self.config.latest_block_request_body.clone(),
@@ -76,8 +83,9 @@ impl TaskApplicant for LatestBlockGenerator {
         job.interval = self.config.interval;
         job.repeat_number = self.config.repeat_number as i32;
         debug!("job header: {:?}", job.header);
-        let vec = vec![job];
-        Ok(vec)
+        let mut assignment_buffer = AssignmentBuffer::default();
+        assignment_buffer.assign_job(job, workers);
+        Ok(assignment_buffer)
     }
     /*
      * Todo: for testing send jobs to all worker, remote or update this function

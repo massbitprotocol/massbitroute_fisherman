@@ -2,10 +2,12 @@
  * Check from any gateway can connection to any node
  */
 
+use crate::models::jobs::AssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::Job;
+use common::workers::MatchedWorkers;
 use common::{Gateway, Node, PlanId};
 use std::sync::Arc;
 
@@ -38,8 +40,8 @@ impl TaskApplicant for TaskGWNodeConnection {
         plan_id: &PlanId,
         component: &ComponentInfo,
         phase: JobRole,
-    ) -> Result<Vec<Job>, anyhow::Error> {
-        let vec = Vec::default();
-        Ok(vec)
+        workers: &MatchedWorkers,
+    ) -> Result<AssignmentBuffer, anyhow::Error> {
+        Ok(AssignmentBuffer::default())
     }
 }

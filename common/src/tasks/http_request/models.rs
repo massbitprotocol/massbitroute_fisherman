@@ -146,6 +146,7 @@ pub struct HttpRequestJobConfig {
     pub headers: serde_json::Map<String, serde_json::Value>,
     pub body: serde_json::Value,
     pub response: HttpResponseConfig,
+    pub assignment: HttpRequestAssignmentConfig,
     pub interval: Timestamp,
     #[serde(default)]
     pub thresholds: serde_json::Map<String, serde_json::Value>,
@@ -157,7 +158,8 @@ pub struct HttpResponseConfig {
     #[serde(default)]
     pub values: HashMap<String, Vec<Value>>, //Path to values
 }
-
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct HttpRequestAssignmentConfig {}
 impl HttpRequestJobConfig {
     pub fn read_config(path: &str) -> Vec<HttpRequestJobConfig> {
         let json_content = std::fs::read_to_string(path).unwrap_or_default();
