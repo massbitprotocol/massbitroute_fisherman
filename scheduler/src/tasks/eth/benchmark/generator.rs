@@ -6,7 +6,7 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
-use common::jobs::Job;
+use common::jobs::{AssignmentConfig, Job};
 use common::models::PlanEntity;
 use common::tasks::LoadConfig;
 use common::workers::MatchedWorkers;
@@ -30,6 +30,7 @@ pub struct BenchmarkConfig {
     url_path: String,
     pub judge_histogram_percentile: u32,
     pub response_threshold: Timestamp,
+    pub assignment: Option<AssignmentConfig>,
 }
 
 impl LoadConfig<BenchmarkConfig> for BenchmarkConfig {}
@@ -95,7 +96,7 @@ impl TaskApplicant for BenchmarkGenerator {
             component.token.clone(),
         );
         let mut assignment_buffer = AssignmentBuffer::default();
-        assignment_buffer.assign_job(job, workers);
+        assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
     }
 }

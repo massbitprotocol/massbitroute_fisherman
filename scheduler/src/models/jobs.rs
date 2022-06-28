@@ -1,10 +1,11 @@
 use common::component::Zone;
 use common::job_manage::JobResultDetail;
-use common::jobs::{Job, JobAssignment};
+use common::jobs::{AssignmentConfig, Job, JobAssignment};
 use common::workers::WorkerInfo;
 use common::workers::{MatchedWorkers, Worker};
 use common::{JobId, WorkerId};
 use log::debug;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -21,8 +22,37 @@ impl AssignmentBuffer {
             list_assignments: vec![],
         }
     }
-    pub fn assign_job(&mut self, job: Job, workers: &MatchedWorkers) {
+    pub fn assign_job(
+        &mut self,
+        job: Job,
+        workers: &MatchedWorkers,
+        assignment_config: &Option<AssignmentConfig>,
+    ) {
         //Do assignment
+        let mut rng = rand::thread_rng();
+        match assignment_config {
+            None => {
+                //without config, assign job for one random nearby worker
+                let worker = if workers.nearby_workers.len() > 0 {
+                    let ind = rng.gen_range(0..workers.nearby_workers.len());
+                    workers.nearby_workers.get(ind).unwrap()
+                } else {
+                    let ind = rng.gen_range(0..workers.best_workers.len());
+                    workers.best_workers.get(ind).unwrap()
+                };
+            }
+            Some(config) => {
+                self.assign_job_with_config(&job, workers, config);
+            }
+        }
+        self.jobs.push(job);
+    }
+    fn assign_job_with_config(
+        &mut self,
+        job: &Job,
+        workers: &MatchedWorkers,
+        assignment_config: &AssignmentConfig,
+    ) {
         for worker in workers.best_workers.iter() {
             let job_assignment = JobAssignment::new(worker.clone(), &job);
             self.list_assignments.push(job_assignment);
@@ -32,7 +62,6 @@ impl AssignmentBuffer {
                 worker.get_url("")
             )
         }
-        self.jobs.push(job);
     }
     pub fn append(&mut self, other: Self) {
         let Self {
