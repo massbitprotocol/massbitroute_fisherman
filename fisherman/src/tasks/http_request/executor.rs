@@ -9,7 +9,7 @@ use common::tasks::http_request::{
 };
 use common::tasks::ping::{CallPingError, JobPingResult};
 use common::tasks::rpc_request::{JobRpcResponse, JobRpcResult, RpcRequestError};
-use common::util::get_current_time;
+use common::util::{get_current_time, remove_break_line};
 use common::{task_spawn, WorkerId};
 use log::{debug, error, info};
 use reqwest::{get, Client, Response};
@@ -115,7 +115,7 @@ impl HttpRequestExecutor {
                 .text()
                 .await
                 .map_err(|err| HttpRequestError::SendError(format!("{}", err)))
-                .and_then(|res| Ok(JobHttpResponseDetail::Body(res))),
+                .map(|res| JobHttpResponseDetail::Body(remove_break_line(&res))),
         };
         log::debug!("Extracted response detail {:?}", response_detail);
         response_detail
