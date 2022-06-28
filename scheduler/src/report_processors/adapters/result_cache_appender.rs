@@ -1,4 +1,5 @@
-use crate::models::job_result_cache::{JobResultCache, TaskResultCache};
+use crate::models::job_result::ProviderTask;
+use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
 use crate::report_processors::adapters::Appender;
 use anyhow::Error;
 use async_trait::async_trait;
@@ -25,6 +26,14 @@ impl ResultCacheAppender {
 
 #[async_trait]
 impl Appender for ResultCacheAppender {
+    async fn append_job_results(
+        &self,
+        key: &ProviderTask,
+        results: &Vec<JobResult>,
+    ) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
+    /*
     async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {
         log::debug!("ResultCacheAppender append ping results");
         if results.is_empty() {
@@ -40,8 +49,12 @@ impl Appender for ResultCacheAppender {
                     .result_cache_map
                     .entry(component_id.clone())
                     .or_insert(HashMap::new());
+                let task_key = TaskKey {
+                    task_type: result.job.job_name.clone(),
+                    task_name: result.job.job_name.clone(),
+                };
                 let e = result_by_task
-                    .entry(result.job.job_name.clone())
+                    .entry(task_key)
                     .or_insert(TaskResultCache::new(get_current_time()));
                 e.push_back(job_result);
                 while e.len() > RESULT_CACHE_MAX_LENGTH {
@@ -115,4 +128,5 @@ impl Appender for ResultCacheAppender {
         }
         Ok(())
     }
+     */
 }
