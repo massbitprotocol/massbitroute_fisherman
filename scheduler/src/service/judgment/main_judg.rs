@@ -95,7 +95,7 @@ impl MainJudgment {
                 .apply_for_results(provider_task, results)
                 .await
                 .unwrap_or(JudgmentsResult::Failed);
-            debug!(
+            info!(
                 "Judgment result {:?} for provider {:?} with results {:?}",
                 &judg_result, provider_task, results
             );

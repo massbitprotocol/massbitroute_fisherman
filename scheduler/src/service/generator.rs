@@ -283,8 +283,9 @@ impl DetailJobGenerator {
         let mut components;
         {
             components = self.providers.lock().await.clone_nodes_list().await;
+            info!("There are {} node", components.len());
             components.append(&mut self.providers.lock().await.clone_gateways_list().await);
-            //info!("components list: {:?}", components);
+            info!("There are {} component", components.len());
         }
 
         {
@@ -307,12 +308,10 @@ impl DetailJobGenerator {
             mut jobs,
             mut list_assignments,
         } = total_assignment_buffer;
-        info!(
-            "There is {} job_assignments: {:?}",
-            list_assignments.len(),
-            list_assignments
-        );
-        info!("There is {} gen_jobs: {:?}", jobs.len(), jobs);
+        //info!("There is {} components", components.len());
+        info!("There is {} gen_jobs", jobs.len(),);
+        info!("There is {} job_assignments", list_assignments.len());
+
         if list_assignments.len() > 0 {
             self.job_service
                 .save_job_assignments(&list_assignments)
@@ -368,6 +367,7 @@ impl DetailJobGenerator {
                 .filter(|(key, _)| key.task_type.as_str() == task.get_name().as_str())
                 .map(|(key, value)| (key.task_name.clone(), value.get_latest_time()))
                 .collect::<HashMap<String, Timestamp>>();
+            debug!("latest_task_update: {:?}", latest_task_update);
 
             if let Ok(applied_jobs) = task.apply_with_cache(
                 &provider_plan.plan.plan_id,
@@ -381,7 +381,7 @@ impl DetailJobGenerator {
             /*
             if applied_jobs.len() > 0 {
                 log::debug!(
-                    "Create {:?} regular jobs for {:?} {:?}",
+                    "Create {} regular jobs for {:?} {:?}",
                     applied_jobs.len(),
                     &provider_plan.provider.component_type,
                     &provider_plan.provider.id

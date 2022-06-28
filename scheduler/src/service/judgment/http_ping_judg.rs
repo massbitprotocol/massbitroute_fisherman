@@ -136,6 +136,10 @@ impl ReportCheck for HttpPingJudgment {
             _ => false,
         }
     }
+    fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
+        return task.task_type.as_str() == "HttpRequest"
+            && task.task_name.as_str() == "RoundTripTime";
+    }
 
     async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, Error> {
         todo!();
@@ -159,7 +163,11 @@ impl ReportCheck for HttpPingJudgment {
             JobRole::Regular => &self.regular_config,
         };
 
-        info!("Http Ping cache: {:?}", response_times);
+        info!(
+            "{} Http Ping cache: {:?}",
+            response_times.len(),
+            response_times
+        );
         return if response_times.len() < config.ping_number_for_decide as usize {
             // Todo: Check timeout
             Ok(JudgmentsResult::Unfinished)

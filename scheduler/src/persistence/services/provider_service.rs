@@ -3,7 +3,7 @@ use crate::persistence::ProviderMapModel;
 use anyhow::anyhow;
 use common::component::Zone;
 use common::workers::WorkerInfo;
-use log::{error, log};
+use log::{debug, error, log};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Value,
 };
@@ -76,7 +76,7 @@ impl ProviderService {
             place_holders.join(","),
             CONFLICT_RESPONSE_TIME_QUERY
         );
-        println!("{}", query.as_str());
+        debug!("{}", query.as_str());
         match self
             .db
             .as_ref()

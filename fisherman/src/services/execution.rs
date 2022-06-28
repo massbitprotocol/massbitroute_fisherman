@@ -55,7 +55,7 @@ impl JobExecution {
         //main thread
         loop {
             while let Some(next_job) = self.job_buffers.lock().await.pop_job() {
-                info!("Execute job: {:?}", &next_job);
+                debug!("Execute job: {:?}", &next_job);
                 let rt_handle = self.runtime.handle();
 
                 if next_job.parallelable {

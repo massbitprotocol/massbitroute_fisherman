@@ -224,7 +224,10 @@ impl SchedulerServer {
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |job_results: Vec<JobResult>| {
-                info!("#### Received reports request body {:?} ####", &job_results);
+                info!(
+                    "#### Received {:?} reports request body  ####",
+                    &job_results.len()
+                );
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move { clone_service.process_report(job_results, clone_state).await }
