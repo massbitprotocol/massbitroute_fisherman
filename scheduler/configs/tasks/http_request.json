@@ -16,6 +16,9 @@
     "response" : {
       "response_type" : "text"
     },
+    "assignment": {
+
+    },
     "thresholds": {
 
     }
@@ -23,14 +26,14 @@
   "tasks": [
     {
       "name": "RoundTripTime",
-      "phases": ["verification"],
+      "phases": ["verification*"],
       "repeat_number": 5,
       "interval": 1000,
       "url_template": "https://{{provider.ip}}/_rtt"
     },
     {
       "name": "RoundTripTime",
-      "phases": ["regular"],
+      "phases": ["regular*"],
       "repeat_number": 1000000000,
       "interval": 5000,
       "url_template": "https://{{provider.ip}}/_rtt"

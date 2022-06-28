@@ -4,6 +4,7 @@ use common::job_manage::{JobDetail, JobPing, JobRole};
 use common::tasks::LoadConfig;
 use std::str::FromStr;
 
+use crate::models::jobs::AssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
@@ -64,7 +65,8 @@ impl TaskApplicant for PingGenerator {
         plan_id: &PlanId,
         component: &ComponentInfo,
         phase: JobRole,
-    ) -> Result<Vec<Job>, Error> {
+        workers: &MatchedWorkers,
+    ) -> Result<AssignmentBuffer, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_ping = JobPing {};
         let job_detail = JobDetail::Ping(job_ping);
@@ -79,8 +81,9 @@ impl TaskApplicant for PingGenerator {
         job.component_url = self.get_url(component);
         job.timeout = self.config.ping_timeout_ms;
         job.repeat_number = self.config.repeat_number;
-        let vec = vec![job];
-        Ok(vec)
+        let mut assignment_buffer = AssignmentBuffer::default();
+        assignment_buffer.assign_job(job, workers);
+        Ok(assignment_buffer)
     }
     fn assign_jobs(
         &self,

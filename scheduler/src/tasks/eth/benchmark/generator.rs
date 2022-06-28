@@ -2,12 +2,14 @@
  * Check from any gateway can connection to any node
  */
 
+use crate::models::jobs::AssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::Job;
 use common::models::PlanEntity;
 use common::tasks::LoadConfig;
+use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -61,7 +63,8 @@ impl TaskApplicant for BenchmarkGenerator {
         plan_id: &PlanId,
         component: &ComponentInfo,
         phase: JobRole,
-    ) -> Result<Vec<Job>, anyhow::Error> {
+        workers: &MatchedWorkers,
+    ) -> Result<AssignmentBuffer, anyhow::Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let job_benchmark = JobBenchmark {
             component_type: component.component_type.clone(),
@@ -91,7 +94,8 @@ impl TaskApplicant for BenchmarkGenerator {
             "x-api-key".to_lowercase().to_string(),
             component.token.clone(),
         );
-        let vec = vec![job];
-        Ok(vec)
+        let mut assignment_buffer = AssignmentBuffer::default();
+        assignment_buffer.assign_job(job, workers);
+        Ok(assignment_buffer)
     }
 }

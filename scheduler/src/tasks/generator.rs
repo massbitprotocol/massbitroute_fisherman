@@ -2,6 +2,7 @@
  * Each Task description can apply to node/gateway to generate a list of jobs.
  * If task is suitable for node or gateway only then result is empty
  */
+use crate::models::jobs::AssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::*;
 use crate::CONFIG;
@@ -24,23 +25,25 @@ pub trait TaskApplicant: Sync + Send {
         plan: &PlanId,
         component: &ComponentInfo,
         phase: JobRole,
-    ) -> Result<Vec<Job>, anyhow::Error>;
+        workers: &MatchedWorkers,
+    ) -> Result<AssignmentBuffer, anyhow::Error>;
     fn apply_with_cache(
         &self,
         plan: &PlanId,
         component: &ComponentInfo,
         phase: JobRole,
+        workers: &MatchedWorkers,
         latest_update: HashMap<String, Timestamp>,
-    ) -> Result<Vec<Job>, anyhow::Error> {
+    ) -> Result<AssignmentBuffer, anyhow::Error> {
         let task_name = self.get_name();
         let timestamp = latest_update
             .get(&task_name)
             .map(|val| val.clone())
             .unwrap_or_default();
         if get_current_time() - timestamp > CONFIG.generate_new_regular_timeout * 1000 {
-            self.apply(plan, component, phase)
+            self.apply(plan, component, phase, workers)
         } else {
-            Ok(Vec::new())
+            Ok(AssignmentBuffer::default())
         }
     }
     fn assign_jobs(
