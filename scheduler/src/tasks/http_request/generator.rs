@@ -173,6 +173,10 @@ impl TaskApplicant for HttpRequestGenerator {
                 debug!("Can not apply config {:?} for {:?}", config, component);
                 continue;
             }
+            debug!(
+                "Generate task for component {:?} with config {:?}",
+                component, config
+            );
             match self.get_url(config, &context) {
                 Ok(url) => {
                     let headers = config.generate_header(&self.handlebars, &context);

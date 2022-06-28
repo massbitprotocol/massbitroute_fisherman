@@ -3,7 +3,7 @@
     "name": "http_request",
     "phases": ["verification", "regular"],
     "url_template": "",
-    "method": "get",
+    "http_method": "get",
     "request_type": "http",
     "provider_types": ["*"],
     "blockchains": ["*"],

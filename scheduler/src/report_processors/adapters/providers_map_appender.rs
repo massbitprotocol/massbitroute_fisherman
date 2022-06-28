@@ -4,11 +4,13 @@ use crate::persistence::ProviderMapModel;
 use crate::report_processors::adapters::Appender;
 use anyhow::Error;
 use async_trait::async_trait;
+use clap::values_t_or_exit;
 use common::job_manage::JobResultDetail;
 use common::jobs::JobResult;
 use common::tasks::http_request::{JobHttpRequest, JobHttpResponseDetail, JobHttpResult};
 use common::tasks::ping::JobPingResult;
-use common::util::get_current_time;
+use common::util::{get_current_time, remove_break_line};
+use log::debug;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
 
@@ -39,22 +41,29 @@ impl Appender for ProvidersMapAdapter {
                     && item.job_name.as_str() == "RoundTripTime"
             })
             .map(|item| {
-                let response_time = match &item.result_detail {
+                let (rtt, ping_time) = match &item.result_detail {
                     JobResultDetail::HttpRequest(JobHttpResult { response, .. }) => {
                         match &response.detail {
-                            JobHttpResponseDetail::Body(val) => val.parse::<i32>().ok(),
-                            JobHttpResponseDetail::Values(_) => None,
+                            JobHttpResponseDetail::Body(val) => {
+                                let parsed_value = remove_break_line(val)
+                                    .parse::<i32>()
+                                    .map(|val| val / 1000)
+                                    .ok();
+                                debug!("Round trip time response {:?}, {:?}", val, &parsed_value);
+                                (parsed_value, Some(response.response_time))
+                            }
+                            JobHttpResponseDetail::Values(_) => (None, None),
                         }
                     }
-                    _ => None,
+                    _ => (None, None),
                 };
 
                 ProviderMapModel {
                     id: 0,
                     worker_id: item.worker_id.clone(),
                     provider_id: item.provider_id.clone(),
-                    ping_response_time: response_time,
-                    ping_time: None,
+                    ping_response_time: rtt,
+                    ping_time,
                     bandwidth: None,
                     bandwidth_time: None,
                     status: Some(1),
@@ -63,9 +72,11 @@ impl Appender for ProvidersMapAdapter {
                 }
             })
             .collect::<Vec<ProviderMapModel>>();
-        self.provider_service
-            .store_provider_maps(&provider_maps)
-            .await;
+        if provider_maps.len() > 0 {
+            self.provider_service
+                .store_provider_maps(&provider_maps)
+                .await;
+        }
         Ok(())
     }
     async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {

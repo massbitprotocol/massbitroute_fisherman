@@ -169,9 +169,10 @@ impl HttpRequestJobConfig {
         for config in tasks.iter() {
             let mut map_config = serde_json::Map::from(default.clone());
             let mut task_config = config.as_object().unwrap().clone();
-            map_config.append(&mut task_config);
+            //log::debug!("Task config before append {:?}", &task_config);
+            Self::append(&mut map_config, &mut task_config);
             let value = serde_json::Value::Object(map_config);
-            //log::info!("{:?}", &value);
+            log::info!("Final task config {:?}", &value);
             match serde_json::from_value(value) {
                 Ok(config) => task_configs.push(config),
                 Err(err) => {
@@ -180,6 +181,10 @@ impl HttpRequestJobConfig {
             }
         }
         task_configs
+    }
+    //Todo: Implement Deep append
+    pub fn append(target: &mut Map<String, Value>, source: &mut Map<String, Value>) {
+        target.append(source);
     }
 }
 impl HttpRequestJobConfig {
