@@ -1,7 +1,7 @@
 pub mod executor;
 
 use crate::component::ChainInfo;
-use crate::jobs::Job;
+use crate::jobs::{AssignmentConfig, Job};
 use crate::tasks::LoadConfig;
 use crate::Timestamp;
 use serde::{Deserialize, Serialize};
@@ -35,6 +35,8 @@ pub struct LatestBlockConfig {
     pub repeat_number: i32,
     #[serde(default)]
     pub interval: Timestamp,
+    #[serde(default)]
+    pub assignment: Option<AssignmentConfig>,
 }
 impl LoadConfig<LatestBlockConfig> for LatestBlockConfig {}
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]

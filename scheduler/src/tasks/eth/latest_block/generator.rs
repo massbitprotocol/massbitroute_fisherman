@@ -84,7 +84,7 @@ impl TaskApplicant for LatestBlockGenerator {
         job.repeat_number = self.config.repeat_number as i32;
         debug!("job header: {:?}", job.header);
         let mut assignment_buffer = AssignmentBuffer::default();
-        assignment_buffer.assign_job(job, workers);
+        assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
     }
     /*

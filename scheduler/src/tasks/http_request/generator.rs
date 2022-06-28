@@ -6,7 +6,7 @@ use anyhow::{anyhow, Context, Error};
 use async_trait::async_trait;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
-use common::jobs::{Job, JobAssignment};
+use common::jobs::{AssignmentConfig, Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
@@ -164,7 +164,7 @@ impl TaskApplicant for HttpRequestGenerator {
             }
             if let Ok(job) = self.generate_job(plan_id, component, phase.clone(), config, &context)
             {
-                assignment_buffer.assign_job(job, workers);
+                assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
             }
         }
         log::debug!("Generated jobs {:?}", &assignment_buffer);
@@ -206,7 +206,7 @@ impl TaskApplicant for HttpRequestGenerator {
             );
             if let Ok(job) = self.generate_job(plan_id, component, phase.clone(), config, &context)
             {
-                assignment_buffer.assign_job(job, workers);
+                assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
             }
         }
         log::debug!("Generated jobs {:?}", &assignment_buffer);

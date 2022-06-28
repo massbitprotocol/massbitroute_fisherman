@@ -107,6 +107,9 @@ impl JobAssignment {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct AssignmentConfig {}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobResult {
     pub job_id: String,

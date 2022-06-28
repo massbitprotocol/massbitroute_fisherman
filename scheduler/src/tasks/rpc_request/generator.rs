@@ -6,7 +6,7 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobDetail, JobRole};
-use common::jobs::Job;
+use common::jobs::{AssignmentConfig, Job};
 use common::models::PlanEntity;
 use common::tasks::rpc_request::JobRpcRequest;
 use common::workers::MatchedWorkers;
@@ -47,6 +47,8 @@ struct RpcRequestConfig {
     ping_request_response: String,
     #[serde(default)]
     ping_timeout_ms: Timestamp,
+    #[serde(default)]
+    assignment: Option<AssignmentConfig>,
 }
 
 impl LoadConfig<RpcRequestConfig> for RpcRequestConfig {}
@@ -82,7 +84,7 @@ impl TaskApplicant for RpcRequestGenerator {
         job.timeout = self.config.ping_timeout_ms;
         job.repeat_number = self.config.ping_sample_number;
         let mut assignment_buffer = AssignmentBuffer::default();
-        assignment_buffer.assign_job(job, workers);
+        assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
     }
 }

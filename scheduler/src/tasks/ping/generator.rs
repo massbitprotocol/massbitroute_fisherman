@@ -8,7 +8,7 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
-use common::jobs::{Job, JobAssignment};
+use common::jobs::{AssignmentConfig, Job, JobAssignment};
 use common::models::PlanEntity;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
@@ -48,6 +48,7 @@ pub struct PingConfig {
     pub ping_request_response: String,
     pub ping_timeout_ms: Timestamp,
     pub ping_number_for_decide: i32,
+    pub assignment: Option<AssignmentConfig>,
 }
 
 impl LoadConfig<PingConfig> for PingConfig {}
@@ -82,7 +83,7 @@ impl TaskApplicant for PingGenerator {
         job.timeout = self.config.ping_timeout_ms;
         job.repeat_number = self.config.repeat_number;
         let mut assignment_buffer = AssignmentBuffer::default();
-        assignment_buffer.assign_job(job, workers);
+        assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
     }
     fn assign_jobs(
