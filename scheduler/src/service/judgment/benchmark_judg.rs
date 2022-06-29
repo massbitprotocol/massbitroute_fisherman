@@ -48,7 +48,10 @@ impl ReportCheck for BenchmarkJudgment {
         }
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+        //Todo: unimplement
+        Ok(JudgmentsResult::Unfinished)
+        /*
         let config = match JobRole::from_str(&*plan.phase)? {
             JobRole::Verification => &self.verification_config,
             JobRole::Regular => &self.regular_config,
@@ -88,6 +91,8 @@ impl ReportCheck for BenchmarkJudgment {
                 }
             }
         };
+
+             */
     }
     async fn apply_for_results(
         &self,

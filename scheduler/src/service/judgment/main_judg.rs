@@ -1,3 +1,4 @@
+use crate::models::job_result;
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::persistence::services::PlanService;
@@ -6,10 +7,10 @@ use crate::service::report_portal::StoreReport;
 use crate::{CONFIG, CONFIG_DIR, JUDGMENT_PERIOD, PORTAL_AUTHORIZATION};
 use anyhow::Error;
 use common::job_manage::JobRole;
-use common::jobs::{Job, JobResult};
+use common::jobs::{Job, JobResult, JobResultWithJob};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
-use common::DOMAIN;
+use common::{JobId, DOMAIN};
 use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
 use std::collections::HashMap;
@@ -31,6 +32,48 @@ impl MainJudgment {
             judgments,
         }
     }
+    /*
+     * for each plan, check result of all judgment,
+     * For judgment wich can apply for input provider task, do judgment base on input result,
+     * For other judgments get result by plan
+     */
+    pub async fn judg_provider_results(
+        &self,
+        provider_task: &ProviderTask,
+        plan: &PlanEntity,
+        results: &Vec<JobResult>,
+        jobs: &HashMap<JobId, Job>,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        let mut plan_result = JudgmentsResult::Pass;
+
+        for judgment in self.judgments.iter() {
+            let judg_result = if !judgment.can_apply_for_result(&provider_task) {
+                //Get judgment result from cache o db
+                judgment.get_latest_judgment(provider_task, plan).await?
+            } else {
+                let judg_result = judgment
+                    .apply_for_results(provider_task, &results)
+                    .await
+                    .unwrap_or(JudgmentsResult::Failed);
+                info!(
+                    "Judgment result {:?} for provider {:?} with results {:?}",
+                    &judg_result, provider_task, results
+                );
+                judg_result
+            };
+            //Store first un Pass judgment result
+            match judg_result {
+                JudgmentsResult::Pass => {}
+                JudgmentsResult::Failed | JudgmentsResult::Unfinished | JudgmentsResult::Error => {
+                    //Failed if single task failed
+                    return Ok(judg_result);
+                }
+            }
+        }
+        //If all task pass then plan result is Pass
+        Ok(plan_result)
+    }
+    /*
     pub async fn apply(
         &self,
         plan: &PlanEntity,
@@ -76,6 +119,10 @@ impl MainJudgment {
         );
         Ok(final_result)
     }
+     */
+    /*
+     * Use for regular judgment
+     */
     pub async fn apply_for_provider(
         &self,
         provider_task: &ProviderTask,

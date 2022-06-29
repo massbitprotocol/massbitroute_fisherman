@@ -7,10 +7,11 @@ use crate::service::report_portal::StoreReport;
 use crate::{CONFIG, PORTAL_AUTHORIZATION};
 use async_trait::async_trait;
 use common::job_manage::{JobBenchmarkResult, JobResultDetail, JobRole};
-use common::jobs::{Job, JobResult};
+use common::jobs::{Job, JobResult, JobResultWithJob};
+use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
-use common::{JobId, PlanId, DOMAIN};
+use common::{ComponentId, JobId, PlanId, DOMAIN};
 use futures_util::{FutureExt, TryFutureExt};
 use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
@@ -69,11 +70,13 @@ impl ReportProcessor for VerificationReportProcessor {
         log::debug!("Regular report process jobs");
         let mut stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
-        let mut plan_ids = HashSet::<PlanId>::new();
+        let mut provider_ids = HashSet::<ComponentId>::new();
         let mut job_ids = HashSet::<JobId>::new();
         for report in reports {
+            provider_ids.insert(report.provider_id.clone());
             let key = ProviderTask::new(
                 report.provider_id.clone(),
+                report.provider_type.clone(),
                 report.result_detail.get_name(),
                 report.job_name.clone(),
             );
@@ -81,27 +84,56 @@ impl ReportProcessor for VerificationReportProcessor {
             let mut jobs = provider_task_results.entry(key).or_insert(Vec::default());
             jobs.push(report);
         }
-        for (key, results) in provider_task_results {
-            log::debug!("Process results {:?} for task {:?}", &results, &key);
-            for adapter in self.report_adapters.iter() {
-                adapter.append_job_results(&key, &results).await;
+        if job_ids.is_empty() {
+            return Ok(Vec::default());
+        }
+        //Discard timeout plan
+        let active_plans = self
+            .get_active_plans(&provider_ids)
+            .await
+            .unwrap_or_default();
+        let mut map_jobs = HashMap::<JobId, Job>::new();
+        let mut plan_ids = HashSet::<PlanId>::new();
+        if let Ok(jobs) = self.job_service.get_job_by_ids(&job_ids).await {
+            for job in jobs {
+                plan_ids.insert(job.plan_id.clone());
+                map_jobs.insert(job.job_id.clone(), job);
             }
         }
-        //Judgment by plan_ids
-        if job_ids.len() > 0 {
-            let plan_ids = self
-                .job_service
-                .get_job_by_ids(&job_ids)
-                .await
-                .ok()
-                .map(|jobs| {
-                    jobs.iter()
-                        .map(|job| job.plan_id.clone())
-                        .collect::<HashSet<PlanId>>()
+        //Filter by active plan
+        let mut active_provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
+        for (key, results) in provider_task_results {
+            //Filter by active plan
+            let active_results = results
+                .into_iter()
+                .filter(|result| {
+                    if let (Some(job), Some(plan)) = (
+                        map_jobs.get(&result.job_id),
+                        active_plans.get(&result.provider_id),
+                    ) {
+                        true
+                    } else {
+                        false
+                    }
                 })
-                .unwrap_or_default();
-            self.judg_results(Vec::from_iter(plan_ids)).await;
+                .collect::<Vec<JobResult>>();
+            if active_results.len() > 0 {
+                active_provider_task_results.insert(key, active_results);
+            }
         }
+        for (key, results) in active_provider_task_results.iter() {
+            log::debug!("Process results {:?} for task {:?}", results, key);
+            for adapter in self.report_adapters.iter() {
+                adapter.append_job_results(key, results).await;
+            }
+        }
+        for (provider_task, job_results) in active_provider_task_results {
+            //After filter this unwrap is safe;
+            let plan_entity = active_plans.get(&provider_task.provider_id).unwrap();
+            self.judg_provider_results(provider_task, plan_entity, job_results, &map_jobs)
+                .await;
+        }
+
         Ok(stored_results)
     }
     /*
@@ -166,7 +198,61 @@ impl ReportProcessor for VerificationReportProcessor {
 }
 
 impl VerificationReportProcessor {
-    pub async fn judg_results(&self, plan_ids: Vec<PlanId>) {
+    pub async fn get_active_plans(
+        &self,
+        providers: &HashSet<ComponentId>,
+    ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
+        //Todo: not implement
+        Ok(HashMap::new())
+    }
+    pub async fn judg_provider_results(
+        &self,
+        provider_task: ProviderTask,
+        plan: &PlanEntity,
+        results: Vec<JobResult>,
+        map_jobs: &HashMap<JobId, Job>,
+    ) {
+        let plan_result = self
+            .judgment
+            .judg_provider_results(&provider_task, plan, &results, map_jobs)
+            .await
+            .unwrap_or(JudgmentsResult::Failed);
+        //Handle plan result
+        self.report_judgment_result(&provider_task, plan_result)
+            .await;
+    }
+    pub async fn report_judgment_result(
+        &self,
+        provider_task: &ProviderTask,
+        judg_result: JudgmentsResult,
+    ) {
+        match judg_result {
+            JudgmentsResult::Failed | JudgmentsResult::Error => {
+                let mut report = StoreReport::build(
+                    &"Scheduler".to_string(),
+                    &JobRole::Regular,
+                    &*PORTAL_AUTHORIZATION,
+                    &DOMAIN,
+                );
+                report.set_report_data_short(
+                    false,
+                    &provider_task.provider_id,
+                    &provider_task.provider_type,
+                );
+                debug!("Send plan report to portal:{:?}", report);
+                if !CONFIG.is_test_mode {
+                    let res = report.send_data(&JobRole::Verification).await;
+                    info!("Send report to portal res: {:?}", res);
+                } else {
+                    let res = report.write_data();
+                    info!("Write report to file res: {:?}", res);
+                }
+            }
+            _ => {}
+        }
+    }
+    /*
+    pub async fn judg_plans(&self, plan_ids: Vec<PlanId>) {
         if let (Ok(plans), Ok(all_jobs)) = (
             self.plan_service.get_plan_by_ids(&plan_ids).await,
             self.job_service.get_job_by_plan_ids(&plan_ids).await,
@@ -254,4 +340,6 @@ impl VerificationReportProcessor {
             }
         }
     }
+    */
+    pub async fn judg_plan_results(&self, plan: PlanEntity) {}
 }

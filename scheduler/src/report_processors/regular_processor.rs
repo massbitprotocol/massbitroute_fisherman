@@ -56,6 +56,7 @@ impl ReportProcessor for RegularReportProcessor {
         for report in reports {
             let key = ProviderTask::new(
                 report.provider_id.clone(),
+                report.provider_type.clone(),
                 report.result_detail.get_name(),
                 report.job_name.clone(),
             );

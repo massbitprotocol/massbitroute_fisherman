@@ -46,7 +46,10 @@ impl ReportCheck for LatestBlockJudgment {
         }
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+        //Todo: Unimplement
+        Ok(JudgmentsResult::Unfinished)
+        /*
         let config = match JobRole::from_str(&*plan.phase)? {
             JobRole::Verification => &self.verification_config,
             JobRole::Regular => &self.regular_config,
@@ -80,5 +83,6 @@ impl ReportCheck for LatestBlockJudgment {
         } else {
             Ok(JudgmentsResult::Pass)
         };
+         */
     }
 }
