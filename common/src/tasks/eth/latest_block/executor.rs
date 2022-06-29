@@ -149,8 +149,8 @@ impl LatestBlockExecutor {
             .trim_start_matches("\"0x")
             .trim_end_matches("\"");
         info!(
-            "result: {}, block_hash: {}, block_number: {}, block_timestamp: {}",
-            result, block_hash, block_number, block_timestamp
+            "result: block_hash: {}, block_number: {}, block_timestamp: {}",
+            block_hash, block_number, block_timestamp
         );
 
         Ok(BlockData {

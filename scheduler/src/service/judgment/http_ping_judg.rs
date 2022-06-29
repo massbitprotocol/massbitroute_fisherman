@@ -82,6 +82,9 @@ impl HttpPingResultCache {
                 let mut data = JudRoundTripTimeData::new_false(res.receive_timestamp);
                 if let JobHttpResponseDetail::Body(val) = &response.detail {
                     if let Ok(response_time) = val.parse::<Timestamp>() {
+                        // Change unit of RTT response from us -> ms
+                        let response_time = response_time / 1000;
+
                         data = JudRoundTripTimeData {
                             response_time,
                             receive_timestamp: res.receive_timestamp,
@@ -182,7 +185,7 @@ impl ReportCheck for HttpPingJudgment {
             }
 
             let res = histogram.percentile(config.ping_percentile);
-            log::debug!(
+            log::info!(
                 "Http Ping job on {} has results: {:?} ans histogram {}%: {:?} ",
                 &provider_task.provider_id,
                 &response_times,

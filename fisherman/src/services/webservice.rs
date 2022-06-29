@@ -24,7 +24,7 @@ impl WebService {
         jobs: Vec<Job>,
         state: Arc<Mutex<WorkerState>>,
     ) -> Result<impl Reply, Rejection> {
-        info!("Handle jobs {:?}", &jobs);
+        info!("Handle {} jobs {:?}", jobs.len(), &jobs);
         let mut job_ids = jobs
             .iter()
             .map(|job| {

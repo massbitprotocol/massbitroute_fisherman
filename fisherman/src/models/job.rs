@@ -33,8 +33,19 @@ impl JobBuffer {
         log::debug!("insert job {:?} to index of queue {}", &job, next_ind);
         self.jobs.insert(next_ind, job);
     }
+    pub fn get_job_existed_position(&mut self, job: &Job) -> Option<usize> {
+        self.jobs
+            .iter()
+            .position(|job_in_queue| job_in_queue.is_eq(job))
+    }
+
     pub fn add_jobs(&mut self, mut jobs: Vec<Job>) -> usize {
         for job in jobs {
+            let pos = self.get_job_existed_position(&job);
+            if let Some(pos) = pos {
+                self.jobs.remove(pos);
+            };
+
             //Find index for new job
             let mut next_ind = self.jobs.len();
             for (ind, item) in self.jobs.iter().enumerate() {

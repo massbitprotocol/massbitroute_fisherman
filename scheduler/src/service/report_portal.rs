@@ -79,31 +79,37 @@ impl StoreReport {
         Ok(serde_json::to_string(&self)?)
     }
 
-    fn get_url(&self, job_role: &JobRole) -> String {
-        match job_role {
-            JobRole::Verification => {
-                format!(
-                    "https://portal.{}/mbr/verify/{}",
-                    self.domain, self.provider_id
-                )
-            }
-            JobRole::Regular => {
-                format!(
-                    "https://portal.{}/mbr/benchmark/{}",
-                    self.domain, self.provider_id
-                )
-            }
-        }
+    // fn get_url(&self, job_role: &JobRole) -> String {
+    //     match job_role {
+    //         JobRole::Verification => {
+    //             format!(
+    //                 "https://portal.{}/mbr/verify/{}",
+    //                 self.domain, self.provider_id
+    //             )
+    //         }
+    //         JobRole::Regular => {
+    //             format!(
+    //                 "https://portal.{}/mbr/benchmark/{}",
+    //                 self.domain, self.provider_id
+    //             )
+    //         }
+    //     }
+    // }
+    fn get_url(&self) -> String {
+        format!(
+            "https://portal.{}/mbr/benchmark/{}",
+            self.domain, self.provider_id
+        )
     }
 
-    pub async fn send_data(&self, send_purpose: &JobRole) -> Result<Response, Error> {
+    pub async fn send_data(&self) -> Result<Response, Error> {
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         // create body
         let body = self.create_body()?;
         debug!("body send_data: {:?}", body);
         // get url
-        let url = self.get_url(send_purpose);
+        let url = self.get_url();
 
         let request_builder = client
             .post(url)

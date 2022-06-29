@@ -46,6 +46,7 @@ pub struct Job {
     pub header: HashMap<String, String>,
     pub job_detail: Option<JobDetail>,
     pub phase: JobRole,
+    // Todo: add job_type
 }
 
 impl From<&Job> for reqwest::Body {
@@ -53,7 +54,15 @@ impl From<&Job> for reqwest::Body {
         reqwest::Body::from(serde_json::to_string(job).unwrap())
     }
 }
+
 impl Job {
+    pub fn is_eq(&self, job: &Job) -> bool {
+        self.job_name == job.job_name
+            && self.job_detail == job.job_detail
+            && self.phase == job.phase
+            && self.component_id == job.component_id
+    }
+
     pub fn new(
         plan_id: String,
         job_name: String,

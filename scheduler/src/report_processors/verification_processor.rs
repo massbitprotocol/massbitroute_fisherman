@@ -241,7 +241,7 @@ impl VerificationReportProcessor {
                 );
                 debug!("Send plan report to portal:{:?}", report);
                 if !CONFIG.is_test_mode {
-                    let res = report.send_data(&JobRole::Verification).await;
+                    let res = report.send_data().await;
                     info!("Send report to portal res: {:?}", res);
                 } else {
                     let res = report.write_data();
@@ -326,7 +326,7 @@ impl VerificationReportProcessor {
                                 );
                                 debug!("Send plan report to portal:{:?}", report);
                                 if !CONFIG.is_test_mode {
-                                    let res = report.send_data(&plan_phase).await;
+                                    let res = report.send_data().await;
                                     info!("Send report to portal res: {:?}", res);
                                 } else {
                                     let res = report.write_data();
