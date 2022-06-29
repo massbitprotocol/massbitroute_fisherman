@@ -90,6 +90,7 @@ impl ProcessorState {
         if regular_results.len() > 0 {
             self.process_regular_results(regular_results).await;
         }
+        //Result of single plan
         if verification_result.len() > 0 {
             self.process_verification_results(verification_result).await;
         }

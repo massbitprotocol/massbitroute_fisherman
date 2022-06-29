@@ -141,7 +141,7 @@ impl ReportCheck for HttpPingJudgment {
             && task.task_name.as_str() == "RoundTripTime";
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         todo!();
     }
 

@@ -45,9 +45,20 @@ pub trait ReportCheck: Sync + Send + Debug {
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         false
     }
-
+    async fn get_latest_judgment(
+        &self,
+        provider_task: &ProviderTask,
+        plan: &PlanEntity,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        //Todo: implement this function
+        Ok(JudgmentsResult::Pass)
+    }
     /// For Verification phase
-    async fn apply(&self, plan: &PlanEntity, job: &Job) -> Result<JudgmentsResult, anyhow::Error>;
+    async fn apply(
+        &self,
+        plan: &PlanEntity,
+        job: &Vec<Job>,
+    ) -> Result<JudgmentsResult, anyhow::Error>;
     /// For Regular phase
     async fn apply_for_results(
         &self,

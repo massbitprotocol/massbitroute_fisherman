@@ -148,3 +148,15 @@ impl JobResult {
         }
     }
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct JobResultWithJob {
+    pub job_result: JobResult,
+    pub job: Job,
+}
+
+impl JobResultWithJob {
+    pub fn new(job_result: JobResult, job: Job) -> Self {
+        Self { job_result, job }
+    }
+}

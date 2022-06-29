@@ -1,17 +1,25 @@
+use common::component::ComponentType;
 use common::Timestamp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub struct ProviderTask {
     pub provider_id: String,
+    pub provider_type: ComponentType,
     pub task_type: String, //HttpRequest, Command
     pub task_name: String, //RoundTripTime, LatestBlock
 }
 
 impl ProviderTask {
-    pub fn new(provider_id: String, task_type: String, task_name: String) -> Self {
+    pub fn new(
+        provider_id: String,
+        provider_type: ComponentType,
+        task_type: String,
+        task_name: String,
+    ) -> Self {
         Self {
             provider_id,
+            provider_type,
             task_type,
             task_name,
         }
