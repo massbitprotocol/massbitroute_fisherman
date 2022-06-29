@@ -26,14 +26,17 @@
   "tasks": [
     {
       "name": "RoundTripTime",
-      "phases": ["verification*"],
+      "phases": ["verification"],
       "repeat_number": 5,
       "interval": 1000,
-      "url_template": "https://{{provider.ip}}/_rtt"
+      "url_template": "https://{{provider.ip}}/_rtt",
+      "assignment": {
+        "broadcast": true
+      }
     },
     {
       "name": "RoundTripTime",
-      "phases": ["regular*"],
+      "phases": ["regular"],
       "repeat_number": 1000000000,
       "interval": 5000,
       "url_template": "https://{{provider.ip}}/_rtt"
@@ -67,6 +70,12 @@
           "number": ["result", "number"],
           "timestamp": ["result", "timestamp"]
         }
+      },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": true,
+        "by_distance": false
       }
     },
     {

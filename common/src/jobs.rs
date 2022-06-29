@@ -108,7 +108,12 @@ impl JobAssignment {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct AssignmentConfig {}
+pub struct AssignmentConfig {
+    pub broadcast: Option<bool>,
+    pub worker_number: Option<usize>,
+    pub nearby_only: Option<bool>,
+    pub by_distance: Option<bool>,
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobResult {

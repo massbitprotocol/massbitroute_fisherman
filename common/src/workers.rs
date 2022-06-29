@@ -164,3 +164,12 @@ pub struct MatchedWorkers {
     pub nearby_workers: Vec<Arc<Worker>>, //Workers defined by zone
     pub best_workers: Vec<Arc<Worker>>,   //Workers order by ping time
 }
+
+impl MatchedWorkers {
+    pub fn get_nearby_worker(&self, ind: usize) -> Option<Arc<Worker>> {
+        self.nearby_workers.get(ind).map(|arc| arc.clone())
+    }
+    pub fn get_best_worker(&self, ind: usize) -> Option<Arc<Worker>> {
+        self.best_workers.get(ind).map(|arc| arc.clone())
+    }
+}
