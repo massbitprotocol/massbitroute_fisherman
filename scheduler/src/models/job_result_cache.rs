@@ -5,7 +5,7 @@ use crate::CONFIG;
 use anyhow::Error;
 use common::component::ComponentInfo;
 use common::job_manage::{JobDetail, JobPing, JobResultDetail};
-use common::jobs::{Job, JobResult};
+use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::{ComponentId, Timestamp};
@@ -25,6 +25,17 @@ pub struct TaskKey {
 #[derive(Clone, Debug, Default)]
 pub struct JobResultCache {
     pub result_cache_map: HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>,
+}
+
+impl JobResultCache {
+    pub fn init_cache(&mut self, assignments: HashMap<ComponentId, JobAssignment>) {
+        //Todo: Init cache
+    }
+    pub fn get_jobs_number(&self) -> usize {
+        self.result_cache_map
+            .iter()
+            .fold(0, |count, (key, map)| count + map.len())
+    }
 }
 
 #[derive(Clone, Debug)]

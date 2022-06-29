@@ -5,11 +5,11 @@ use anyhow::anyhow;
 use common::component::Zone;
 use common::jobs::{Job, JobAssignment};
 use common::workers::WorkerInfo;
-use common::JobId;
+use common::{ComponentId, JobId};
 use log::{debug, error, log};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -70,6 +70,13 @@ impl JobService {
         }
         Ok(0)
     }
+
+    pub async fn get_job_assignments(
+        &self,
+    ) -> Result<HashMap<ComponentId, JobAssignment>, anyhow::Error> {
+        Ok(Default::default())
+    }
+
     pub async fn get_job_by_ids(
         &self,
         job_ids: &HashSet<JobId>,

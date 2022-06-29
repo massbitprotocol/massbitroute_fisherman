@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct JobHttpRequest {
     pub url: String,
     pub chain_info: Option<ChainInfo>,

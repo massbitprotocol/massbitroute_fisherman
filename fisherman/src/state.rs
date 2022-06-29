@@ -14,6 +14,9 @@ impl WorkerState {
         WorkerState { job_buffer }
     }
     pub async fn push_jobs(&mut self, mut jobs: Vec<Job>) -> usize {
-        self.job_buffer.lock().await.add_jobs(jobs)
+        {
+            let mut lock = self.job_buffer.lock().await;
+            lock.add_jobs(jobs)
+        }
     }
 }

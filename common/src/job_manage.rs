@@ -42,10 +42,10 @@ pub struct JobCancel {
     job_id: JobId,
     reason: String, //Using for log
 }
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, PartialEq)]
 pub struct JobPing {}
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, PartialEq)]
 pub struct JobBenchmark {
     pub component_type: ComponentType,
     pub chain_type: BlockChainType,
@@ -99,7 +99,7 @@ impl From<CallBenchmarkError> for BenchmarkResponse {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum JobDetail {
     HttpRequest(JobHttpRequest),
     RpcRequest(JobRpcRequest),

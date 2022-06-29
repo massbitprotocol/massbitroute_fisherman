@@ -303,6 +303,11 @@ impl DetailJobGenerator {
                     total_assignment_buffer.append(assignment_buffer);
                 }
             }
+            info!(
+                "There is {} jobs in cache: {:?}",
+                cache.get_jobs_number(),
+                cache
+            );
         }
         let AssignmentBuffer {
             mut jobs,
@@ -310,7 +315,11 @@ impl DetailJobGenerator {
         } = total_assignment_buffer;
         //info!("There is {} components", components.len());
         info!("There is {} gen_jobs", jobs.len(),);
-        info!("There is {} job_assignments", list_assignments.len());
+        info!(
+            "There is {} job_assignments {:?}",
+            list_assignments.len(),
+            list_assignments
+        );
 
         if list_assignments.len() > 0 {
             self.job_service
@@ -362,12 +371,13 @@ impl DetailJobGenerator {
             if !task.can_apply(&provider_plan.provider) {
                 continue;
             }
+            // Check if there is task result
             let latest_task_update = provider_result_cache
                 .iter()
                 .filter(|(key, _)| key.task_type.as_str() == task.get_name().as_str())
                 .map(|(key, value)| (key.task_name.clone(), value.get_latest_time()))
                 .collect::<HashMap<String, Timestamp>>();
-            debug!("latest_task_update: {:?}", latest_task_update);
+            info!("latest_task_update: {:?}", latest_task_update);
 
             if let Ok(applied_jobs) = task.apply_with_cache(
                 &provider_plan.plan.plan_id,
@@ -378,6 +388,17 @@ impl DetailJobGenerator {
             ) {
                 assignment_buffer.append(applied_jobs);
             }
+            //Check provider_result_cache
+            for job in assignment_buffer.jobs.iter() {
+                let key = TaskKey {
+                    task_type: task.get_name().clone(),
+                    task_name: job.job_name.clone(),
+                };
+                if !provider_result_cache.contains_key(&key) {
+                    provider_result_cache.insert(key, TaskResultCache::new(get_current_time()));
+                }
+            }
+
             /*
             if applied_jobs.len() > 0 {
                 log::debug!(
@@ -484,13 +505,23 @@ impl JobGenerator {
             }
         });
 
+        let assignments = regular
+            .job_service
+            .get_job_assignments()
+            .await
+            .unwrap_or_default();
+        {
+            let mut lock = regular.result_cache.lock().await;
+            lock.init_cache(assignments);
+        }
+
         // Run Regular task
         let regular_task = task_spawn::spawn(async move {
             info!("Run Regular task");
             loop {
-                info!("generate_regular_jobs result 1");
+                info!("Start generate_regular_jobs");
                 let res = regular.generate_regular_jobs().await;
-                info!("generate_regular_jobs result 2: {:?} ", res);
+                info!("generate_regular_jobs result: {:?} ", res);
                 sleep(Duration::from_secs(
                     CONFIG.regular_plan_generate_interval as u64,
                 ))

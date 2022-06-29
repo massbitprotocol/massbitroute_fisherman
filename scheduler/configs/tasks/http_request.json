@@ -17,7 +17,10 @@
       "response_type" : "text"
     },
     "assignment": {
-
+      "broadcast": false,
+      "worker_number": 1,
+      "nearby_only": true,
+      "by_distance": false
     },
     "thresholds": {
 
@@ -39,7 +42,8 @@
       "phases": ["regular"],
       "repeat_number": 1000000000,
       "interval": 5000,
-      "url_template": "https://{{provider.ip}}/_rtt"
+      "url_template": "https://{{provider.ip}}/_rtt",
+      "request_timeout": 3000
     },
     {
       "name": "LatestBlock",
@@ -70,12 +74,6 @@
           "number": ["result", "number"],
           "timestamp": ["result", "timestamp"]
         }
-      },
-      "assignment": {
-        "broadcast": false,
-        "worker_number": 1,
-        "nearby_only": true,
-        "by_distance": false
       }
     },
     {

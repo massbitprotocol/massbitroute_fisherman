@@ -56,7 +56,7 @@ impl Appender for ResultCacheAppender {
                     e.pop_front();
                 }
             }
-            log::info!(
+            log::debug!(
                 "{} result_cache: {:?}",
                 result_cache.result_cache_map.len(),
                 result_cache.result_cache_map

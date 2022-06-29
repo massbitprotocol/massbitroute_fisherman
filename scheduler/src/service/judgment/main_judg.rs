@@ -157,7 +157,7 @@ impl MainJudgment {
                     report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
                     debug!("Send plan report to portal:{:?}", report);
                     if !CONFIG.is_test_mode {
-                        let res = report.send_data(&JobRole::Verification).await;
+                        let res = report.send_data().await;
                         info!("Send report to portal res: {:?}", res);
                     } else {
                         let res = report.write_data();
