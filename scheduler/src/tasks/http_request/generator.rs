@@ -190,7 +190,6 @@ impl TaskApplicant for HttpRequestGenerator {
                 debug!("Can not apply config {:?} for {:?}", config, component);
                 continue;
             }
-            let task_name = self.get_name();
             let timestamp = latest_update
                 .get(&config.name)
                 .map(|val| val.clone())

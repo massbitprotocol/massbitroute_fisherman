@@ -13,6 +13,7 @@ pub struct Model {
     pub status: String,
     pub assign_time: i64,
     pub job_name: String,
+    pub job_type: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

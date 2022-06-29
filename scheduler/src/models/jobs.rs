@@ -35,11 +35,13 @@ impl AssignmentBuffer {
                 //without config, assign job for one random nearby worker
                 let worker = if workers.nearby_workers.len() > 0 {
                     let ind = rng.gen_range(0..workers.nearby_workers.len());
-                    workers.nearby_workers.get(ind).unwrap()
+                    workers.get_nearby_worker(ind).unwrap()
                 } else {
                     let ind = rng.gen_range(0..workers.best_workers.len());
-                    workers.best_workers.get(ind).unwrap()
+                    workers.get_best_worker(ind).unwrap()
                 };
+                let job_assignment = JobAssignment::new(worker, &job);
+                self.list_assignments.push(job_assignment);
             }
             Some(config) => {
                 self.assign_job_with_config(&job, workers, config);
@@ -51,16 +53,40 @@ impl AssignmentBuffer {
         &mut self,
         job: &Job,
         workers: &MatchedWorkers,
-        assignment_config: &AssignmentConfig,
+        config: &AssignmentConfig,
     ) {
-        for worker in workers.best_workers.iter() {
-            let job_assignment = JobAssignment::new(worker.clone(), &job);
-            self.list_assignments.push(job_assignment);
-            debug!(
-                "Assign job {:?} to worker {:?}",
-                job.job_name,
-                worker.get_url("")
-            )
+        let mut rng = rand::thread_rng();
+        if let Some(true) = config.broadcast {
+            for worker in workers.best_workers.iter() {
+                let job_assignment = JobAssignment::new(worker.clone(), &job);
+                self.list_assignments.push(job_assignment);
+                debug!(
+                    "Assign job {:?} to worker {:?}",
+                    job.job_name,
+                    worker.get_url("")
+                )
+            }
+            return;
+        } else if let Some(val) = config.worker_number {
+            if let Some(true) = config.nearby_only {
+                if workers.nearby_workers.len() > 0 {
+                    for i in 0..val {
+                        let ind = rng.gen_range(0..workers.nearby_workers.len());
+                        let worker = workers.get_nearby_worker(ind).unwrap();
+                        let job_assignment = JobAssignment::new(worker.clone(), &job);
+                        self.list_assignments.push(job_assignment);
+                    }
+                }
+            } else if let Some(true) = config.by_distance {
+                if workers.best_workers.len() > 0 {
+                    for i in 0..val {
+                        let ind = rng.gen_range(0..workers.best_workers.len());
+                        let worker = workers.get_best_worker(ind).unwrap();
+                        let job_assignment = JobAssignment::new(worker.clone(), &job);
+                        self.list_assignments.push(job_assignment);
+                    }
+                }
+            }
         }
     }
     pub fn append(&mut self, other: Self) {

@@ -88,6 +88,7 @@ impl From<&JobAssignment> for job_assignments::ActiveModel {
     fn from(assign: &JobAssignment) -> Self {
         job_assignments::ActiveModel {
             job_id: Set(assign.job.job_id.to_owned()),
+            job_type: Set(assign.job.job_detail.as_ref().unwrap().get_job_name()),
             job_name: Set(assign.job.job_name.to_owned()),
             worker_id: Set(assign.worker.get_id()),
             plan_id: Set(assign.job.plan_id.to_owned()),
