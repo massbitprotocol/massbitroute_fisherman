@@ -59,6 +59,7 @@ impl MainJudgment {
                     "Judgment result {:?} for provider {:?} with results {:?}",
                     &judg_result, provider_task, results
                 );
+
                 judg_result
             };
             //Store first un Pass judgment result

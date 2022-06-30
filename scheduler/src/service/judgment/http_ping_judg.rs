@@ -147,7 +147,14 @@ impl ReportCheck for HttpPingJudgment {
     async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         todo!();
     }
-
+    async fn get_latest_judgment(
+        &self,
+        provider_task: &ProviderTask,
+        plan: &PlanEntity,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        //Todo: implement this function
+        Ok(JudgmentsResult::Pass)
+    }
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
