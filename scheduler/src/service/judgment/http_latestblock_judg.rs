@@ -13,7 +13,7 @@ use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
 use common::tasks::LoadConfig;
-use common::{BlockChainType, NetworkType, Timestamp, WorkerId};
+use common::{BlockChainType, ChainId, NetworkType, Timestamp, WorkerId};
 use diesel::IntoSql;
 use log::{debug, info};
 use sea_orm::DatabaseConnection;
@@ -25,6 +25,13 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Default)]
 pub struct CacheKey {
+    pub blockchain: BlockChainType,
+    pub network: NetworkType,
+    pub provider_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Default)]
+pub struct JudgmentKey {
     pub blockchain: BlockChainType,
     pub network: NetworkType,
     pub provider_id: String,
@@ -182,7 +189,7 @@ pub struct HttpLatestBlockJudgment {
     task_configs: Vec<HttpRequestJobConfig>,
     result_service: Arc<JobResultService>,
     cache_values: LatestBlockResultCache,
-    comparators: HashMap<String, Arc<dyn Comparator>>,
+    comparators: HashMap<ChainId, Arc<dyn Comparator>>,
 }
 
 impl HttpLatestBlockJudgment {
@@ -280,6 +287,14 @@ impl ReportCheck for HttpLatestBlockJudgment {
             Ok(JudgmentsResult::Pass)
         };
          */
+    }
+    async fn get_latest_judgment(
+        &self,
+        provider_task: &ProviderTask,
+        plan: &PlanEntity,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        //Todo: implement this function
+        Ok(JudgmentsResult::Pass)
     }
     /*
      * Job result received for each provider with task HttpRequest.LatestBlock
