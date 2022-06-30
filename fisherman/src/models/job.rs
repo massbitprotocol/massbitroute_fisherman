@@ -77,10 +77,10 @@ impl JobBuffer {
                 .duration_since(std::time::SystemTime::UNIX_EPOCH)
                 .expect("Unix time doesn't go backwards;")
                 .as_millis() as Timestamp;
-            debug!(
+            if expected_time <= current_time {
+                info!(
                 "Found new job with expected run time {}. Current time is {}. Job is executed after {}",
                 expected_time, current_time, expected_time - current_time);
-            if expected_time <= current_time {
                 let job = self.jobs.pop_front();
                 if let Some(inner) = job.as_ref() {
                     let mut next_job = inner.clone();

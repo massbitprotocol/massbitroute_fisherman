@@ -13,6 +13,7 @@ use common::models::PlanEntity;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
 use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
+use serde_json::json;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -85,7 +86,7 @@ impl MainJudgment {
      * For judgment wich can apply for input provider task, do judgment base on input result,
      * For other judgments get result by plan
      */
-    pub async fn judg_provider_results(
+    pub async fn apply_for_verify(
         &self,
         provider_task: &ProviderTask,
         plan: &PlanEntity,
@@ -173,7 +174,7 @@ impl MainJudgment {
     /*
      * Use for regular judgment
      */
-    pub async fn apply_for_provider(
+    pub async fn apply_for_regular(
         &self,
         provider_task: &ProviderTask,
         results: &Vec<JobResult>,
@@ -210,7 +211,8 @@ impl MainJudgment {
                         let res = report.send_data().await;
                         info!("Send report to portal res: {:?}", res);
                     } else {
-                        let res = report.write_data();
+                        let result = json!({"provider_task":provider_task,"result":judg_result});
+                        let res = report.write_data(result);
                         info!("Write report to file res: {:?}", res);
                     }
                 }

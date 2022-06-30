@@ -73,7 +73,7 @@ impl ReportProcessor for RegularReportProcessor {
             for adapter in self.report_adapters.iter() {
                 adapter.append_job_results(&key, &results).await;
             }
-            match self.judgment.apply_for_provider(&key, &results).await {
+            match self.judgment.apply_for_regular(&key, &results).await {
                 Ok(res) => {}
                 Err(err) => {
                     error!("{:?}", &err);
