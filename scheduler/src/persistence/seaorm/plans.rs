@@ -15,6 +15,7 @@ pub struct Model {
     pub message: Option<String>,
     pub status: String,
     pub phase: String,
+    pub expiry_time: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

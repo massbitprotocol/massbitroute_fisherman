@@ -11,7 +11,7 @@ pub struct Config {
     pub update_provider_list_interval: Timestamp,
     pub regular_plan_generate_interval: Timestamp,
     pub generate_new_regular_timeout: Timestamp,
-    pub plan_expiry_time: u32, //Expiry time in second
+    pub plan_expiry_time: Timestamp, //Expiry time in second
     pub is_test_mode: bool,
 }
 

@@ -9,7 +9,7 @@ use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::tasks::http_request::{JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
-use common::Timestamp;
+use common::{PlanId, Timestamp};
 use histogram::Histogram;
 use log::info;
 use std::collections::HashMap;
@@ -146,14 +146,6 @@ impl ReportCheck for HttpPingJudgment {
 
     async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         todo!();
-    }
-    async fn get_latest_judgment(
-        &self,
-        provider_task: &ProviderTask,
-        plan: &PlanEntity,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
-        //Todo: implement this function
-        Ok(JudgmentsResult::Pass)
     }
     async fn apply_for_results(
         &self,

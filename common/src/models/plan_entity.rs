@@ -10,6 +10,7 @@ pub struct PlanEntity {
     pub provider_id: String,
     pub request_time: Timestamp,
     pub finish_time: Option<Timestamp>,
+    pub expiry_time: Timestamp,
     pub result: Option<String>, //success/failed/expired
     pub status: PlanStatus,
     pub message: Option<String>,
@@ -17,13 +18,19 @@ pub struct PlanEntity {
 }
 
 impl PlanEntity {
-    pub fn new(provider_id: String, request_time: Timestamp, phase: String) -> Self {
+    pub fn new(
+        provider_id: String,
+        request_time: Timestamp,
+        expiry_time: Timestamp,
+        phase: String,
+    ) -> Self {
         PlanEntity {
             id: 0,
             plan_id: Uuid::new_v4().to_string(),
             provider_id,
             request_time,
             finish_time: None,
+            expiry_time,
             result: None,
             status: Default::default(),
             message: None,

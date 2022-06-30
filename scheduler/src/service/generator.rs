@@ -350,6 +350,7 @@ impl DetailJobGenerator {
             message: None,
             status: "generated".to_string(),
             phase: JobRole::Regular.to_string(),
+            expiry_time: Timestamp::MAX,
         };
         ProviderPlan::new(component.clone(), plan)
     }

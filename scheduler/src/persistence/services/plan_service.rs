@@ -6,12 +6,15 @@ use common::component::Zone;
 use common::job_manage::JobRole;
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
+use common::util::get_current_time;
 use common::workers::WorkerInfo;
+use common::ComponentId;
 use log::{debug, error};
 use log::{info, warn};
 use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -23,21 +26,7 @@ impl PlanService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         PlanService { db }
     }
-    /*
-    pub async fn get_active(&self) -> Vec<WorkerInfo> {
-        let mut res = Vec::new();
-        if let Ok(workers) = schedulers::Entity::find()
-            .filter(schedulers::Column::Active.eq(1))
-            .all(self.db.as_ref())
-            .await
-        {
-            for model in workers.iter() {
-                res.push(WorkerInfo::from(model))
-            }
-        }
-        res
-    }
-    */
+
     pub async fn get_plans(
         &self,
         phase: &Option<JobRole>,
@@ -59,6 +48,44 @@ impl PlanService {
             }
         };
 
+        let mut vec = Vec::default();
+        match plans::Entity::find()
+            .filter(condition)
+            .all(self.db.as_ref())
+            .await
+        {
+            Ok(entities) => {
+                for model in entities.iter() {
+                    vec.push(PlanEntity::from(model))
+                }
+                Ok(vec)
+            }
+            Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
+        }
+    }
+    pub async fn get_active_plans(
+        &self,
+        phase: &Option<JobRole>,
+        providers: &HashSet<ComponentId>,
+    ) -> Result<Vec<PlanEntity>, anyhow::Error> {
+        let mut condition_providers = Condition::any();
+        for provider in providers {
+            condition_providers =
+                condition_providers.add(plans::Column::ProviderId.eq(provider.to_string()));
+        }
+        let mut condition = match phase {
+            None => condition_providers,
+            Some(phase) => {
+                let mut condition = Condition::all();
+                condition = condition.add(plans::Column::Phase.eq(phase.to_string()));
+                if !condition.is_empty() {
+                    condition = condition.add(condition_providers);
+                }
+                condition
+            }
+        };
+        let current_time = get_current_time();
+        condition = condition.add(plans::Column::ExpiryTime.gt(current_time));
         let mut vec = Vec::default();
         match plans::Entity::find()
             .filter(condition)
@@ -146,6 +173,7 @@ impl PlanService {
     }
     pub async fn store_plan(&self, entity: &PlanEntity) -> Result<Model, anyhow::Error> {
         let sched = plans::ActiveModel::from(entity);
+        debug!("Store plan {:?}", &sched);
         match sched.insert(self.db.as_ref()).await {
             Ok(res) => Ok(res),
             Err(err) => Err(anyhow!("{:?}", &err)),
@@ -207,6 +235,7 @@ impl From<&Model> for PlanEntity {
             provider_id: info.provider_id.clone(),
             request_time: info.request_time.clone(),
             finish_time: info.finish_time.clone(),
+            expiry_time: info.expiry_time.clone(),
             result: info.result.clone(),
             message: info.message.clone(),
             status: PlanStatus::from_str(&*info.status).unwrap_or_default(),

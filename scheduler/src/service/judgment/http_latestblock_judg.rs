@@ -1,6 +1,9 @@
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
-use crate::service::comparator::{get_comparators, Comparator};
+use crate::service::comparator::{
+    get_comparators, Comparator, LatestBlockDefaultComparator, LatestBlockDotComparator,
+};
+use crate::service::judgment::main_judg::JudgmentKey;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use anyhow::{anyhow, Error};
 use async_trait::async_trait;
@@ -13,7 +16,7 @@ use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
 use common::tasks::LoadConfig;
-use common::{BlockChainType, ChainId, NetworkType, Timestamp, WorkerId};
+use common::{BlockChainType, ChainId, ComponentId, NetworkType, PlanId, Timestamp, WorkerId};
 use diesel::IntoSql;
 use log::{debug, info};
 use sea_orm::DatabaseConnection;
@@ -25,13 +28,6 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Default)]
 pub struct CacheKey {
-    pub blockchain: BlockChainType,
-    pub network: NetworkType,
-    pub provider_id: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Default)]
-pub struct JudgmentKey {
     pub blockchain: BlockChainType,
     pub network: NetworkType,
     pub provider_id: String,
@@ -182,6 +178,7 @@ impl LatestBlockResultCache {
             .collect::<Vec<ResultValue>>()
     }
 }
+
 #[derive(Debug)]
 pub struct HttpLatestBlockJudgment {
     verification_config: LatestBlockConfig,
@@ -234,6 +231,12 @@ impl HttpLatestBlockJudgment {
             .collect::<Vec<HttpRequestJobConfig>>()
             .get(0)
             .map(|config| config.thresholds.clone())
+    }
+    pub fn get_comparator(&self, chain_id: &ChainId) -> Arc<dyn Comparator> {
+        self.comparators
+            .get(chain_id)
+            .map(|item| item.clone())
+            .unwrap_or(Arc::new(LatestBlockDefaultComparator::default()))
     }
 }
 
@@ -288,14 +291,6 @@ impl ReportCheck for HttpLatestBlockJudgment {
         };
          */
     }
-    async fn get_latest_judgment(
-        &self,
-        provider_task: &ProviderTask,
-        plan: &PlanEntity,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
-        //Todo: implement this function
-        Ok(JudgmentsResult::Pass)
-    }
     /*
      * Job result received for each provider with task HttpRequest.LatestBlock
      */
@@ -311,19 +306,21 @@ impl ReportCheck for HttpLatestBlockJudgment {
             BlockChainType::new(),
             NetworkType::new(),
         );
+        let mut judg_key = JudgmentKey::new(provider_task.clone(), PlanId::new());
         let mut comparator = None;
         let mut latest_job_result = None;
         for result in job_results {
             comparator = result
                 .chain_info
                 .as_ref()
-                .and_then(|info| self.comparators.get(info.chain.as_str()));
+                .map(|info| self.get_comparator(&info.chain));
             if let JobResultDetail::HttpRequest(JobHttpResult { response, .. }) =
                 &result.result_detail
             {
                 if let JobHttpResponseDetail::Values(values) = &response.detail {
                     let diff = comparator
-                        .and_then(|comp| Some(comp.compare(&latest_values.values, values)))
+                        .as_ref()
+                        .map(|comp| comp.compare(&latest_values.values, values))
                         .unwrap_or_default();
                     if diff < 0 {
                         latest_values =
@@ -337,6 +334,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
                         .unwrap_or_default();
                     cache_key.blockchain = blockchain;
                     cache_key.network = network;
+                    judg_key.plan_id = result.plan_id.clone();
                 }
             }
         }
@@ -348,11 +346,12 @@ impl ReportCheck for HttpLatestBlockJudgment {
                 &result.provider_type,
             )
         });
-        self.cache_values.check_latest_block(
+        let judgment_result = self.cache_values.check_latest_block(
             cache_key,
             latest_values,
             comparator.and_then(|arc| Some(arc.clone())),
             thresholds,
-        )
+        );
+        judgment_result
     }
 }
