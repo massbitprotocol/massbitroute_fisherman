@@ -19,10 +19,11 @@ use crate::models::job_result::ProviderTask;
 use crate::service::judgment::http_latestblock_judg::HttpLatestBlockJudgment;
 use crate::service::judgment::http_ping_judg::HttpPingJudgment;
 use common::jobs::{Job, JobResult};
+use common::PlanId;
 use sea_orm::DatabaseConnection;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum JudgmentsResult {
     Pass = 1,
     Failed = -1,
@@ -44,14 +45,6 @@ pub trait ReportCheck: Sync + Send + Debug {
     fn can_apply(&self, job: &Job) -> bool;
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         false
-    }
-    async fn get_latest_judgment(
-        &self,
-        provider_task: &ProviderTask,
-        plan: &PlanEntity,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
-        //Todo: implement this function
-        Ok(JudgmentsResult::Pass)
     }
     /// For Verification phase
     async fn apply(

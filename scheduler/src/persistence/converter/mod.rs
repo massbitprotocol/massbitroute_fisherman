@@ -307,6 +307,7 @@ impl From<&PlanEntity> for plans::ActiveModel {
             provider_id: Set(entity.provider_id.to_owned()),
             request_time: Set(entity.request_time.to_owned()),
             finish_time: Set(entity.finish_time.to_owned()),
+            expiry_time: Set(entity.expiry_time.to_owned()),
             result: Set(entity.result.to_owned()),
             message: Set(entity.message.to_owned()),
             status: Set(entity.status.to_string()),
@@ -328,6 +329,7 @@ impl From<&PlanEntity> for PlanModel {
             message: None,
             status: entity.status.to_string(),
             phase: entity.phase.to_string(),
+            expiry_time: entity.expiry_time,
         }
     }
 }

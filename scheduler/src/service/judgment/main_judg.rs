@@ -10,19 +10,56 @@ use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult, JobResultWithJob};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
-use common::{JobId, DOMAIN};
+use common::{ComponentId, JobId, PlanId, DOMAIN};
 use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
 use serde_json::json;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct MainJudgment {
     result_service: Arc<JobResultService>,
     judgments: Vec<Arc<dyn ReportCheck>>,
+    judgment_result_cache: LatestJudgmentCache,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Default)]
+pub struct JudgmentKey {
+    pub provider_task: ProviderTask,
+    pub plan_id: String,
+}
+
+impl JudgmentKey {
+    pub fn new(provider_task: ProviderTask, plan_id: PlanId) -> JudgmentKey {
+        Self {
+            provider_task,
+            plan_id,
+        }
+    }
+}
+#[derive(Debug, Default)]
+pub struct LatestJudgmentCache {
+    values: Mutex<HashMap<JudgmentKey, JudgmentsResult>>,
+}
+
+impl LatestJudgmentCache {
+    pub fn insert_value(
+        &self,
+        provider_task: ProviderTask,
+        plan_id: PlanId,
+        judg_result: JudgmentsResult,
+    ) {
+        let key = JudgmentKey::new(provider_task, plan_id);
+        let mut map = self.values.lock().unwrap();
+        map.insert(key, judg_result);
+    }
+    pub fn get_value(&self, key: &JudgmentKey) -> Option<JudgmentsResult> {
+        let mut values = self.values.lock().unwrap();
+        values.get(key).map(|r| r.clone())
+    }
 }
 
 impl MainJudgment {
@@ -31,7 +68,18 @@ impl MainJudgment {
         MainJudgment {
             result_service,
             judgments,
+            judgment_result_cache: Default::default(),
         }
+    }
+    pub fn get_latest_judgment(
+        &self,
+        provider_task: &ProviderTask,
+        plan_id: &PlanId,
+    ) -> Option<JudgmentsResult> {
+        let key = JudgmentKey::new(provider_task.clone(), plan_id.clone());
+        self.judgment_result_cache
+            .get_value(&key)
+            .map(|r| r.clone())
     }
     /*
      * for each plan, check result of all judgment,
@@ -50,7 +98,8 @@ impl MainJudgment {
         for judgment in self.judgments.iter() {
             let judg_result = if !judgment.can_apply_for_result(&provider_task) {
                 //Get judgment result from cache o db
-                judgment.get_latest_judgment(provider_task, plan).await?
+                self.get_latest_judgment(provider_task, &plan.plan_id)
+                    .unwrap_or(JudgmentsResult::Unfinished)
             } else {
                 let judg_result = judgment
                     .apply_for_results(provider_task, &results)

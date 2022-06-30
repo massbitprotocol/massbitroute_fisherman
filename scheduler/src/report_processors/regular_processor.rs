@@ -14,7 +14,7 @@ pub use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct RegularReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
     judgment: MainJudgment,

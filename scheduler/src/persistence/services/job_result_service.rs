@@ -20,7 +20,7 @@ use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[derive(Default, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct JobResultService {
     db: Arc<DatabaseConnection>,
 }

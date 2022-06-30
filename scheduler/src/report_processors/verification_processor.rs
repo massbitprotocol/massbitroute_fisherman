@@ -11,6 +11,7 @@ use common::jobs::{Job, JobResult, JobResultWithJob};
 use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
+use common::util::get_current_time;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
 use futures_util::{FutureExt, TryFutureExt};
 use log::{debug, error, info};
@@ -19,15 +20,27 @@ pub use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-#[derive(Clone, Default)]
+// #[derive(Clone, Default)]
+// pub struct PlanEntityWithExpiry {
+//     pub plan: PlanEntity,
+//     pub expiry_time: i64,
+// }
+//
+// impl PlanEntityWithExpiry {
+//     pub fn new(plan: PlanEntity, expiry_time: i64) -> PlanEntityWithExpiry {
+//         Self { plan, expiry_time }
+//     }
+// }
+#[derive(Default)]
 pub struct VerificationReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
     result_service: Arc<JobResultService>,
     judgment: MainJudgment,
+    active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
 }
 
 impl VerificationReportProcessor {
@@ -44,6 +57,7 @@ impl VerificationReportProcessor {
             job_service,
             result_service,
             judgment,
+            active_plans: Default::default(),
         }
     }
     pub fn add_adapter(&mut self, adapter: Arc<dyn Appender>) {
@@ -68,7 +82,7 @@ impl ReportProcessor for VerificationReportProcessor {
         reports: Vec<JobResult>,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
-        log::debug!("Regular report process jobs");
+        log::debug!("Verification process report jobs");
         let mut stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         let mut provider_ids = HashSet::<ComponentId>::new();
@@ -93,6 +107,7 @@ impl ReportProcessor for VerificationReportProcessor {
             .get_active_plans(&provider_ids)
             .await
             .unwrap_or_default();
+        debug!("Active plans {:?}", &active_plans);
         let mut map_jobs = HashMap::<JobId, Job>::new();
         let mut plan_ids = HashSet::<PlanId>::new();
         if let Ok(jobs) = self.job_service.get_job_by_ids(&job_ids).await {
@@ -199,12 +214,59 @@ impl ReportProcessor for VerificationReportProcessor {
 }
 
 impl VerificationReportProcessor {
+    //Get active plan and remove expired plan
     pub async fn get_active_plans(
         &self,
         providers: &HashSet<ComponentId>,
     ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
-        //Todo: not implement
-        Ok(HashMap::new())
+        let current_time = get_current_time();
+        let mut result = HashMap::new();
+        let mut missing_plan = HashSet::<ComponentId>::new();
+        {
+            let mut active_plan_cache = self.active_plans.lock().unwrap();
+            let mut expired_plan = HashSet::<ComponentId>::new();
+            for provider_id in providers {
+                if let Some(plan_entity) = active_plan_cache.get(provider_id) {
+                    if plan_entity.expiry_time < current_time {
+                        expired_plan.insert(plan_entity.plan_id.clone());
+                    } else {
+                        result.insert(provider_id.clone(), plan_entity.clone());
+                    }
+                } else {
+                    missing_plan.insert(provider_id.clone());
+                }
+            }
+            for expired_id in expired_plan {
+                active_plan_cache.remove(&expired_id);
+            }
+        }
+        //Load active plan from database if missing
+        if missing_plan.len() > 0 {
+            debug!("Load missing plans {:?} from database", &missing_plan);
+            if let Ok(plans) = self.load_missing_plans(&missing_plan).await {
+                let mut active_plan_cache = self.active_plans.lock().unwrap();
+                for (provider_id, plan) in plans {
+                    result.insert(provider_id.clone(), plan.clone());
+                    active_plan_cache.insert(provider_id, plan);
+                }
+            }
+        }
+
+        Ok(result)
+    }
+    pub async fn load_missing_plans(
+        &self,
+        providers: &HashSet<ComponentId>,
+    ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
+        self.plan_service
+            .get_active_plans(&Some(JobRole::Verification), &providers)
+            .await
+            .map(|plans| {
+                plans
+                    .into_iter()
+                    .map(|plan| (plan.provider_id.clone(), plan))
+                    .collect::<HashMap<ComponentId, PlanEntity>>()
+            })
     }
     pub async fn judg_provider_results(
         &self,

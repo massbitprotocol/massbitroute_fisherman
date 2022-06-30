@@ -8,7 +8,7 @@
     "provider_types": ["*"],
     "blockchains": ["*"],
     "networks": ["*"],
-    "request_timeout": 1000,
+    "request_timeout": 3000,
     "headers": {},
     "repeat_number": 0,
     "interval": 1000,

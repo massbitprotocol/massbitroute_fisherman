@@ -3,7 +3,7 @@ use crate::job_manage::{JobDetail, JobResultDetail, JobRole};
 use crate::util::get_current_time;
 use crate::workers::{Worker, WorkerInfo};
 use crate::{
-    ComponentId, ComponentInfo, JobId, Timestamp, Url, WorkerId, DEFAULT_JOB_INTERVAL,
+    ComponentId, ComponentInfo, JobId, PlanId, Timestamp, Url, WorkerId, DEFAULT_JOB_INTERVAL,
     DEFAULT_JOB_TIMEOUT, WORKER_ID,
 };
 use serde::{Deserialize, Serialize};
@@ -126,7 +126,8 @@ pub struct AssignmentConfig {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobResult {
-    pub job_id: String,
+    pub plan_id: PlanId,
+    pub job_id: JobId,
     pub job_name: String, //For http request use task_name in task config ex: RoundTripTime/LatestBlock
     pub worker_id: WorkerId,
     pub provider_id: ComponentId,
@@ -145,6 +146,7 @@ impl JobResult {
     ) -> JobResult {
         let receive_timestamp = get_current_time();
         JobResult {
+            plan_id: job.plan_id.clone(),
             job_id: job.job_id.clone(),
             job_name: job.job_name.clone(),
             worker_id: WORKER_ID.clone(),
