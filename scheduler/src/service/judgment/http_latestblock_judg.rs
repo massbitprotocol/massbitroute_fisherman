@@ -348,11 +348,13 @@ impl ReportCheck for HttpLatestBlockJudgment {
                 &result.provider_type,
             )
         });
-        self.cache_values.check_latest_block(
+        let res = self.cache_values.check_latest_block(
             cache_key,
             latest_values,
             comparator.and_then(|arc| Some(arc.clone())),
             thresholds,
-        )
+        );
+        info!("Judg {:?} latest-block res: {:?}", provider_task, res);
+        res
     }
 }

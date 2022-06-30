@@ -90,9 +90,9 @@ pub fn get_report_judgments(
         config_dir,
         result_service.clone(),
     )));
-    // result.push(Arc::new(HttpLatestBlockJudgment::new(
-    //     config_dir,
-    //     result_service.clone(),
-    // )));
+    result.push(Arc::new(HttpLatestBlockJudgment::new(
+        config_dir,
+        result_service.clone(),
+    )));
     result
 }

@@ -16,6 +16,7 @@ use futures_util::{FutureExt, TryFutureExt};
 use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -214,7 +215,7 @@ impl VerificationReportProcessor {
     ) {
         let plan_result = self
             .judgment
-            .judg_provider_results(&provider_task, plan, &results, map_jobs)
+            .apply_for_verify(&provider_task, plan, &results, map_jobs)
             .await
             .unwrap_or(JudgmentsResult::Failed);
         //Handle plan result
@@ -244,7 +245,8 @@ impl VerificationReportProcessor {
                     let res = report.send_data().await;
                     info!("Send report to portal res: {:?}", res);
                 } else {
-                    let res = report.write_data();
+                    let result = json!({"provider_task":provider_task,"result":judg_result});
+                    let res = report.write_data(result);
                     info!("Write report to file res: {:?}", res);
                 }
             }
