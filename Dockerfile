@@ -30,20 +30,14 @@ RUN cargo build  --release
 
 ################
 # ##### Runtime
-FROM ubuntu AS runtime 
+FROM debian AS runtime 
 
+
+COPY scheduler/configs /usr/local/bin/configs
 # Copy application binary from builder image
 COPY --from=builder /usr/src/fisherman-scheduler/target/release/scheduler /usr/local/bin
 
 EXPOSE 80
 
-ENV RUST_LOG=info
-ENV RUST_LOG_TYPE=console
-ENV DATABASE_URL=postgres://postgres:postgres@db:5432/massbit-fisherman
-ENV DOMAIN=massbitroute.dev
-ENV PORTAL_AUTHORIZATION=g2xnS1uKr4Ko7tPApdceP4NSOKhhbWbX
-ENV URL_GATEWAYS_LIST=https://portal.massbitroute.dev/mbr/gateway/list/verify
-ENV URL_NODES_LIST=https://portal.massbitroute.dev/mbr/node/list/verify
-ENV SCHEDULER_ENDPOINT=0.0.0.0:80
 # Run the application
 CMD ["/usr/local/bin/scheduler"]
