@@ -13,8 +13,8 @@ use common::models::PlanEntity;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
 use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
-use serde_json::json;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
@@ -28,16 +28,13 @@ pub struct MainJudgment {
 }
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Default)]
 pub struct JudgmentKey {
-    pub provider_task: ProviderTask,
-    pub plan_id: String,
+    pub plan_id: PlanId,
+    pub job_id: JobId,
 }
 
 impl JudgmentKey {
-    pub fn new(provider_task: ProviderTask, plan_id: PlanId) -> JudgmentKey {
-        Self {
-            provider_task,
-            plan_id,
-        }
+    pub fn new(plan_id: PlanId, job_id: JobId) -> JudgmentKey {
+        Self { plan_id, job_id }
     }
 }
 #[derive(Debug, Default)]
@@ -46,13 +43,8 @@ pub struct LatestJudgmentCache {
 }
 
 impl LatestJudgmentCache {
-    pub fn insert_value(
-        &self,
-        provider_task: ProviderTask,
-        plan_id: PlanId,
-        judg_result: JudgmentsResult,
-    ) {
-        let key = JudgmentKey::new(provider_task, plan_id);
+    pub fn insert_value(&self, plan_id: PlanId, job_id: JobId, judg_result: JudgmentsResult) {
+        let key = JudgmentKey::new(plan_id, job_id);
         let mut map = self.values.lock().unwrap();
         map.insert(key, judg_result);
     }
@@ -71,12 +63,16 @@ impl MainJudgment {
             judgment_result_cache: Default::default(),
         }
     }
+    pub fn put_judment_result(&self, plan: &PlanEntity, job_id: JobId, result: JudgmentsResult) {
+        self.judgment_result_cache
+            .insert_value(plan.plan_id.clone(), job_id.clone(), result);
+    }
     pub fn get_latest_judgment(
         &self,
-        provider_task: &ProviderTask,
-        plan_id: &PlanId,
+        plan: &PlanEntity,
+        job_id: &JobId,
     ) -> Option<JudgmentsResult> {
-        let key = JudgmentKey::new(provider_task.clone(), plan_id.clone());
+        let key = JudgmentKey::new(plan.plan_id.clone(), job_id.clone());
         self.judgment_result_cache
             .get_value(&key)
             .map(|r| r.clone())
@@ -91,16 +87,12 @@ impl MainJudgment {
         provider_task: &ProviderTask,
         plan: &PlanEntity,
         results: &Vec<JobResult>,
-        jobs: &HashMap<JobId, Job>,
+        plan_jobs: &Vec<Job>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
-        let mut plan_result = JudgmentsResult::Pass;
-
+        //Judg received results
+        let judgment_result = JudgmentsResult::Unfinished;
         for judgment in self.judgments.iter() {
-            let judg_result = if !judgment.can_apply_for_result(&provider_task) {
-                //Get judgment result from cache o db
-                self.get_latest_judgment(provider_task, &plan.plan_id)
-                    .unwrap_or(JudgmentsResult::Unfinished)
-            } else {
+            if judgment.can_apply_for_result(provider_task) {
                 let judg_result = judgment
                     .apply_for_results(provider_task, &results)
                     .await
@@ -109,15 +101,39 @@ impl MainJudgment {
                     "Verify judgment result {:?} for provider {:?} with results {:?}",
                     &judg_result, provider_task, results
                 );
-
-                judg_result
             };
-            //Store first un Pass judgment result
-            match judg_result {
-                JudgmentsResult::Pass => {}
-                JudgmentsResult::Failed | JudgmentsResult::Unfinished | JudgmentsResult::Error => {
-                    //Failed if single task failed
-                    return Ok(judg_result);
+        }
+        let job_id = results
+            .get(0)
+            .map(|job_result| job_result.job_id.clone())
+            .unwrap_or_default();
+        //Put judgment result to cache
+        self.put_judment_result(plan, job_id, judgment_result.clone());
+        //Input plan_result as result of current job
+        let mut plan_result = judgment_result;
+        //Store first un Pass judgment result
+        if plan_result == JudgmentsResult::Pass {
+            for job in plan_jobs {
+                match self.get_latest_judgment(plan, &job.job_id) {
+                    Some(latest_result) => {
+                        if latest_result != JudgmentsResult::Pass {
+                            debug!(
+                                "Latest result of plan {:?}, job {:?} is {:?}",
+                                &plan.plan_id, &job.job_id, &latest_result
+                            );
+                            plan_result = latest_result;
+
+                            break;
+                        }
+                    }
+                    None => {
+                        debug!(
+                            "Result not found for plan {:?} and job {:?}",
+                            &plan.plan_id, &job.job_id
+                        );
+                        plan_result = JudgmentsResult::Unfinished;
+                        break;
+                    }
                 }
             }
         }

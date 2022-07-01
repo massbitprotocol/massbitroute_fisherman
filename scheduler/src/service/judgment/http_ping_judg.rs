@@ -133,6 +133,9 @@ impl HttpPingJudgment {
 
 #[async_trait]
 impl ReportCheck for HttpPingJudgment {
+    fn get_name(&self) -> String {
+        String::from("HttpPing")
+    }
     fn can_apply(&self, job: &Job) -> bool {
         match job.job_name.as_str() {
             "RoundTripTime" => true,

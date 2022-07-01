@@ -41,6 +41,10 @@ impl BenchmarkJudgment {
 
 #[async_trait]
 impl ReportCheck for BenchmarkJudgment {
+    fn get_name(&self) -> String {
+        String::from("Benchmark")
+    }
+
     fn can_apply(&self, job: &Job) -> bool {
         match job.job_name.as_str() {
             "Benchmark" => true,

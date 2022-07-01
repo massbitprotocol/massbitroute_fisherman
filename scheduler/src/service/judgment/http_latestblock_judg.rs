@@ -242,6 +242,9 @@ impl HttpLatestBlockJudgment {
 
 #[async_trait]
 impl ReportCheck for HttpLatestBlockJudgment {
+    fn get_name(&self) -> String {
+        String::from("HttpLatestBlock")
+    }
     fn can_apply(&self, job: &Job) -> bool {
         match job.job_name.as_str() {
             "LatestBlock" => true,
