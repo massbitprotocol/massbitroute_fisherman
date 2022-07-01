@@ -41,7 +41,7 @@ impl JobResultCache {
 #[derive(Clone, Debug)]
 pub struct TaskResultCache {
     pub results: VecDeque<JobResult>,
-    pub create_time: Timestamp,
+    pub update_time: Timestamp,
 }
 
 impl Deref for TaskResultCache {
@@ -58,29 +58,31 @@ impl DerefMut for TaskResultCache {
 }
 
 impl TaskResultCache {
+    pub fn push_back_cache(&mut self, job_result: JobResult) {
+        self.results.push_back(job_result);
+        self.update_time = get_current_time();
+    }
+
     pub fn new(create_time: Timestamp) -> Self {
         Self {
             results: VecDeque::new(),
-            create_time,
+            update_time: create_time,
         }
     }
     pub fn is_result_too_old(&self) -> bool {
-        let update_time = if self.results.is_empty() {
-            self.create_time
-        } else {
-            self.results.back().unwrap().receive_timestamp
-        };
-        (get_current_time() - update_time) > (CONFIG.generate_new_regular_timeout * 1000)
+        (get_current_time() - self.get_latest_update_time())
+            > (CONFIG.generate_new_regular_timeout * 1000)
     }
-    pub fn get_latest_time(&self) -> Timestamp {
-        if self.results.is_empty() {
-            self.create_time
-        } else {
-            self.results.back().unwrap().receive_timestamp
-        }
+    pub fn get_latest_update_time(&self) -> Timestamp {
+        self.update_time
+        // if self.results.is_empty() {
+        //     self.update_time
+        // } else {
+        //     self.results.back().unwrap().receive_timestamp
+        // }
     }
     pub fn reset_timestamp(&mut self, timestamp: Timestamp) {
-        self.create_time = timestamp;
+        self.update_time = timestamp;
         self.results.clear()
     }
 }
@@ -89,7 +91,7 @@ impl Default for TaskResultCache {
     fn default() -> Self {
         Self {
             results: VecDeque::new(),
-            create_time: 0,
+            update_time: 0,
         }
     }
 }

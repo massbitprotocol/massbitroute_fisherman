@@ -372,9 +372,9 @@ impl DetailJobGenerator {
             let latest_task_update = provider_result_cache
                 .iter()
                 .filter(|(key, _)| key.task_type.as_str() == task.get_name().as_str())
-                .map(|(key, value)| (key.task_name.clone(), value.get_latest_time()))
+                .map(|(key, value)| (key.task_name.clone(), value.get_latest_update_time()))
                 .collect::<HashMap<String, Timestamp>>();
-            info!("latest_task_update: {:?}", latest_task_update);
+            trace!("latest_task_update: {:?}", latest_task_update);
 
             if let Ok(applied_jobs) = task.apply_with_cache(
                 &provider_plan.plan.plan_id,
@@ -385,15 +385,16 @@ impl DetailJobGenerator {
             ) {
                 assignment_buffer.append(applied_jobs);
             }
-            //Check provider_result_cache
+            //Update provider_result_cache
             for job in assignment_buffer.jobs.iter() {
-                let key = TaskKey {
+                let task_key = TaskKey {
                     task_type: task.get_name().clone(),
                     task_name: job.job_name.clone(),
                 };
-                if !provider_result_cache.contains_key(&key) {
-                    provider_result_cache.insert(key, TaskResultCache::new(get_current_time()));
-                }
+                let cache = provider_result_cache
+                    .entry(task_key)
+                    .or_insert(TaskResultCache::default());
+                cache.update_time = get_current_time();
             }
 
             /*
