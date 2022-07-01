@@ -95,12 +95,14 @@ impl HttpPingResultCache {
                 res_times.push(data);
             }
         }
-        let mut values = self.response_times.lock().await;
-        let values = values
-            .entry(provider_task.clone())
-            .or_insert(JudRoundTripTimeDatas::new());
-        values.append(&mut res_times);
-        res_times = values.clone();
+        {
+            let mut values = self.response_times.lock().await;
+            let values = values
+                .entry(provider_task.clone())
+                .or_insert(JudRoundTripTimeDatas::new());
+            values.append(&mut res_times);
+            res_times = values.clone();
+        }
         res_times
     }
 }

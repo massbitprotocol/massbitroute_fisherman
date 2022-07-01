@@ -33,7 +33,7 @@ pub struct ServerBuilder {
     scheduler_service: WebService,
     processor_service: ProcessorService,
     scheduler_state: Arc<Mutex<SchedulerState>>,
-    processor_state: Arc<Mutex<ProcessorState>>,
+    processor_state: Arc<ProcessorState>,
 }
 
 pub struct SchedulerServer {
@@ -42,7 +42,7 @@ pub struct SchedulerServer {
     scheduler_service: Arc<WebService>,
     processor_service: Arc<ProcessorService>,
     scheduler_state: Arc<Mutex<SchedulerState>>,
-    processor_state: Arc<Mutex<ProcessorState>>,
+    processor_state: Arc<ProcessorState>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -220,7 +220,7 @@ impl SchedulerServer {
     fn create_route_reports(
         &self,
         service: Arc<ProcessorService>,
-        state: Arc<Mutex<ProcessorState>>,
+        state: Arc<ProcessorState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("report")
             .and(SchedulerServer::log_headers())
@@ -288,7 +288,7 @@ impl ServerBuilder {
         self
     }
     pub fn with_processor_state(mut self, processor_state: ProcessorState) -> Self {
-        self.processor_state = Arc::new(Mutex::new(processor_state));
+        self.processor_state = Arc::new(processor_state);
         self
     }
     pub fn build(&self, scheduler: WebService, processor: ProcessorService) -> SchedulerServer {

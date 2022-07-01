@@ -76,7 +76,7 @@ impl ProcessorState {}
 
 impl ProcessorState {
     pub async fn process_results(
-        &mut self,
+        &self,
         results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut regular_results = Vec::new();
@@ -97,7 +97,7 @@ impl ProcessorState {
         Ok(HashMap::new())
     }
     pub async fn process_regular_results(
-        &mut self,
+        &self,
         job_results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut stored_results = HashMap::<String, StoredJobResult>::new();
@@ -108,7 +108,7 @@ impl ProcessorState {
         Ok(stored_results)
     }
     pub async fn process_verification_results(
-        &mut self,
+        &self,
         job_results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut stored_results = HashMap::<String, StoredJobResult>::new();
