@@ -170,7 +170,7 @@
         }
       },
       "thresholds": {
-        "max_block_missing": 10
+        "max_block_missing": 200
       }
     }
   ]

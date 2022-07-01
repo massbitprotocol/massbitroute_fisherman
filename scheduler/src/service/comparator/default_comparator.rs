@@ -3,9 +3,9 @@ use anyhow::{anyhow, Error};
 use common::tasks::http_request::HttpResponseValues;
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
-pub struct LatestBlockDotComparator {}
+pub struct LatestBlockDefaultComparator {}
 
-impl LatestBlockDotComparator {
+impl LatestBlockDefaultComparator {
     pub fn get_block_number(values: &HttpResponseValues) -> Result<i64, Error> {
         let timestamp = values
             .get("number")
@@ -15,7 +15,7 @@ impl LatestBlockDotComparator {
         timestamp
     }
 }
-impl Comparator for LatestBlockDotComparator {
+impl Comparator for LatestBlockDefaultComparator {
     fn get_latest_value(&self, value: &HttpResponseValues) -> Option<i64> {
         self.get_number_value(value, "number")
     }
