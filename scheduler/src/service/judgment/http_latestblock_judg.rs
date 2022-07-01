@@ -299,6 +299,9 @@ impl ReportCheck for HttpLatestBlockJudgment {
         provider_task: &ProviderTask,
         job_results: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
+        if job_results.is_empty() {
+            return Ok(JudgmentsResult::Unfinished);
+        }
         //Filter and get only latest result to check
         let mut latest_values = ResultValue::default();
         let mut cache_key = CacheKey::new(
@@ -306,9 +309,9 @@ impl ReportCheck for HttpLatestBlockJudgment {
             BlockChainType::new(),
             NetworkType::new(),
         );
-        let mut judg_key = JudgmentKey::new(provider_task.clone(), PlanId::new());
         let mut comparator = None;
-        let mut latest_job_result = None;
+        let mut latest_job_result = job_results.first().unwrap();
+        // Get newest result from cache
         for result in job_results {
             comparator = result
                 .chain_info
@@ -325,7 +328,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
                     if diff < 0 {
                         latest_values =
                             ResultValue::new(response.response_time.clone(), values.clone());
-                        latest_job_result = Some(result);
+                        latest_job_result = result;
                     }
                     let (blockchain, network) = result
                         .chain_info
@@ -334,18 +337,18 @@ impl ReportCheck for HttpLatestBlockJudgment {
                         .unwrap_or_default();
                     cache_key.blockchain = blockchain;
                     cache_key.network = network;
-                    judg_key.plan_id = result.plan_id.clone();
                 }
             }
         }
-        let thresholds = latest_job_result.and_then(|result| {
-            self.get_task_config(
-                &result.phase,
-                &cache_key.blockchain,
-                &cache_key.network,
-                &result.provider_type,
-            )
-        });
+        // Get threshold from config
+        let thresholds = self.get_task_config(
+            &latest_job_result.phase,
+            &cache_key.blockchain,
+            &cache_key.network,
+            &latest_job_result.provider_type,
+        );
+
+        // Get threshold from config
         let res = self.cache_values.check_latest_block(
             cache_key,
             latest_values,
