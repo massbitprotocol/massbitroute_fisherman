@@ -91,8 +91,8 @@ impl LatestBlockResultCache {
         &self,
         cache_key: CacheKey,
         result_value: ResultValue,
-        comparator: Option<Arc<dyn Comparator>>,
-        thresholds: Option<Map<String, Value>>,
+        comparator: Arc<dyn Comparator>,
+        thresholds: Map<String, Value>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         match cache_key.blockchain.as_str() {
             "eth" => self.check_latest_eth_block(cache_key, result_value, comparator, thresholds),
@@ -104,15 +104,18 @@ impl LatestBlockResultCache {
         &self,
         cache_key: CacheKey,
         result_value: ResultValue,
-        comparator: Option<Arc<dyn Comparator>>,
-        thresholds: Option<Map<String, Value>>,
+        comparator: Arc<dyn Comparator>,
+        thresholds: Map<String, Value>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         let latest_block_time = comparator
-            .and_then(|comp| comp.get_latest_value(&result_value.values))
-            .unwrap_or_default();
+            .get_latest_value(&result_value.values)
+            .ok_or(anyhow!("get_latest_value error"))?;
+
         let late_duration_ms = thresholds
-            .and_then(|val| val["late_duration_ms"].as_i64())
-            .unwrap_or_default();
+            .get("late_duration_ms")
+            .ok_or(anyhow!("Missing late_duration_ms"))?
+            .as_i64()
+            .ok_or(anyhow!("Wrong value late_duration_ms"))?;
         let late_duration = result_value.time - latest_block_time;
         info!(
             "execution_timestamp: {}, block_timestamp: {}, Latest block late_duration/threshold: {}s/{}s",
@@ -123,6 +126,7 @@ impl LatestBlockResultCache {
         );
 
         if late_duration > late_duration_ms {
+            info!("Judge Failed latest-block for Node eth {:?}", cache_key);
             Ok(JudgmentsResult::Failed)
         } else {
             Ok(JudgmentsResult::Pass)
@@ -135,17 +139,14 @@ impl LatestBlockResultCache {
         &self,
         cache_key: CacheKey,
         result_value: ResultValue,
-        comparator: Option<Arc<dyn Comparator>>,
-        thresholds: Option<Map<String, Value>>,
+        comparator: Arc<dyn Comparator>,
+        thresholds: Map<String, Value>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         let mut values = self.values.lock().unwrap();
         //Compare current value with max value in cache;
         let mut missing_block = i64::MIN;
         for (key, value) in values.iter() {
-            let diff = comparator
-                .as_ref()
-                .map(|comparator| comparator.compare(&value.values, &result_value.values))
-                .unwrap_or_default();
+            let diff = comparator.compare(&value.values, &result_value.values)?;
             if diff > missing_block {
                 missing_block = diff
             }
@@ -155,11 +156,15 @@ impl LatestBlockResultCache {
             values.insert(cache_key.clone(), result_value);
         }
         let max_block_missing = thresholds
-            .and_then(|val| val["max_block_missing"].as_i64())
-            .unwrap_or_default();
+            .get("max_block_missing")
+            .ok_or(anyhow!("Missing max_block_missing"))?
+            .as_i64()
+            .ok_or(anyhow!("Wrong value max_block_missing"))?;
+
         if missing_block < max_block_missing {
             Ok(JudgmentsResult::Pass)
         } else {
+            info!("Judge Failed latest-block for Node Dot {:?}", cache_key);
             Ok(JudgmentsResult::Failed)
         }
     }
@@ -217,7 +222,7 @@ impl HttpLatestBlockJudgment {
         blockchain: &String,
         network: &String,
         provider_type: &ComponentType,
-    ) -> Option<Map<String, Value>> {
+    ) -> Map<String, Value> {
         self.task_configs
             .iter()
             .filter(|config| {
@@ -231,6 +236,7 @@ impl HttpLatestBlockJudgment {
             .collect::<Vec<HttpRequestJobConfig>>()
             .get(0)
             .map(|config| config.thresholds.clone())
+            .unwrap_or_default()
     }
     pub fn get_comparator(&self, chain_id: &ChainId) -> Arc<dyn Comparator> {
         self.comparators
@@ -305,41 +311,41 @@ impl ReportCheck for HttpLatestBlockJudgment {
         if job_results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);
         }
+        // Get comparator for the fist item
+        let first_result = job_results.first().unwrap();
+        let chain_info = first_result
+            .chain_info
+            .as_ref()
+            .ok_or(anyhow!("Missing chain_info"))?
+            .clone();
+        let comparator = self.get_comparator(&chain_info.chain);
+
         //Filter and get only latest result to check
         let mut latest_values = ResultValue::default();
         let mut cache_key = CacheKey::new(
             provider_task.provider_id.clone(),
-            BlockChainType::new(),
-            NetworkType::new(),
+            chain_info.chain.clone(),
+            chain_info.network.clone(),
         );
-        let mut comparator = None;
-        let mut latest_job_result = job_results.first().unwrap();
+        let mut latest_job_result = first_result;
         // Get newest result from cache
         for result in job_results {
-            comparator = result
-                .chain_info
-                .as_ref()
-                .map(|info| self.get_comparator(&info.chain));
+            if result.chain_info.is_none() {
+                return Ok(JudgmentsResult::Error);
+            }
+
             if let JobResultDetail::HttpRequest(JobHttpResult { response, .. }) =
                 &result.result_detail
             {
                 if let JobHttpResponseDetail::Values(values) = &response.detail {
                     let diff = comparator
-                        .as_ref()
-                        .map(|comp| comp.compare(&latest_values.values, values))
+                        .compare(&latest_values.values, values)
                         .unwrap_or_default();
                     if diff < 0 {
                         latest_values =
                             ResultValue::new(response.response_time.clone(), values.clone());
                         latest_job_result = result;
                     }
-                    let (blockchain, network) = result
-                        .chain_info
-                        .as_ref()
-                        .map(|info| (info.chain.clone(), info.network.clone()))
-                        .unwrap_or_default();
-                    cache_key.blockchain = blockchain;
-                    cache_key.network = network;
                 }
             }
         }
@@ -352,12 +358,9 @@ impl ReportCheck for HttpLatestBlockJudgment {
         );
 
         // Get threshold from config
-        let res = self.cache_values.check_latest_block(
-            cache_key,
-            latest_values,
-            comparator.and_then(|arc| Some(arc.clone())),
-            thresholds,
-        );
+        let res =
+            self.cache_values
+                .check_latest_block(cache_key, latest_values, comparator, thresholds);
         info!("Judg {:?} latest-block res: {:?}", provider_task, res);
         res
     }
