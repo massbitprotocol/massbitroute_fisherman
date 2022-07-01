@@ -1,6 +1,6 @@
 use crate::server_config::AccessControl;
 use common::jobs::Job;
-use log::{debug, info};
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -181,10 +181,10 @@ impl WorkerServer {
     fn log_headers() -> impl Filter<Extract = (), Error = Infallible> + Copy {
         warp::header::headers_cloned()
             .map(|headers: HeaderMap| {
-                debug!("#### Received request header ####");
+                trace!("#### Received request header ####");
                 for (k, v) in headers.iter() {
                     // Error from `to_str` should be handled properly
-                    debug!(
+                    trace!(
                         "{}: {}",
                         k,
                         v.to_str().expect("Failed to print header value")

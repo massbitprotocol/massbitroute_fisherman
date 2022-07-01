@@ -1,7 +1,7 @@
 use common::jobs::Job;
 use common::util::get_current_time;
 use common::Timestamp;
-use log::{debug, info};
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use uuid::Uuid;
@@ -30,7 +30,7 @@ impl JobBuffer {
                 break;
             }
         }
-        log::debug!("insert job {:?} to index of queue {}", &job, next_ind);
+        log::trace!("insert job {:?} to index of queue {}", &job, next_ind);
         self.jobs.insert(next_ind, job);
     }
     pub fn get_job_existed_position(&mut self, job: &Job) -> Option<usize> {
@@ -65,7 +65,7 @@ impl JobBuffer {
     }
     pub fn pop_job(&mut self) -> Option<Job> {
         let first_expected_time = self.jobs.front().and_then(|job| {
-            log::debug!(
+            log::trace!(
                 "Found new job with expected runtime {}: {:?}",
                 &job.expected_runtime,
                 job
@@ -78,7 +78,7 @@ impl JobBuffer {
                 .expect("Unix time doesn't go backwards;")
                 .as_millis() as Timestamp;
             if expected_time <= current_time {
-                info!(
+                trace!(
                     "Found job is executed after {}. Job with runtime {}. Current time: {}",
                     expected_time - current_time,
                     expected_time,
@@ -90,7 +90,7 @@ impl JobBuffer {
                     if inner.repeat_number > 0 {
                         next_job.expected_runtime = current_time + inner.interval;
                         next_job.repeat_number = next_job.repeat_number - 1;
-                        debug!("Schedule new repeat job: {:?}", &next_job);
+                        trace!("Schedule new repeat job: {:?}", &next_job);
                         self.add_job(next_job);
                     }
                 }
@@ -99,7 +99,7 @@ impl JobBuffer {
                 None
             }
         } else {
-            //log::debug!("Job queue is empty");
+            //log::trace!("Job queue is empty");
             None
         }
     }

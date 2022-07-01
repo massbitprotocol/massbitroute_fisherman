@@ -13,8 +13,8 @@ use common::models::PlanEntity;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
 use log::{debug, error, info};
 use sea_orm::DatabaseConnection;
-use serde_json::json;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
@@ -194,8 +194,8 @@ impl MainJudgment {
                 .await
                 .unwrap_or(JudgmentsResult::Failed);
             info!(
-                "Regular judgment result {:?} for provider {:?}",
-                &judg_result, provider_task.provider_id
+                "Regular judgment result {:?} on task {} for provider {:?}",
+                &judg_result, provider_task.task_name, provider_task.provider_id
             );
             match judg_result {
                 JudgmentsResult::Failed | JudgmentsResult::Error => {
