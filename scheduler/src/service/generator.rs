@@ -20,7 +20,7 @@ use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{task_spawn, ComponentId, Timestamp, WorkerId};
 use futures_util::future::join;
-use log::{debug, info, warn};
+use log::{debug, info, trace, warn};
 use sea_orm::sea_query::IndexType::Hash;
 use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
@@ -303,11 +303,7 @@ impl DetailJobGenerator {
                     total_assignment_buffer.append(assignment_buffer);
                 }
             }
-            info!(
-                "There is {} jobs in cache: {:?}",
-                cache.get_jobs_number(),
-                cache
-            );
+            info!("There is {} jobs in cache.", cache.get_jobs_number(),);
         }
         let AssignmentBuffer {
             mut jobs,

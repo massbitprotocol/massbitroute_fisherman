@@ -64,12 +64,7 @@ impl ReportProcessor for RegularReportProcessor {
             jobs.push(report);
         }
         for (key, results) in provider_task_results {
-            log::info!(
-                "Process {} results for task {:?}: {:?} ",
-                results.len(),
-                &key,
-                &results,
-            );
+            log::info!("Process {} results for task {:?}", results.len(), &key);
             for adapter in self.report_adapters.iter() {
                 adapter.append_job_results(&key, &results).await;
             }

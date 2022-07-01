@@ -106,7 +106,7 @@ impl MainJudgment {
                     .await
                     .unwrap_or(JudgmentsResult::Failed);
                 info!(
-                    "Judgment result {:?} for provider {:?} with results {:?}",
+                    "Verify judgment result {:?} for provider {:?} with results {:?}",
                     &judg_result, provider_task, results
                 );
 
@@ -194,8 +194,8 @@ impl MainJudgment {
                 .await
                 .unwrap_or(JudgmentsResult::Failed);
             info!(
-                "Judgment result {:?} for provider {:?} with results {:?}",
-                &judg_result, provider_task, results
+                "Regular judgment result {:?} for provider {:?}",
+                &judg_result, provider_task.provider_id
             );
             match judg_result {
                 JudgmentsResult::Failed | JudgmentsResult::Error => {
