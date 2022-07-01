@@ -5,7 +5,7 @@ use common::jobs::Job;
 use common::workers::WorkerInfo;
 use common::JobId;
 use common::{Deserialize, Serialize};
-use log::info;
+use log::{info, trace};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -24,7 +24,7 @@ impl WebService {
         jobs: Vec<Job>,
         state: Arc<Mutex<WorkerState>>,
     ) -> Result<impl Reply, Rejection> {
-        info!("Handle {} jobs {:?}", jobs.len(), &jobs);
+        trace!("Handle {} jobs {:?}", jobs.len(), &jobs);
         let mut job_ids = jobs
             .iter()
             .map(|job| {

@@ -6,6 +6,8 @@ use handlebars::{Handlebars, RenderError};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
+use std::fmt;
+use std::fmt::Formatter;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
@@ -151,6 +153,17 @@ pub struct HttpRequestJobConfig {
     #[serde(default)]
     pub thresholds: serde_json::Map<String, serde_json::Value>,
 }
+
+impl fmt::Display for HttpRequestJobConfig {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "({} {} {})",
+            self.name, self.request_type, self.repeat_number,
+        )
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct HttpResponseConfig {
     #[serde(default)]

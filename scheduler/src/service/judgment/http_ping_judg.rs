@@ -165,11 +165,7 @@ impl ReportCheck for HttpPingJudgment {
             JobRole::Regular => &self.regular_config,
         };
 
-        info!(
-            "{} Http Ping cache: {:?}",
-            response_times.len(),
-            response_times
-        );
+        info!("{} Http Ping in cache.", response_times.len());
         return if response_times.len() < config.ping_number_for_decide as usize {
             // Todo: Check timeout
             Ok(JudgmentsResult::Unfinished)

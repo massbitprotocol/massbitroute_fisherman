@@ -4,7 +4,7 @@ use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
 use anyhow::{anyhow, Context, Error};
 use async_trait::async_trait;
-use common::component::{ChainInfo, ComponentInfo, ComponentType};
+use common::component::{ChainInfo, ComponentInfo, ComponentType, Zone};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
@@ -13,7 +13,7 @@ use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
 use handlebars::template::TemplateMapping;
 use handlebars::Handlebars;
-use log::debug;
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
@@ -190,18 +190,22 @@ impl TaskApplicant for HttpRequestGenerator {
                 debug!("Can not apply config {:?} for {:?}", config, component);
                 continue;
             }
-            let timestamp = latest_update
+            let latest_update_timestamp = latest_update
                 .get(&config.name)
                 .map(|val| val.clone())
                 .unwrap_or_default();
-            //Check timestamp
-            if get_current_time() - timestamp < CONFIG.generate_new_regular_timeout * 1000 {
+            //Check time_to_timeout > 0: timeout; <=0 not yet.
+            let time_pass_timeout = (get_current_time() - latest_update_timestamp)
+                - (CONFIG.generate_new_regular_timeout * 1000);
+            if time_pass_timeout < 0 {
                 //Job for current config is already generated or received result recently
                 continue;
             }
-            debug!(
-                "Generate task for component {:?} with config {:?}",
-                component, config
+            trace!(
+                "time_to_timeout: {}. Generate task for {} with config {}",
+                time_pass_timeout,
+                component,
+                config
             );
             if let Ok(job) = self.generate_job(plan_id, component, phase.clone(), config, &context)
             {
