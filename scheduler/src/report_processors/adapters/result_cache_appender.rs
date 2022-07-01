@@ -35,6 +35,7 @@ impl Appender for ResultCacheAppender {
         if results.is_empty() {
             return Ok(());
         }
+
         {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
@@ -44,16 +45,19 @@ impl Appender for ResultCacheAppender {
                     task_type: key.task_type.clone(),
                     task_name: key.task_name.clone(),
                 };
+                // Create new entry if need
                 let result_by_task = result_cache
                     .result_cache_map
                     .entry(component_id.clone())
                     .or_insert(HashMap::new());
-                let e = result_by_task
+                let task_result_cache = result_by_task
                     .entry(task_key)
                     .or_insert(TaskResultCache::new(get_current_time()));
-                e.push_back(result.clone());
-                while e.len() > RESULT_CACHE_MAX_LENGTH {
-                    e.pop_front();
+                // Store to cache
+                task_result_cache.push_back_cache(result.clone());
+
+                while task_result_cache.len() > RESULT_CACHE_MAX_LENGTH {
+                    task_result_cache.pop_front();
                 }
             }
             log::debug!(

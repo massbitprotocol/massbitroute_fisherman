@@ -79,8 +79,11 @@ impl JobBuffer {
                 .as_millis() as Timestamp;
             if expected_time <= current_time {
                 info!(
-                "Found new job with expected run time {}. Current time is {}. Job is executed after {}",
-                expected_time, current_time, expected_time - current_time);
+                    "Found job is executed after {}. Job with runtime {}. Current time: {}",
+                    expected_time - current_time,
+                    expected_time,
+                    current_time
+                );
                 let job = self.jobs.pop_front();
                 if let Some(inner) = job.as_ref() {
                     let mut next_job = inner.clone();
