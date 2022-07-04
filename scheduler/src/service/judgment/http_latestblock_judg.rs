@@ -270,12 +270,6 @@ impl ReportCheck for HttpLatestBlockJudgment {
     fn get_name(&self) -> String {
         String::from("HttpLatestBlock")
     }
-    fn can_apply(&self, job: &Job) -> bool {
-        match job.job_name.as_str() {
-            "LatestBlock" => true,
-            _ => false,
-        }
-    }
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         return task.task_type.as_str() == "HttpRequest"
             && task.task_name.as_str() == "LatestBlock";

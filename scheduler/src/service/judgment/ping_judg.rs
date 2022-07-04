@@ -77,11 +77,8 @@ impl ReportCheck for PingJudgment {
     fn get_name(&self) -> String {
         String::from("Ping")
     }
-    fn can_apply(&self, job: &Job) -> bool {
-        match job.job_name.as_str() {
-            "Ping" => true,
-            _ => false,
-        }
+    fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
+        return task.task_name.as_str() == "Ping";
     }
 
     async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
