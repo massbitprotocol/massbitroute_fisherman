@@ -8,7 +8,7 @@ use common::job_manage::JobResultDetail;
 use common::jobs::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
 use common::util::get_current_time;
-use log::{debug, info};
+use log::{debug, info, trace};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread::sleep;
@@ -55,7 +55,7 @@ impl JobExecution {
         //main thread
         loop {
             while let Some(next_job) = self.job_buffers.lock().await.pop_job() {
-                debug!("Execute job: {:?}", &next_job);
+                trace!("Execute job: {:?}", &next_job);
                 let rt_handle = self.runtime.handle();
 
                 if next_job.parallelable {
@@ -70,7 +70,7 @@ impl JobExecution {
                         let counter = self.thread_counter.clone();
                         counter.fetch_add(1, Ordering::SeqCst);
                         rt_handle.spawn(async move {
-                            debug!("Execute job on a worker thread: {:?}", clone_job);
+                            trace!("Execute job on a worker thread: {:?}", clone_job);
                             clone_executor.execute(&clone_job, result_sender).await;
                             //Fixme: Program will hang if it panic before fetch_sub is executed.
                             counter.fetch_sub(1, Ordering::SeqCst);
@@ -88,7 +88,7 @@ impl JobExecution {
                         }
                         let result_sender = self.result_sender.clone();
                         let job_sender = self.job_sender.clone();
-                        debug!("Execute job on main execution thread");
+                        trace!("Execute job on main execution thread");
                         executor.execute(&next_job, result_sender).await;
                     }
                 }
@@ -102,7 +102,7 @@ impl JobExecution {
     // pub async fn get_jobs_from_executions(&mut self) {
     //     let mut jobs = Vec::new();
     //     while let Ok(job) = self.job_receiver.try_recv() {
-    //         debug!("Received job: {:?} from executors", &job);
+    //         trace!("Received job: {:?} from executors", &job);
     //         jobs.push(job);
     //     }
     //     self.job_buffers.lock().await.add_jobs(jobs);

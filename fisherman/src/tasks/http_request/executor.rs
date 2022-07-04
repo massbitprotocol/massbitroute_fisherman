@@ -11,7 +11,7 @@ use common::tasks::ping::{CallPingError, JobPingResult};
 use common::tasks::rpc_request::{JobRpcResponse, JobRpcResult, RpcRequestError};
 use common::util::{get_current_time, remove_break_line};
 use common::{task_spawn, WorkerId};
-use log::{debug, error, info};
+use log::{debug, error, info, trace};
 use reqwest::{get, Client, Response};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -53,11 +53,11 @@ impl HttpRequestExecutor {
             for (key, value) in request.headers.iter() {
                 req_builder = req_builder.header(key, value);
             }
-            log::debug!("Request header {:?}", &request.headers);
+            log::trace!("Request header {:?}", &request.headers);
             //Body
             if let Some(body) = &request.body {
                 let req_body = body.clone().to_string();
-                log::debug!("Request body {:?}", &req_body);
+                log::trace!("Request body {:?}", &req_body);
                 req_builder = req_builder.body(req_body);
             }
             let resp = req_builder
@@ -118,7 +118,7 @@ impl HttpRequestExecutor {
                 .map_err(|err| HttpRequestError::SendError(format!("{}", err)))
                 .map(|res| JobHttpResponseDetail::Body(remove_break_line(&res))),
         };
-        log::debug!("Extracted response detail {:?}", response_detail);
+        log::trace!("Extracted response detail {:?}", response_detail);
         response_detail
     }
     fn extract_values(
@@ -153,13 +153,13 @@ impl HttpRequestExecutor {
 #[async_trait]
 impl TaskExecutor for HttpRequestExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
-        debug!("HttpRequestExecutor execute job {:?}", &job);
+        trace!("HttpRequestExecutor execute job {:?}", &job);
         let res = self.call_http_request(job).await;
         let response = match res {
             Ok(res) => res,
             Err(err) => err.into(),
         };
-        debug!("Http request result {:?}", &response);
+        trace!("Http request result {:?}", &response);
         let result = JobHttpResult {
             job: job.clone(),
             //response_timestamp: get_current_time(),
@@ -171,9 +171,9 @@ impl TaskExecutor for HttpRequestExecutor {
                 request.chain_info.clone(),
                 job,
             );
-            debug!("send job_result: {:?}", job_result);
+            trace!("send job_result: {:?}", job_result);
             let res = result_sender.send(job_result).await;
-            debug!("send res: {:?}", res);
+            trace!("send res: {:?}", res);
         };
 
         Ok(())

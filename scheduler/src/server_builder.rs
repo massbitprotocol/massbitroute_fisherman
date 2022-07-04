@@ -5,9 +5,10 @@ use serde::{Deserialize, Serialize};
 use std::borrow::BorrowMut;
 use std::collections::VecDeque;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::sync::{mpsc::Sender, Mutex};
 use warp::http::{HeaderMap, Method};
@@ -15,12 +16,14 @@ use warp::http::{HeaderMap, Method};
 use crate::service::{ProcessorService, WebService};
 use common::component::ComponentInfo;
 use common::jobs::JobResult;
+use common::task_spawn::{spawn, spawn_thread};
 use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 use crate::state::{ProcessorState, SchedulerState};
 use common::workers::WorkerInfo;
 
+static PROCESS_THREAD_COUNT: AtomicUsize = AtomicUsize::new(0);
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
 
 #[derive(Default)]
@@ -30,7 +33,7 @@ pub struct ServerBuilder {
     scheduler_service: WebService,
     processor_service: ProcessorService,
     scheduler_state: Arc<Mutex<SchedulerState>>,
-    processor_state: Arc<Mutex<ProcessorState>>,
+    processor_state: Arc<ProcessorState>,
 }
 
 pub struct SchedulerServer {
@@ -39,7 +42,7 @@ pub struct SchedulerServer {
     scheduler_service: Arc<WebService>,
     processor_service: Arc<ProcessorService>,
     scheduler_state: Arc<Mutex<SchedulerState>>,
-    processor_state: Arc<Mutex<ProcessorState>>,
+    processor_state: Arc<ProcessorState>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -217,7 +220,7 @@ impl SchedulerServer {
     fn create_route_reports(
         &self,
         service: Arc<ProcessorService>,
-        state: Arc<Mutex<ProcessorState>>,
+        state: Arc<ProcessorState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("report")
             .and(SchedulerServer::log_headers())
@@ -230,7 +233,20 @@ impl SchedulerServer {
                 );
                 let clone_service = service.clone();
                 let clone_state = state.clone();
-                async move { clone_service.process_report(job_results, clone_state).await }
+                spawn(async move {
+                    PROCESS_THREAD_COUNT.fetch_add(1, Ordering::Relaxed);
+                    let job_results_len = job_results.len();
+                    info!(
+                        "** Start {}th process {} job results **",
+                        PROCESS_THREAD_COUNT.load(Ordering::Relaxed),
+                        job_results_len
+                    );
+                    clone_service.process_report(job_results, clone_state).await;
+                    info!("** Finished process {} job results **", job_results_len);
+                    PROCESS_THREAD_COUNT.fetch_sub(1, Ordering::Relaxed);
+                });
+
+                async move { Self::simple_response(true).await }
             })
     }
 
@@ -272,7 +288,7 @@ impl ServerBuilder {
         self
     }
     pub fn with_processor_state(mut self, processor_state: ProcessorState) -> Self {
-        self.processor_state = Arc::new(Mutex::new(processor_state));
+        self.processor_state = Arc::new(processor_state);
         self
     }
     pub fn build(&self, scheduler: WebService, processor: ProcessorService) -> SchedulerServer {
