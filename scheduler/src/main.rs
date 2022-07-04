@@ -20,6 +20,7 @@ use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
 use scheduler::{CONFIG, DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
 
+use migration::{Migrator, MigratorTrait};
 use scheduler::models::job_result_cache::JobResultCache;
 use scheduler::persistence::services::job_result_service::JobResultService;
 use scheduler::persistence::services::plan_service::PlanService;
@@ -31,10 +32,12 @@ use tokio::sync::Mutex;
 use tokio::task;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), anyhow::Error> {
     // Load env file
     dotenv::dotenv().ok();
+    // Init logger
     let _res = init_logger(&String::from("Fisherman Scheduler"));
+
     let _matches = create_scheduler_app().get_matches();
     // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
     // let connection_pool = r2d2::Pool::builder()
@@ -53,6 +56,10 @@ async fn main() {
             panic!("Please check database connection and retry.")
         }
     };
+
+    // Migration db
+    Migrator::up(&db_conn, None).await?;
+
     let arc_conn = Arc::new(db_conn);
     let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
     //Get worker infos
@@ -132,6 +139,7 @@ async fn main() {
         task_serve,
     )
     .await;
+    Ok(())
 }
 
 fn create_scheduler_app() -> Command<'static> {

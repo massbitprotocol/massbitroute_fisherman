@@ -1,8 +1,8 @@
-use crate::persistence::seaorm::workers::Model;
-use crate::persistence::seaorm::{plans, workers};
 use anyhow::anyhow;
 use common::component::Zone;
 use common::workers::WorkerInfo;
+use entity::workers::Model;
+use entity::{plans, workers};
 use log::error;
 use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
@@ -51,23 +51,6 @@ impl WorkerService {
         match worker.insert(self.db.as_ref()).await {
             Ok(res) => Ok(res),
             Err(err) => Err(anyhow!("{:?}", &err)),
-        }
-    }
-}
-
-impl From<&workers::Model> for WorkerInfo {
-    fn from(info: &Model) -> Self {
-        let zone = match Zone::from_str(info.zone.as_str()) {
-            Ok(zone) => zone,
-            Err(err) => Zone::default(),
-        };
-        WorkerInfo {
-            worker_id: info.worker_id.clone(),
-            worker_ip: info.worker_ip.clone(),
-            url: info.url.clone(),
-            zone,
-            worker_spec: Default::default(),
-            available_time_frame: None,
         }
     }
 }

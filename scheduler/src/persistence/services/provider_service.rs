@@ -1,8 +1,8 @@
-use crate::persistence::seaorm::worker_provider_maps;
 use crate::persistence::ProviderMapModel;
 use anyhow::anyhow;
 use common::component::Zone;
 use common::workers::WorkerInfo;
+use entity::worker_provider_maps;
 use log::{debug, error, log};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Value,
