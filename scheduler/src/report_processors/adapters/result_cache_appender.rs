@@ -1,14 +1,10 @@
 use crate::models::job_result::ProviderTask;
 use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
 use crate::report_processors::adapters::Appender;
-use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{JobBenchmarkResult, JobResultDetail};
-use common::jobs::{Job, JobResult};
-use common::tasks::eth::JobLatestBlockResult;
-use common::tasks::ping::JobPingResult;
+use common::jobs::JobResult;
 use common::util::get_current_time;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

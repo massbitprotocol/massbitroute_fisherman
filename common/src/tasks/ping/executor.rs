@@ -1,19 +1,14 @@
 use crate::job_manage::{JobDetail, JobResultDetail};
 use crate::jobs::{Job, JobResult};
-use crate::logger::helper::message;
 use crate::tasks::executor::TaskExecutor;
 use crate::tasks::ping::{CallPingError, JobPingResult, PingResponse};
-use crate::util::get_current_time;
-use crate::{task_spawn, WorkerId};
+use crate::WorkerId;
 use anyhow::Error;
 use async_trait::async_trait;
-use log::{debug, info};
-use reqwest::{get, Client};
-use serde::{Deserialize, Serialize};
-use std::fmt::format;
+use log::debug;
+use reqwest::Client;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Default)]
 pub struct PingExecutor {

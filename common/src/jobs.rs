@@ -1,14 +1,13 @@
 use crate::component::{ChainInfo, ComponentType, Zone};
 use crate::job_manage::{JobDetail, JobResultDetail, JobRole};
 use crate::util::get_current_time;
-use crate::workers::{Worker, WorkerInfo};
+use crate::workers::Worker;
 use crate::{
     ComponentId, ComponentInfo, JobId, PlanId, Timestamp, Url, WorkerId, DEFAULT_JOB_INTERVAL,
     DEFAULT_JOB_TIMEOUT, WORKER_ID,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::env::join_paths;
 use std::sync::Arc;
 use uuid::Uuid;
 

@@ -49,7 +49,7 @@ impl LatestJudgmentCache {
         map.insert(key, judg_result);
     }
     pub fn get_value(&self, key: &JudgmentKey) -> Option<JudgmentsResult> {
-        let mut values = self.values.lock().unwrap();
+        let values = self.values.lock().unwrap();
         values.get(key).map(|r| r.clone())
     }
 }

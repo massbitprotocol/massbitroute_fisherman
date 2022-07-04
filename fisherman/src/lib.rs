@@ -5,9 +5,7 @@ pub mod services;
 pub mod state;
 pub mod tasks;
 
-use dotenv;
 use lazy_static::lazy_static;
-use serde::Deserialize;
 use std::env;
 use uuid::Uuid;
 //pub const CONFIG_FILE: &str = "config_check_component.json";

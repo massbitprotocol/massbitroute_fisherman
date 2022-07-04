@@ -4,16 +4,14 @@ use crate::{
     BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
     WORKER_ID,
 };
-use common::job_manage::JobResultDetail;
 use common::jobs::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
-use common::util::get_current_time;
-use log::{debug, info, trace};
+use log::trace;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
-use tokio::runtime::{Builder, Handle, Runtime};
+use tokio::runtime::{Builder, Runtime};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
 /*
@@ -33,7 +31,7 @@ pub struct JobExecution {
 impl JobExecution {
     pub fn new(result_sender: Sender<JobResult>, job_buffers: Arc<Mutex<JobBuffer>>) -> Self {
         let executors = get_executors(WORKER_ID.as_str().to_string(), BENCHMARK_WRK_PATH.as_str());
-        let (job_sender, mut job_receiver): (Sender<Job>, Receiver<Job>) = channel(1024);
+        let (job_sender, job_receiver): (Sender<Job>, Receiver<Job>) = channel(1024);
 
         let runtime = Builder::new_multi_thread()
             .worker_threads(*MAX_THREAD_COUNTER)
@@ -64,7 +62,7 @@ impl JobExecution {
                             continue;
                         }
                         let result_sender = self.result_sender.clone();
-                        let job_sender = self.job_sender.clone();
+                        let _job_sender = self.job_sender.clone();
                         let clone_executor = executor.clone();
                         let clone_job = next_job.clone();
                         let counter = self.thread_counter.clone();
@@ -87,7 +85,7 @@ impl JobExecution {
                             continue;
                         }
                         let result_sender = self.result_sender.clone();
-                        let job_sender = self.job_sender.clone();
+                        let _job_sender = self.job_sender.clone();
                         trace!("Execute job on main execution thread");
                         executor.execute(&next_job, result_sender).await;
                     }

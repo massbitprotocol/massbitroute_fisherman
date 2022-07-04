@@ -1,7 +1,6 @@
 use crate::persistence::services::plan_service::plans::Model;
 use crate::persistence::PlanModel;
 use anyhow::anyhow;
-use common::component::Zone;
 use common::job_manage::JobRole;
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;

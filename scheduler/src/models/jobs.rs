@@ -105,7 +105,7 @@ impl AssignmentBuffer {
     pub fn add_assignments(&mut self, mut assignments: Vec<JobAssignment>) {
         self.list_assignments.append(&mut assignments);
     }
-    pub fn push_back(&mut self, mut assignments: Vec<JobAssignment>) {
+    pub fn push_back(&mut self, assignments: Vec<JobAssignment>) {
         for job in assignments.into_iter().rev() {
             self.list_assignments.insert(0, job);
         }

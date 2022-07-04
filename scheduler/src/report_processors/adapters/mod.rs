@@ -6,11 +6,9 @@ use async_trait::async_trait;
 use common::job_manage::JobBenchmarkResult;
 use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
-use common::tasks::http_request::JobHttpResult;
 use common::tasks::ping::JobPingResult;
 use sea_orm::DatabaseConnection;
 use serde_json::{Map, Value};
-use std::fmt::Debug;
 use std::sync::Arc;
 
 pub mod csv_appender;

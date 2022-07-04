@@ -1,11 +1,8 @@
 use crate::service::comparator::Comparator;
 use anyhow::{anyhow, Error};
 use common::tasks::http_request::HttpResponseValues;
-use common::util::{from_str_radix16, get_current_time};
-use log::{debug, info};
+use common::util::from_str_radix16;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
-use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct LatestBlockEthComparator {}

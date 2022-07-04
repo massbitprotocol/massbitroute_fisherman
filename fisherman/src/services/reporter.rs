@@ -1,10 +1,7 @@
-use crate::{JOB_RESULT_REPORTER_PERIOD, WORKER_ID};
+use crate::JOB_RESULT_REPORTER_PERIOD;
 use anyhow::anyhow;
 use common::jobs::JobResult;
-use log::{debug, info, trace};
-use reqwest::{Client, Error, RequestBuilder, Response};
-use serde_json::json;
-use std::sync::Arc;
+use log::{info, trace};
 use std::thread::sleep;
 use std::time::Duration;
 use tokio::sync::mpsc::Receiver;

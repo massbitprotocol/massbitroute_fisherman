@@ -335,7 +335,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
 
         //Filter and get only latest result to check
 
-        let mut cache_key = CacheKey::new(
+        let cache_key = CacheKey::new(
             provider_task.provider_id.clone(),
             chain_info.chain.clone(),
             chain_info.network.clone(),

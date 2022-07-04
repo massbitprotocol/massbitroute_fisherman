@@ -2,9 +2,9 @@ use crate::component::ChainInfo;
 use crate::job_manage::JobRole;
 use crate::jobs::{AssignmentConfig, Job};
 use crate::{ComponentInfo, Timestamp};
-use handlebars::{Handlebars, RenderError};
+use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Formatter;
@@ -176,7 +176,7 @@ pub struct HttpResponseConfig {
 impl HttpRequestJobConfig {
     pub fn read_config(path: &str) -> Vec<HttpRequestJobConfig> {
         let json_content = std::fs::read_to_string(path).unwrap_or_default();
-        let mut configs: Map<String, serde_json::Value> =
+        let configs: Map<String, serde_json::Value> =
             serde_json::from_str(&*json_content).unwrap_or_default();
         let mut task_configs = Vec::new();
         let default = configs["default"].as_object().unwrap();

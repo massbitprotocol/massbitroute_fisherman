@@ -1,12 +1,10 @@
 use crate::models::job::JobBuffer;
 use crate::state::WorkerState;
-use common::job_manage::JobBenchmark;
 use common::jobs::Job;
-use common::workers::WorkerInfo;
 use common::JobId;
 use common::{Deserialize, Serialize};
 use log::{info, trace};
-use serde_json::{json, Value};
+use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::{Rejection, Reply};
@@ -14,7 +12,7 @@ use warp::{Rejection, Reply};
 pub struct WebService {}
 
 impl WebService {
-    pub fn builder(job_buffer: Arc<Mutex<JobBuffer>>) -> WebServiceBuilder {
+    pub fn builder(_job_buffer: Arc<Mutex<JobBuffer>>) -> WebServiceBuilder {
         WebServiceBuilder {
             inner: WebService {},
         }
@@ -25,7 +23,7 @@ impl WebService {
         state: Arc<Mutex<WorkerState>>,
     ) -> Result<impl Reply, Rejection> {
         trace!("Handle {} jobs {:?}", jobs.len(), &jobs);
-        let mut job_ids = jobs
+        let job_ids = jobs
             .iter()
             .map(|job| {
                 // Create list id for return
@@ -46,12 +44,15 @@ impl WebService {
     pub async fn update_jobs(
         &self,
         jobs: Vec<Job>,
-        state: Arc<Mutex<WorkerState>>,
+        _state: Arc<Mutex<WorkerState>>,
     ) -> Result<impl Reply, Rejection> {
         info!("Update jobs: {:?}", &jobs);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }
-    pub async fn get_state(&self, state: Arc<Mutex<WorkerState>>) -> Result<impl Reply, Rejection> {
+    pub async fn get_state(
+        &self,
+        _state: Arc<Mutex<WorkerState>>,
+    ) -> Result<impl Reply, Rejection> {
         info!("Get state request");
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
     }

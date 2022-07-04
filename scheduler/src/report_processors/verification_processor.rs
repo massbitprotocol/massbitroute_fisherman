@@ -1,25 +1,21 @@
 use crate::models::job_result::{ProviderTask, StoredJobResult};
 use crate::persistence::services::{JobResultService, JobService, PlanService};
-use crate::report_processors::adapters::{get_report_adapters, Appender};
+use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::{JudgmentsResult, MainJudgment};
 use crate::service::report_portal::StoreReport;
 use crate::{CONFIG, PORTAL_AUTHORIZATION};
 use async_trait::async_trait;
-use common::job_manage::{JobBenchmarkResult, JobResultDetail, JobRole};
-use common::jobs::{Job, JobResult, JobResultWithJob};
+use common::job_manage::JobRole;
+use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
-use common::tasks::eth::JobLatestBlockResult;
-use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
-use common::util::get_current_time;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
-use futures_util::{FutureExt, TryFutureExt};
-use log::{debug, error, info};
+use futures_util::FutureExt;
+use log::{debug, info};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 // #[derive(Clone, Default)]
@@ -83,7 +79,7 @@ impl ReportProcessor for VerificationReportProcessor {
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         log::debug!("Verification process report jobs: {:?}", &reports);
-        let mut stored_results = Vec::<StoredJobResult>::new();
+        let stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         //let mut provider_ids = HashSet::<ComponentId>::new();
         let mut plan_ids = HashSet::<PlanId>::new();
@@ -98,7 +94,7 @@ impl ReportProcessor for VerificationReportProcessor {
                 report.job_name.clone(),
             );
             job_ids.insert(report.job_id.clone());
-            let mut jobs = provider_task_results.entry(key).or_insert(Vec::default());
+            let jobs = provider_task_results.entry(key).or_insert(Vec::default());
             jobs.push(report);
         }
         if job_ids.is_empty() {
