@@ -1,14 +1,8 @@
 use crate::persistence::ProviderMapModel;
-use crate::WORKER_PATH_JOBS_HANDLE;
-use anyhow::anyhow;
 use common::component::{ComponentInfo, Zone};
-use common::jobs::Job;
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{ComponentId, WorkerId};
-use reqwest::{Error, Response};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::format;
 use std::sync::Arc;
 
 /*

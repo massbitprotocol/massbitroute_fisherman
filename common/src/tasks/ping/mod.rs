@@ -2,7 +2,6 @@ pub mod executor;
 
 use crate::jobs::Job;
 use crate::Timestamp;
-use anyhow::{anyhow, Error};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

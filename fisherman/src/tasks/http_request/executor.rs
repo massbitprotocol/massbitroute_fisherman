@@ -2,24 +2,18 @@ use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobDetail, JobResultDetail};
 use common::jobs::{Job, JobResult};
-use common::logger::helper::message;
 use common::tasks::executor::TaskExecutor;
 use common::tasks::http_request::{
     HttpRequestError, HttpResponseValues, JobHttpResponse, JobHttpResponseDetail, JobHttpResult,
 };
-use common::tasks::ping::{CallPingError, JobPingResult};
-use common::tasks::rpc_request::{JobRpcResponse, JobRpcResult, RpcRequestError};
 use common::util::{get_current_time, remove_break_line};
-use common::{task_spawn, WorkerId};
-use log::{debug, error, info, trace};
-use reqwest::{get, Client, Response};
-use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use common::WorkerId;
+use log::{error, trace};
+use reqwest::{Client, Response};
+use serde_json::Value;
 use std::collections::HashMap;
-use std::fmt::format;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Default)]
 pub struct HttpRequestExecutor {

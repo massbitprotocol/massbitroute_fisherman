@@ -1,28 +1,21 @@
 use anyhow::Error;
-use log::{debug, info};
-use reqwest::Response;
+use log::info;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::str::FromStr;
 
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::time::{sleep, Duration};
 
-use crate::component::{ComponentInfo, ComponentType};
-use crate::job_action::CheckStep;
-use crate::job_action::EndpointInfo;
+use crate::component::ComponentType;
 use crate::jobs::Job;
 use crate::tasks::command::{JobCommand, JobCommandResponse, JobCommandResult};
 use crate::tasks::compound::JobCompound;
 use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult};
 use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
-use crate::tasks::ping::{CallPingError, JobPingResult};
+use crate::tasks::ping::JobPingResult;
 use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
-use crate::util::get_current_time;
-use crate::{component, BlockChainType, ComponentId, JobId, NetworkType, Timestamp, WorkerId};
+use crate::{BlockChainType, JobId, Timestamp, WorkerId};
 use serde::{Deserialize, Serialize};
-use tokio::task::JoinHandle;
-use uuid::Uuid;
 
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
 pub enum JobType {

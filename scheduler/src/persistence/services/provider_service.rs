@@ -13,7 +13,7 @@ use std::fmt::Error;
 use std::str::FromStr;
 use std::sync::Arc;
 
-const TABLE_NAME: &str = "worker_provider_maps";
+//const TABLE_NAME: &str = "worker_provider_maps";
 const INSERT_RESPONSE_TIME_QUERY: &str = r#"INSERT INTO worker_provider_maps
                                 (worker_id, provider_id, ping_response_time, ping_time, last_connect_time, last_check)"#;
 const CONFLICT_RESPONSE_TIME_QUERY: &str = r#"ON CONFLICT ON CONSTRAINT worker_provider_maps_worker_provider_key

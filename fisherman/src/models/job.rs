@@ -1,10 +1,8 @@
 use common::jobs::Job;
-use common::util::get_current_time;
 use common::Timestamp;
-use log::{debug, info, trace};
+use log::trace;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
-use uuid::Uuid;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct JobBuffer {
@@ -39,7 +37,7 @@ impl JobBuffer {
             .position(|job_in_queue| job_in_queue.is_eq(job))
     }
 
-    pub fn add_jobs(&mut self, mut jobs: Vec<Job>) -> usize {
+    pub fn add_jobs(&mut self, jobs: Vec<Job>) -> usize {
         for job in jobs {
             let pos = self.get_job_existed_position(&job);
             if let Some(pos) = pos {

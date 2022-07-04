@@ -6,10 +6,8 @@ use async_trait::async_trait;
 use common::job_manage::{JobBenchmarkResult, JobResultDetail};
 use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
-use common::tasks::http_request::{JobHttpRequest, JobHttpResult};
 use common::tasks::ping::JobPingResult;
 use sea_orm::DatabaseConnection;
-use serde_json::{Map, Value};
 use std::sync::Arc;
 
 pub struct PostgresAppender {

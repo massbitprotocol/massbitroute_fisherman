@@ -4,12 +4,10 @@ use crate::persistence::services::provider_service::ProviderService;
 use crate::{CONFIG, PORTAL_AUTHORIZATION};
 use anyhow::Error;
 use common::component::{ComponentInfo, ComponentType, Zone};
-use futures_util::TryFutureExt;
-use log::{debug, error, info};
+use log::{debug, error};
 use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 

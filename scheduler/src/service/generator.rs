@@ -1,10 +1,9 @@
 use crate::models::component::ProviderPlan;
-use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskName, TaskResultCache};
+use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
 use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
-use crate::persistence::JobAssignmentActiveModel;
 use crate::persistence::PlanModel;
 use crate::service::judgment::http_latestblock_judg::CacheKey;
 use crate::tasks::generator::{get_tasks, TaskApplicant};

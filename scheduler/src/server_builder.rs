@@ -1,24 +1,19 @@
 use crate::server_config::AccessControl;
-use common::job_manage::JobResultDetail;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use std::borrow::BorrowMut;
-use std::collections::VecDeque;
 
-use serde_json::{json, Value};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::sync::{mpsc::Sender, Mutex};
+use tokio::sync::Mutex;
 use warp::http::{HeaderMap, Method};
 
 use crate::service::{ProcessorService, WebService};
 use common::component::ComponentInfo;
 use common::jobs::JobResult;
-use common::task_spawn::{spawn, spawn_thread};
-use warp::reply::Json;
+use common::task_spawn::spawn;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 use crate::state::{ProcessorState, SchedulerState};

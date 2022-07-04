@@ -37,7 +37,7 @@ impl ProcessorState {
         //For verification processor
         let mut report_adapters = get_report_adapters(connection.clone());
         report_adapters.push(Arc::new(ResultCacheAppender::new(result_cache)));
-        let mut verification_processor = VerificationReportProcessor::new(
+        let verification_processor = VerificationReportProcessor::new(
             report_adapters.clone(),
             plan_service.clone(),
             job_service.clone(),
@@ -46,7 +46,7 @@ impl ProcessorState {
         );
         //For regular processor
         let judgment = MainJudgment::new(result_service.clone());
-        let mut regular_processor = RegularReportProcessor::new(report_adapters.clone(), judgment);
+        let regular_processor = RegularReportProcessor::new(report_adapters.clone(), judgment);
         let judgment = MainJudgment::new(result_service.clone());
         ProcessorState {
             connection,

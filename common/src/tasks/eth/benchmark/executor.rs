@@ -3,26 +3,20 @@ use crate::job_manage::{
     BenchmarkResponse, JobBenchmark, JobBenchmarkResult, JobDetail, JobResultDetail,
 };
 use crate::jobs::{Job, JobResult};
-use crate::logger::helper::message;
 use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::executor::TaskExecutor;
 use crate::util::get_current_time;
-use crate::{task_spawn, Timestamp, WorkerId, WORKER_ID};
+use crate::WorkerId;
 use anyhow::Error;
 use async_trait::async_trait;
 use bytesize::ByteSize;
-use log::Level::Debug;
-use log::{debug, info};
+use log::debug;
 use regex::Regex;
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::format;
 use std::str::FromStr;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use tokio::time::sleep;
-use wrap_wrk::{WrkBenchmark, WrkReport};
+use wrap_wrk::WrkBenchmark;
 
 const WRK_NAME: &str = "./wrk";
 

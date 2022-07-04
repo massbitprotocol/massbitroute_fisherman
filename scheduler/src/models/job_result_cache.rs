@@ -1,9 +1,4 @@
-use crate::models::job_result::ProviderTask;
-use crate::service::judgment::http_latestblock_judg::CacheKey;
-use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
-use anyhow::Error;
-use common::component::ComponentInfo;
 use common::job_manage::{JobDetail, JobPing, JobResultDetail};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;

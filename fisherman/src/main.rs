@@ -1,9 +1,7 @@
-use anyhow::{anyhow, Error};
-use common::job_manage::JobResultDetail;
+use anyhow::anyhow;
 use common::jobs::JobResult;
 use common::logger::init_logger;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
-use std::collections::HashMap;
 
 use fisherman::models::job::JobBuffer;
 use fisherman::server_builder::WebServerBuilder;
@@ -14,8 +12,8 @@ use fisherman::{
     ENVIRONMENT, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID, WORKER_IP,
     WORKER_SERVICE_ENDPOINT, ZONE,
 };
-use futures_util::future::{join, join3};
-use log::{debug, info, warn};
+use futures_util::future::join3;
+use log::{debug, info};
 use reqwest::StatusCode;
 use std::sync::Arc;
 use std::thread::sleep;
@@ -23,7 +21,6 @@ use std::time::Duration;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
 use tokio::task;
-use tokio::task::JoinHandle;
 
 #[tokio::main]
 async fn main() {
@@ -42,7 +39,7 @@ async fn main() {
             "Successfully register worker {}, report_callback: {}",
             &worker_id, report_callback
         );
-        let (sender, mut receiver): (Sender<JobResult>, Receiver<JobResult>) = channel(1024);
+        let (sender, receiver): (Sender<JobResult>, Receiver<JobResult>) = channel(1024);
         let job_buffer = Arc::new(Mutex::new(JobBuffer::new()));
         let mut reporter = JobResultReporter::new(receiver, report_callback);
 

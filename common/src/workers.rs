@@ -5,7 +5,6 @@ use crate::{ComponentInfo, IPAddress, WorkerId};
 use anyhow::anyhow;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::Arc;
 

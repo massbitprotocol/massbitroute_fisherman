@@ -7,13 +7,10 @@ pub mod http_request;
 pub mod ping;
 pub mod rpc_request;
 use crate::job_manage::JobRole;
-use crate::Timestamp;
-use log::{error, info};
+use log::info;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::fmt::Debug;
-use std::iter::Map;
 
 const DEFAULT_KEY: &str = "default";
 
@@ -26,7 +23,7 @@ pub trait LoadConfig<T: DeserializeOwned + Default + Debug> {
         let mut default_config: T =
             serde_json::from_value(configs.get(DEFAULT_KEY).unwrap().clone()).unwrap();
         if let Some(modify_config) = configs.get(role.to_string()) {
-            let mut modify_config: Result<T, _> = serde_json::from_value(modify_config.clone());
+            let modify_config: Result<T, _> = serde_json::from_value(modify_config.clone());
             if let Ok(modify_config) = modify_config {
                 default_config = modify_config;
             }

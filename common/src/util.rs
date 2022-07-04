@@ -1,7 +1,7 @@
 use crate::Timestamp;
 use anyhow::anyhow;
 use log::debug;
-use regex::{Error, Regex};
+use regex::Regex;
 
 pub fn get_current_time() -> Timestamp {
     std::time::SystemTime::now()

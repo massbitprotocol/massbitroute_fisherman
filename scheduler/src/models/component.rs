@@ -1,10 +1,7 @@
 use crate::persistence::PlanModel;
 use common::component::{ComponentInfo, Zone};
-use common::models::PlanEntity;
-use common::ComponentId;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ops::Index;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]

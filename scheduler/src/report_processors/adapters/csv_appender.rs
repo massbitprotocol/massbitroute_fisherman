@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use common::job_manage::JobBenchmarkResult;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
-use log::log;
 use serde_json::{Map, Value};
 pub struct CsvAppender {}
 

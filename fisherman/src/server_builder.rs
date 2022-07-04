@@ -1,23 +1,18 @@
 use crate::server_config::AccessControl;
 use common::jobs::Job;
-use log::{debug, info, trace};
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
 
-use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::sync::mpsc::Sender;
 use warp::http::{HeaderMap, Method};
 
 use crate::services::WebService;
 use crate::state::WorkerState;
-use common::workers::WorkerInfo;
 use common::workers::WorkerStateParam;
 use std::default::Default;
 use tokio::sync::Mutex;
-use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
@@ -145,7 +140,7 @@ impl WorkerServer {
             .and(WorkerServer::log_headers())
             .and(warp::get())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |param: WorkerStateParam| {
+            .and_then(move |_param: WorkerStateParam| {
                 info!("#### Received request body ####");
                 let clone_service = service.clone();
                 let clone_state = state.clone();

@@ -18,7 +18,7 @@ use scheduler::service::delivery::JobDelivery;
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
-use scheduler::{CONFIG, DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
+use scheduler::{DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
 
 use migration::{Migrator, MigratorTrait};
 use scheduler::models::job_result_cache::JobResultCache;

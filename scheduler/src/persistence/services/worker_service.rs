@@ -1,9 +1,8 @@
 use anyhow::anyhow;
 use common::component::Zone;
 use common::workers::WorkerInfo;
-use entity::workers::Model;
-use entity::{plans, workers};
-use log::error;
+use entity::seaorm::workers;
+use entity::seaorm::workers::Model;
 use sea_orm::DatabaseConnection;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use std::str::FromStr;

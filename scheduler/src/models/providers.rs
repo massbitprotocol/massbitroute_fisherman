@@ -7,8 +7,6 @@ use common::jobs::Job;
 use common::ComponentId;
 use log::{debug, log};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::sync::Mutex;
 
 #[derive(Debug, Default)]
