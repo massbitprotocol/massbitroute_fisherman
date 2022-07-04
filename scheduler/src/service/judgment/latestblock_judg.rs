@@ -39,6 +39,9 @@ impl LatestBlockJudgment {
 
 #[async_trait]
 impl ReportCheck for LatestBlockJudgment {
+    fn get_name(&self) -> String {
+        String::from("LatestBlock")
+    }
     fn can_apply(&self, job: &Job) -> bool {
         match job.job_name.as_str() {
             "LatestBlock" => true,

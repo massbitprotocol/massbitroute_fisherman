@@ -108,14 +108,35 @@ impl ReportProcessor for VerificationReportProcessor {
             .await
             .unwrap_or_default();
         debug!("Active plans {:?}", &active_plans);
-        let mut map_jobs = HashMap::<JobId, Job>::new();
-        let mut plan_ids = HashSet::<PlanId>::new();
-        if let Ok(jobs) = self.job_service.get_job_by_ids(&job_ids).await {
-            for job in jobs {
-                plan_ids.insert(job.plan_id.clone());
-                map_jobs.insert(job.job_id.clone(), job);
-            }
-        }
+        //get Active jobs base on active plan
+        let active_plan_ids = active_plans
+            .iter()
+            .map(|(provider_id, plan)| plan.plan_id.clone())
+            .collect::<Vec<PlanId>>();
+        let map_plan_jobs = self
+            .job_service
+            .get_job_by_plan_ids(&active_plan_ids)
+            .await
+            .map(|jobs| {
+                let mut plan_jobs = HashMap::<PlanId, Vec<Job>>::new();
+                for job in jobs {
+                    plan_jobs
+                        .entry(job.plan_id.clone())
+                        .or_insert(Vec::<Job>::new())
+                        .push(job);
+                }
+                plan_jobs
+            })
+            .unwrap_or_default();
+
+        // let mut map_jobs = HashMap::<JobId, Job>::new();
+        // let mut plan_ids = HashSet::<PlanId>::new();
+        // if let Ok(jobs) = self.job_service.get_job_by_ids(&job_ids).await {
+        //     for job in jobs {
+        //         plan_ids.insert(job.plan_id.clone());
+        //         map_jobs.insert(job.job_id.clone(), job);
+        //     }
+        // }
         //Filter by active plan
         let mut active_provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         for (key, results) in provider_task_results {
@@ -123,14 +144,8 @@ impl ReportProcessor for VerificationReportProcessor {
             let active_results = results
                 .into_iter()
                 .filter(|result| {
-                    if let (Some(job), Some(plan)) = (
-                        map_jobs.get(&result.job_id),
-                        active_plans.get(&result.provider_id),
-                    ) {
-                        true
-                    } else {
-                        false
-                    }
+                    //Keep result with active plan id
+                    map_plan_jobs.get(&result.plan_id).is_some()
                 })
                 .collect::<Vec<JobResult>>();
             if active_results.len() > 0 {
@@ -146,8 +161,10 @@ impl ReportProcessor for VerificationReportProcessor {
         for (provider_task, job_results) in active_provider_task_results {
             //After filter this unwrap is safe;
             let plan_entity = active_plans.get(&provider_task.provider_id).unwrap();
-            self.judg_provider_results(provider_task, plan_entity, job_results, &map_jobs)
-                .await;
+            if let Some(plan_jobs) = map_plan_jobs.get(&plan_entity.plan_id) {
+                self.judg_provider_results(provider_task, plan_entity, job_results, plan_jobs)
+                    .await;
+            };
         }
 
         Ok(stored_results)
@@ -228,6 +245,8 @@ impl VerificationReportProcessor {
             for provider_id in providers {
                 if let Some(plan_entity) = active_plan_cache.get(provider_id) {
                     if plan_entity.expiry_time < current_time {
+                        //Cached plan expired. Remove it from cache and reload from database
+                        missing_plan.insert(provider_id.clone());
                         expired_plan.insert(plan_entity.plan_id.clone());
                     } else {
                         result.insert(provider_id.clone(), plan_entity.clone());
@@ -236,6 +255,7 @@ impl VerificationReportProcessor {
                     missing_plan.insert(provider_id.clone());
                 }
             }
+            debug!("Expired plans {:?}", &expired_plan);
             for expired_id in expired_plan {
                 active_plan_cache.remove(&expired_id);
             }
@@ -273,13 +293,17 @@ impl VerificationReportProcessor {
         provider_task: ProviderTask,
         plan: &PlanEntity,
         results: Vec<JobResult>,
-        map_jobs: &HashMap<JobId, Job>,
+        plan_jobs: &Vec<Job>,
     ) {
         let plan_result = self
             .judgment
-            .apply_for_verify(&provider_task, plan, &results, map_jobs)
+            .apply_for_verify(&provider_task, plan, &results, plan_jobs)
             .await
             .unwrap_or(JudgmentsResult::Failed);
+        debug!(
+            "Plan result {:?} found for provider {:?} with plan {:?}",
+            &plan_result, &provider_task, &plan.plan_id,
+        );
         //Handle plan result
         self.report_judgment_result(&provider_task, plan_result)
             .await;

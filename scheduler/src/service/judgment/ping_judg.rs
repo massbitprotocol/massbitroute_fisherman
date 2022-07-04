@@ -74,6 +74,9 @@ impl PingJudgment {
 
 #[async_trait]
 impl ReportCheck for PingJudgment {
+    fn get_name(&self) -> String {
+        String::from("Ping")
+    }
     fn can_apply(&self, job: &Job) -> bool {
         match job.job_name.as_str() {
             "Ping" => true,
