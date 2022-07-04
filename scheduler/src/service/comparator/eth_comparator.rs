@@ -1,9 +1,11 @@
 use crate::service::comparator::Comparator;
 use anyhow::{anyhow, Error};
 use common::tasks::http_request::HttpResponseValues;
-use common::util::get_current_time;
-use log::info;
+use common::util::{from_str_radix16, get_current_time};
+use log::{debug, info};
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct LatestBlockEthComparator {}
@@ -12,15 +14,15 @@ impl LatestBlockEthComparator {
     pub fn get_block_time(values: &HttpResponseValues) -> Result<i64, Error> {
         let timestamp = values
             .get("timestamp")
-            .and_then(|val| val.as_str())
-            .and_then(|str| i64::from_str_radix(str, 16).ok())
-            .ok_or(anyhow!("Error parse timestamp"));
+            .ok_or(anyhow!("timestamp not found"))
+            .and_then(|val| val.as_str().ok_or(anyhow!("Invalid value")))
+            .and_then(|val| from_str_radix16(val));
         timestamp
     }
 }
 impl Comparator for LatestBlockEthComparator {
     fn get_latest_value(&self, value: &HttpResponseValues) -> Option<i64> {
-        self.get_number_value(value, "timestamp")
+        self.get_number_value(value, "timestamp").ok()
     }
     fn compare(
         &self,
@@ -35,4 +37,20 @@ impl Comparator for LatestBlockEthComparator {
             Err(anyhow!("Error parse timestamp"))
         }
     }
+}
+
+#[test]
+fn test_get_block_time() {
+    let comparator = LatestBlockEthComparator::default();
+    let mut map_values = HashMap::<String, Value>::new();
+    map_values.insert("number".to_string(), Value::from("0xe5a50f"));
+    map_values.insert(
+        "hash".to_string(),
+        Value::from("0x5fe07f604a6ff02ab289f8ced5301dae2273104df3302b63d0c21b8eeeda6f75"),
+    );
+    map_values.insert("timestamp".to_string(), Value::from("0x62bd80c2"));
+    let response_values = HttpResponseValues::new(map_values);
+    let timestamp = LatestBlockEthComparator::get_block_time(&response_values);
+    println!("{:?}", timestamp);
+    assert_eq!(timestamp.ok(), Some(1656586434));
 }

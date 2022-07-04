@@ -66,7 +66,8 @@ impl TaskApplicant for BenchmarkGenerator {
         phase: JobRole,
         workers: &MatchedWorkers,
     ) -> Result<AssignmentBuffer, anyhow::Error> {
-        log::debug!("TaskPing apply for component {:?}", component);
+        log::debug!("Task benchmark apply for component {:?}", component);
+        log::debug!("Workers {:?}", workers);
         let job_benchmark = JobBenchmark {
             component_type: component.component_type.clone(),
             chain_type: component.blockchain.clone(),

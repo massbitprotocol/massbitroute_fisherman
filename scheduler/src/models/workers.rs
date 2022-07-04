@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use common::component::{ComponentInfo, Zone};
 use common::jobs::Job;
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
-use common::WorkerId;
+use common::{ComponentId, WorkerId};
 use reqwest::{Error, Response};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -70,10 +70,30 @@ impl WorkerInfoStorage {
                 )
             })
             .unwrap_or(vec![]);
+
+        let mut distances = HashMap::<ComponentId, i32>::new();
+        let provider_id = provider.id.as_str();
+        for dist in self.map_worker_provider.iter() {
+            if dist.provider_id.as_str() == provider_id && dist.ping_response_time.is_some() {
+                distances.insert(
+                    dist.worker_id.clone(),
+                    dist.ping_response_time.as_ref().unwrap().clone(),
+                );
+            }
+        }
         let mut all_workers = Vec::new();
         for (_, workers) in self.map_zone_workers.iter() {
-            workers.iter().for_each(|w| all_workers.push(w.clone()));
+            for w in workers {
+                if distances.contains_key(&w.worker_info.worker_id) {
+                    all_workers.push(w.clone());
+                }
+            }
         }
+        all_workers.sort_by(|a, b| {
+            let d1 = distances.get(&a.worker_info.worker_id).unwrap();
+            let d2 = distances.get(&b.worker_info.worker_id).unwrap();
+            d1.partial_cmp(d2).unwrap()
+        });
         Ok(MatchedWorkers {
             provider: provider.clone(),
             nearby_workers: zone_workers,
