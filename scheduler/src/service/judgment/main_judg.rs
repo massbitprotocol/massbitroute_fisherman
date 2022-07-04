@@ -91,9 +91,11 @@ impl MainJudgment {
     ) -> Result<JudgmentsResult, anyhow::Error> {
         //Judg received results
         debug!(
-            "Make judgment for {} jobs of plan {}",
+            "Make judgment for {} job results of plan {} with provider {:?} and {} jobs",
             results.len(),
-            &plan.plan_id
+            &plan.plan_id,
+            provider_task,
+            plan_jobs.len()
         );
         let mut plan_result = JudgmentsResult::Unfinished;
         for judgment in self.judgments.iter() {

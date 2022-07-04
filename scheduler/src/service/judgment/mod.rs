@@ -43,16 +43,17 @@ impl JudgmentsResult {
 #[async_trait]
 pub trait ReportCheck: Sync + Send + Debug {
     fn get_name(&self) -> String;
-    fn can_apply(&self, job: &Job) -> bool;
-    fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
-        false
-    }
+    //fn can_apply(&self, job: &Job) -> bool;
+    fn can_apply_for_result(&self, task: &ProviderTask) -> bool;
     /// For Verification phase
     async fn apply(
         &self,
         plan: &PlanEntity,
         job: &Vec<Job>,
-    ) -> Result<JudgmentsResult, anyhow::Error>;
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        //Todo: remove this function
+        Ok(JudgmentsResult::Unfinished)
+    }
     /// For Regular phase
     async fn apply_for_results(
         &self,

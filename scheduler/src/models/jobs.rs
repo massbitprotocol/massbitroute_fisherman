@@ -33,6 +33,7 @@ impl AssignmentBuffer {
         match assignment_config {
             None => {
                 //without config, assign job for one random nearby worker
+
                 let worker = if workers.nearby_workers.len() > 0 {
                     let ind = rng.gen_range(0..workers.nearby_workers.len());
                     workers.get_nearby_worker(ind).unwrap()
@@ -40,6 +41,10 @@ impl AssignmentBuffer {
                     let ind = rng.gen_range(0..workers.best_workers.len());
                     workers.get_best_worker(ind).unwrap()
                 };
+                debug!(
+                    "Assign job {:?}.{:?} to one random worker {:?}",
+                    &job.job_name, &job.job_id, &worker.worker_info
+                );
                 let job_assignment = JobAssignment::new(worker, &job);
                 self.list_assignments.push(job_assignment);
             }

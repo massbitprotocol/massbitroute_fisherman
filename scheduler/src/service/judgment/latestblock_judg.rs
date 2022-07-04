@@ -1,3 +1,4 @@
+use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use anyhow::Error;
@@ -42,11 +43,8 @@ impl ReportCheck for LatestBlockJudgment {
     fn get_name(&self) -> String {
         String::from("LatestBlock")
     }
-    fn can_apply(&self, job: &Job) -> bool {
-        match job.job_name.as_str() {
-            "LatestBlock" => true,
-            _ => false,
-        }
+    fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
+        return task.task_name.as_str() == "LatestBlock";
     }
 
     async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
