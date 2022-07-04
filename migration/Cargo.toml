@@ -9,10 +9,9 @@ name = "migration"
 path = "src/lib.rs"
 
 [dependencies]
-scheduler = { path = "../scheduler" }
+entity = { path = "../entity" }
+sea-orm-migration = {version = "^0.8"}
 
 async-trait ="0.1"
 async-std = "1.12"
 
-[dependencies.sea-orm-migration]
-version = "^0.8"

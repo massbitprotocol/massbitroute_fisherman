@@ -10,6 +10,7 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::sync::{mpsc::Sender, Mutex};
 use warp::http::{HeaderMap, Method};
 
@@ -236,13 +237,18 @@ impl SchedulerServer {
                 spawn(async move {
                     PROCESS_THREAD_COUNT.fetch_add(1, Ordering::Relaxed);
                     let job_results_len = job_results.len();
+                    let now = Instant::now();
                     info!(
                         "** Start {}th process {} job results **",
                         PROCESS_THREAD_COUNT.load(Ordering::Relaxed),
                         job_results_len
                     );
                     clone_service.process_report(job_results, clone_state).await;
-                    info!("** Finished process {} job results **", job_results_len);
+                    info!(
+                        "** Finished process {} job results in {:.2?} **",
+                        job_results_len,
+                        now.elapsed()
+                    );
                     PROCESS_THREAD_COUNT.fetch_sub(1, Ordering::Relaxed);
                 });
 

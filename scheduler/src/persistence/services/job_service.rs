@@ -1,11 +1,11 @@
-use crate::persistence::seaorm::jobs::Model;
-use crate::persistence::seaorm::{job_assignments, jobs};
 use crate::persistence::JobAssignmentActiveModel;
 use anyhow::anyhow;
 use common::component::Zone;
 use common::jobs::{Job, JobAssignment};
 use common::workers::WorkerInfo;
 use common::{ComponentId, JobId};
+use entity::jobs::Model;
+use entity::{job_assignments, jobs};
 use log::{debug, error, log};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};

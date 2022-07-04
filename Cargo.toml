@@ -4,6 +4,7 @@ members = [
     "fisherman",
     "scheduler",
     "wrap_wrk",
-    "migration"
+    "migration",
+    "entity"
 
 ]

@@ -1,9 +1,3 @@
-use crate::persistence::seaorm::job_result_pings::Model as ResultPingModel;
-use crate::persistence::seaorm::jobs::Model;
-use crate::persistence::seaorm::{
-    job_result_benchmarks, job_result_http_requests, job_result_latest_blocks, job_result_pings,
-    jobs,
-};
 use anyhow::anyhow;
 use common::component::{ChainInfo, Zone};
 use common::job_manage::{BenchmarkResponse, JobBenchmarkResult};
@@ -12,6 +6,12 @@ use common::tasks::eth::{JobLatestBlockResult, LatestBlockResponse};
 use common::tasks::http_request::JobHttpResult;
 use common::tasks::ping::JobPingResult;
 use common::workers::WorkerInfo;
+use entity::job_result_pings::Model as ResultPingModel;
+use entity::jobs::Model;
+use entity::{
+    job_result_benchmarks, job_result_http_requests, job_result_latest_blocks, job_result_pings,
+    jobs,
+};
 use log::{debug, error, log};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};

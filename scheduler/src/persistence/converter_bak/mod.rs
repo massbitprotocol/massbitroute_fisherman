@@ -1,8 +1,3 @@
-use crate::persistence::seaorm::{
-    job_assignments, job_result_benchmarks, job_result_http_requests, job_result_latest_blocks,
-    job_result_pings, jobs, plans, workers,
-};
-use crate::persistence::PlanModel;
 use common::component::{ChainInfo, ComponentType};
 use common::job_manage::{JobBenchmarkResult, JobDetail, JobResultDetail, JobRole};
 use common::jobs::{Job, JobAssignment, JobResult};
@@ -14,6 +9,11 @@ use common::util::get_current_time;
 use common::workers::WorkerInfo;
 use core::default::Default;
 use diesel::expression::array_comparison::In;
+use entity::seaorm::plans::Model as PlanModel;
+use entity::seaorm::{
+    job_assignments, job_result_benchmarks, job_result_http_requests, job_result_latest_blocks,
+    job_result_pings, jobs, plans, workers,
+};
 use log::debug;
 use sea_orm::sea_query::ConditionHolderContents::Chain;
 use sea_orm::ActiveValue::Set;

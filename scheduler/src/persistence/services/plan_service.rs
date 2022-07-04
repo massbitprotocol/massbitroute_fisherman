@@ -1,5 +1,3 @@
-use crate::persistence::seaorm::plans;
-use crate::persistence::seaorm::plans::Model;
 use crate::persistence::PlanModel;
 use anyhow::anyhow;
 use common::component::Zone;
@@ -9,6 +7,8 @@ use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
 use common::ComponentId;
+use entity::plans;
+use entity::plans::Model;
 use log::{debug, error};
 use log::{info, warn};
 use sea_orm::sea_query::Expr;
@@ -225,22 +225,6 @@ impl PlanService {
                 Ok(())
             }
             Err(err) => Err(anyhow!("{:?}", &err)),
-        }
-    }
-}
-impl From<&Model> for PlanEntity {
-    fn from(info: &Model) -> Self {
-        PlanEntity {
-            id: info.id.clone(),
-            provider_id: info.provider_id.clone(),
-            request_time: info.request_time.clone(),
-            finish_time: info.finish_time.clone(),
-            expiry_time: info.expiry_time.clone(),
-            result: info.result.clone(),
-            message: info.message.clone(),
-            status: PlanStatus::from_str(&*info.status).unwrap_or_default(),
-            plan_id: info.plan_id.clone(),
-            phase: info.phase.clone(),
         }
     }
 }
