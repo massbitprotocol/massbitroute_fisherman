@@ -82,13 +82,15 @@ impl ReportProcessor for VerificationReportProcessor {
         reports: Vec<JobResult>,
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
-        log::debug!("Verification process report jobs");
+        log::debug!("Verification process report jobs: {:?}", &reports);
         let mut stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
-        let mut provider_ids = HashSet::<ComponentId>::new();
+        //let mut provider_ids = HashSet::<ComponentId>::new();
+        let mut plan_ids = HashSet::<PlanId>::new();
         let mut job_ids = HashSet::<JobId>::new();
         for report in reports {
-            provider_ids.insert(report.provider_id.clone());
+            //provider_ids.insert(report.provider_id.clone());
+            plan_ids.insert(report.plan_id.clone());
             let key = ProviderTask::new(
                 report.provider_id.clone(),
                 report.provider_type.clone(),
@@ -103,15 +105,12 @@ impl ReportProcessor for VerificationReportProcessor {
             return Ok(Vec::default());
         }
         //Discard timeout plan
-        let active_plans = self
-            .get_active_plans(&provider_ids)
-            .await
-            .unwrap_or_default();
+        let active_plans = self.get_active_plans(&plan_ids).await.unwrap_or_default();
         debug!("Active plans {:?}", &active_plans);
         //get Active jobs base on active plan
         let active_plan_ids = active_plans
             .iter()
-            .map(|(provider_id, plan)| plan.plan_id.clone())
+            .map(|(_, plan)| plan.plan_id.clone())
             .collect::<Vec<PlanId>>();
         let map_plan_jobs = self
             .job_service
@@ -128,15 +127,8 @@ impl ReportProcessor for VerificationReportProcessor {
                 plan_jobs
             })
             .unwrap_or_default();
+        debug!("Active jobs {:?}", &map_plan_jobs);
 
-        // let mut map_jobs = HashMap::<JobId, Job>::new();
-        // let mut plan_ids = HashSet::<PlanId>::new();
-        // if let Ok(jobs) = self.job_service.get_job_by_ids(&job_ids).await {
-        //     for job in jobs {
-        //         plan_ids.insert(job.plan_id.clone());
-        //         map_jobs.insert(job.job_id.clone(), job);
-        //     }
-        // }
         //Filter by active plan
         let mut active_provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         for (key, results) in provider_task_results {
@@ -152,6 +144,7 @@ impl ReportProcessor for VerificationReportProcessor {
                 active_provider_task_results.insert(key, active_results);
             }
         }
+        debug!("Active task results {:?}", &active_provider_task_results);
         for (key, results) in active_provider_task_results.iter() {
             log::debug!("Process results {:?} for task {:?}", results, key);
             for adapter in self.report_adapters.iter() {
@@ -164,6 +157,8 @@ impl ReportProcessor for VerificationReportProcessor {
             if let Some(plan_jobs) = map_plan_jobs.get(&plan_entity.plan_id) {
                 self.judg_provider_results(provider_task, plan_entity, job_results, plan_jobs)
                     .await;
+            } else {
+                debug!("Missing jobs of plan {}", &plan_entity.plan_id);
             };
         }
 
@@ -234,7 +229,22 @@ impl VerificationReportProcessor {
     //Get active plan and remove expired plan
     pub async fn get_active_plans(
         &self,
-        providers: &HashSet<ComponentId>,
+        plan_ids: &HashSet<PlanId>,
+    ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
+        self.plan_service
+            .get_active_plan_by_ids(&Some(JobRole::Verification), &plan_ids)
+            .await
+            .map(|plans| {
+                plans
+                    .into_iter()
+                    .map(|plan| (plan.provider_id.clone(), plan))
+                    .collect::<HashMap<ComponentId, PlanEntity>>()
+            })
+    }
+    /*
+    pub async fn get_active_plans(
+        &self,
+        plan_ids: &HashSet<ComponentId>,
     ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
         let current_time = get_current_time();
         let mut result = HashMap::new();
@@ -274,12 +284,13 @@ impl VerificationReportProcessor {
 
         Ok(result)
     }
+     */
     pub async fn load_missing_plans(
         &self,
         providers: &HashSet<ComponentId>,
     ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
         self.plan_service
-            .get_active_plans(&Some(JobRole::Verification), &providers)
+            .get_active_plan_by_components(&Some(JobRole::Verification), &providers)
             .await
             .map(|plans| {
                 plans
@@ -301,16 +312,17 @@ impl VerificationReportProcessor {
             .await
             .unwrap_or(JudgmentsResult::Failed);
         debug!(
-            "Plan result {:?} found for provider {:?} with plan {:?}",
-            &plan_result, &provider_task, &plan.plan_id,
+            "Plan result {:?} found for provider {:?} with plan {:?} and job_results {:?}",
+            &plan_result, &provider_task, &plan.plan_id, &results
         );
         //Handle plan result
-        self.report_judgment_result(&provider_task, plan_result)
+        self.report_judgment_result(&provider_task, plan, plan_result)
             .await;
     }
     pub async fn report_judgment_result(
         &self,
         provider_task: &ProviderTask,
+        plan: &PlanEntity,
         judg_result: JudgmentsResult,
     ) {
         match judg_result {
@@ -331,7 +343,11 @@ impl VerificationReportProcessor {
                     let res = report.send_data().await;
                     info!("Send report to portal res: {:?}", res);
                 } else {
-                    let result = json!({"provider_task":provider_task,"result":judg_result});
+                    let result = json!({
+                        "provider_id":provider_task.provider_id,
+                        "plan_id":plan.plan_id,
+                        "result":judg_result
+                    });
                     let res = report.write_data(result);
                     info!("Write report to file res: {:?}", res);
                 }

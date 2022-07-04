@@ -90,16 +90,21 @@ impl MainJudgment {
         plan_jobs: &Vec<Job>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         //Judg received results
-        let judgment_result = JudgmentsResult::Unfinished;
+        debug!(
+            "Make judgment for {} jobs of plan {}",
+            results.len(),
+            &plan.plan_id
+        );
+        let mut plan_result = JudgmentsResult::Unfinished;
         for judgment in self.judgments.iter() {
             if judgment.can_apply_for_result(provider_task) {
-                let judg_result = judgment
+                plan_result = judgment
                     .apply_for_results(provider_task, &results)
                     .await
                     .unwrap_or(JudgmentsResult::Failed);
                 info!(
                     "Verify judgment result {:?} for provider {:?} with results {:?}",
-                    &judg_result, provider_task, results
+                    &plan_result, provider_task, results
                 );
             };
         }
@@ -108,9 +113,9 @@ impl MainJudgment {
             .map(|job_result| job_result.job_id.clone())
             .unwrap_or_default();
         //Put judgment result to cache
-        self.put_judment_result(plan, job_id, judgment_result.clone());
+        self.put_judment_result(plan, job_id, plan_result.clone());
         //Input plan_result as result of current job
-        let mut plan_result = judgment_result;
+
         //Store first un Pass judgment result
         if plan_result == JudgmentsResult::Pass {
             for job in plan_jobs {

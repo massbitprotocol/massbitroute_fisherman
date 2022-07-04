@@ -39,7 +39,6 @@ impl HttpRequestExecutor {
     }
     pub async fn call_http_request(&self, job: &Job) -> Result<JobHttpResponse, HttpRequestError> {
         // Measure response_time
-        let now = Instant::now();
         if let Some(JobDetail::HttpRequest(request)) = job.job_detail.as_ref() {
             let mut req_builder = match request.method.to_lowercase().as_str() {
                 "post" => self.client.post(job.component_url.as_str()),
@@ -60,6 +59,8 @@ impl HttpRequestExecutor {
                 log::trace!("Request body {:?}", &req_body);
                 req_builder = req_builder.body(req_body);
             }
+            //let now = Instant::now();
+            let request_time = get_current_time();
             let resp = req_builder
                 .send()
                 .await
@@ -71,13 +72,14 @@ impl HttpRequestExecutor {
             //     .await
             //     .map_err(|err| HttpRequestError::GetBodyError(format!("{}", err)))?;
 
-            let response_time = now.elapsed();
+            let response_time = get_current_time();
             let response_detail = self
                 .parse_response(resp, &request.response_type, &request.response_values)
                 .await;
             match response_detail {
                 Ok(detail) => Ok(JobHttpResponse {
-                    response_time: response_time.as_millis() as i64,
+                    request_time,
+                    response_time,
                     detail,
                     http_code,
                     error_code: 0,
@@ -86,7 +88,8 @@ impl HttpRequestExecutor {
                 Err(err) => {
                     error!("{:?}", &err);
                     Ok(JobHttpResponse {
-                        response_time: response_time.as_millis() as i64,
+                        request_time,
+                        response_time,
                         detail: JobHttpResponseDetail::default(),
                         http_code,
                         error_code: 1,
@@ -157,7 +160,14 @@ impl TaskExecutor for HttpRequestExecutor {
         let res = self.call_http_request(job).await;
         let response = match res {
             Ok(res) => res,
-            Err(err) => err.into(),
+            Err(err) => {
+                JobHttpResponse::new_error(
+                    get_current_time(),
+                    err.get_code(),
+                    err.get_message().as_str(),
+                )
+                //err.into()
+            }
         };
         trace!("Http request result {:?}", &response);
         let result = JobHttpResult {
