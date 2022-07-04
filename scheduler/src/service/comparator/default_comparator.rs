@@ -17,7 +17,7 @@ impl LatestBlockDefaultComparator {
 }
 impl Comparator for LatestBlockDefaultComparator {
     fn get_latest_value(&self, value: &HttpResponseValues) -> Option<i64> {
-        self.get_number_value(value, "number")
+        self.get_number_value(value, "number").ok()
     }
     fn compare(
         &self,

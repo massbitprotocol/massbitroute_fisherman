@@ -8,7 +8,7 @@ use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
-use common::ComponentId;
+use common::{ComponentId, PlanId};
 use log::{debug, error};
 use log::{info, warn};
 use sea_orm::sea_query::Expr;
@@ -63,7 +63,44 @@ impl PlanService {
             Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }
     }
-    pub async fn get_active_plans(
+    pub async fn get_active_plan_by_ids(
+        &self,
+        phase: &Option<JobRole>,
+        ids: &HashSet<PlanId>,
+    ) -> Result<Vec<PlanEntity>, anyhow::Error> {
+        let mut condition_ids = Condition::any();
+        for id in ids {
+            condition_ids = condition_ids.add(plans::Column::PlanId.eq(id.to_string()));
+        }
+        let mut condition = match phase {
+            None => condition_ids,
+            Some(phase) => {
+                let mut condition = Condition::all();
+                condition = condition.add(plans::Column::Phase.eq(phase.to_string()));
+                if !condition.is_empty() {
+                    condition = condition.add(condition_ids);
+                }
+                condition
+            }
+        };
+        let current_time = get_current_time();
+        condition = condition.add(plans::Column::ExpiryTime.gt(current_time));
+        let mut vec = Vec::default();
+        match plans::Entity::find()
+            .filter(condition)
+            .all(self.db.as_ref())
+            .await
+        {
+            Ok(entities) => {
+                for model in entities.iter() {
+                    vec.push(PlanEntity::from(model))
+                }
+                Ok(vec)
+            }
+            Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
+        }
+    }
+    pub async fn get_active_plan_by_components(
         &self,
         phase: &Option<JobRole>,
         providers: &HashSet<ComponentId>,
