@@ -25,8 +25,8 @@ pub struct JobHttpRequest {
 impl JobHttpRequest {}
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobHttpResponse {
-    pub request_time: Timestamp,  //Time to call request in second
-    pub response_time: Timestamp, //Time to receipt response;
+    pub request_timestamp: Timestamp, //Time to call request in second
+    pub response_duration: Timestamp, //Time to receipt response;
     pub detail: JobHttpResponseDetail,
     pub http_code: u16,
     pub error_code: u32,
@@ -72,8 +72,8 @@ impl Default for JobHttpResponseDetail {
 impl JobHttpResponse {
     pub fn new_error(request_time: Timestamp, error_code: u32, message: &str) -> Self {
         JobHttpResponse {
-            request_time,
-            response_time: 0,
+            request_timestamp: request_time,
+            response_duration: request_time,
             detail: JobHttpResponseDetail::default(),
             http_code: 0,
             error_code,

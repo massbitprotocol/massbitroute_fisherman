@@ -1,4 +1,4 @@
 {
-  "regular": [],
-  "verification": ["Benchmark"]
+  "regular": ["HttpRequest"],
+  "verification": ["Benchmark", "HttpRequest"]
 }

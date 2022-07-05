@@ -21,7 +21,7 @@ pub struct Model {
     pub histogram99: f64,
     pub error_code: i32,
     pub message: String,
-    pub response_time: i32,
+    pub response_duration: i32,
     pub plan_id: String,
 }
 

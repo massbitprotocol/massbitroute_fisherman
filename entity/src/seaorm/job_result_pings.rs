@@ -14,7 +14,7 @@ pub struct Model {
     pub execution_timestamp: i64,
     pub recorded_timestamp: i64,
     pub plan_id: String,
-    pub response_times: Json,
+    pub response_durations: Json,
     pub error_number: i64,
 }
 

@@ -38,7 +38,7 @@
       },
       "thresholds": {
         "histogram_percentile": 95,
-        "response_time": 500,
+        "response_duration": 500,
         "success_percent": 50,
         "number_for_decide": 5
       }
@@ -52,7 +52,7 @@
       "request_timeout": 3000,
       "thresholds": {
         "histogram_percentile": 95,
-        "response_time": 500,
+        "response_duration": 500,
         "success_percent": 50,
         "number_for_decide": 5
       }

@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
 pub struct PingResultCache {
-    response_times: Mutex<HashMap<ProviderTask, Vec<u64>>>,
+    response_durations: Mutex<HashMap<ProviderTask, Vec<u64>>>,
 }
 
 impl PingResultCache {
@@ -38,7 +38,7 @@ impl PingResultCache {
                 }
             }
         }
-        let mut values = self.response_times.lock().unwrap();
+        let mut values = self.response_durations.lock().unwrap();
         let values = values.entry(provider_task.clone()).or_insert(Vec::new());
         values.append(&mut res_times);
         res_times = values.clone();
@@ -128,7 +128,7 @@ impl ReportCheck for PingJudgment {
         provider_task: &ProviderTask,
         result: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
-        let response_times = self.result_cache.append_results(provider_task, result);
+        let response_durations = self.result_cache.append_results(provider_task, result);
         Ok(JudgmentsResult::Error)
     }
 }

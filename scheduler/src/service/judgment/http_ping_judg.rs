@@ -21,7 +21,7 @@ use tokio::sync::Mutex;
 
 #[derive(Debug, Default)]
 pub struct HttpPingResultCache {
-    response_times: Mutex<HashMap<ProviderTask, JudRoundTripTimeDatas>>,
+    response_durations: Mutex<HashMap<ProviderTask, JudRoundTripTimeDatas>>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -54,7 +54,7 @@ impl DerefMut for JudRoundTripTimeDatas {
 
 #[derive(Debug, Default, Clone)]
 pub struct JudRoundTripTimeData {
-    response_time: Timestamp,
+    response_duration: Timestamp,
     receive_timestamp: Timestamp,
     success: bool,
 }
@@ -64,7 +64,7 @@ impl JudRoundTripTimeData {
         JudRoundTripTimeData {
             receive_timestamp: receive_time,
             success: false,
-            response_time: Default::default(),
+            response_duration: Default::default(),
         }
     }
 }
@@ -81,12 +81,12 @@ impl HttpPingResultCache {
             {
                 let mut data = JudRoundTripTimeData::new_false(res.receive_timestamp);
                 if let JobHttpResponseDetail::Body(val) = &response.detail {
-                    if let Ok(response_time) = val.parse::<Timestamp>() {
+                    if let Ok(response_duration) = val.parse::<Timestamp>() {
                         // Change unit of RTT response from us -> ms
-                        let response_time = response_time / 1000;
+                        let response_duration = response_duration / 1000;
 
                         data = JudRoundTripTimeData {
-                            response_time,
+                            response_duration: response_duration,
                             receive_timestamp: res.receive_timestamp,
                             success: true,
                         };
@@ -96,7 +96,7 @@ impl HttpPingResultCache {
             }
         }
         {
-            let mut values = self.response_times.lock().await;
+            let mut values = self.response_durations.lock().await;
             let values = values
                 .entry(provider_task.clone())
                 .or_insert(JudRoundTripTimeDatas::new());
@@ -179,7 +179,7 @@ impl ReportCheck for HttpPingJudgment {
             return Ok(JudgmentsResult::Unfinished);
         }
         let phase = result.first().unwrap().phase.clone();
-        let response_times = self
+        let response_durations = self
             .result_cache
             .append_results(provider_task, result)
             .await;
@@ -192,18 +192,19 @@ impl ReportCheck for HttpPingJudgment {
             Self::get_threshold_value(&thresholds, &String::from("success_percent"))?;
         let histogram_percentile =
             Self::get_threshold_value(&thresholds, &String::from("histogram_percentile"))?;
-        let response_time = Self::get_threshold_value(&thresholds, &String::from("response_time"))?;
+        let response_duration =
+            Self::get_threshold_value(&thresholds, &String::from("response_duration"))?;
 
-        debug!("{} Http Ping in cache.", response_times.len());
-        return if response_times.len() < number_for_decide as usize {
+        debug!("{} Http Ping in cache.", response_durations.len());
+        return if response_durations.len() < number_for_decide as usize {
             Ok(JudgmentsResult::Unfinished)
-        } else if response_times.get_success_percent() < success_percent as f64 {
+        } else if response_durations.get_success_percent() < success_percent as f64 {
             Ok(JudgmentsResult::Error)
         } else {
             let mut histogram = Histogram::new();
-            for val in response_times.iter() {
+            for val in response_durations.iter() {
                 if val.success {
-                    histogram.increment(val.response_time as u64);
+                    histogram.increment(val.response_duration as u64);
                 }
             }
 
@@ -211,14 +212,14 @@ impl ReportCheck for HttpPingJudgment {
             log::info!(
                 "Http Ping job on {} has results: {:?} ans histogram {}%: {:?} ",
                 &provider_task.provider_id,
-                &response_times,
+                &response_durations,
                 histogram_percentile,
                 &res
             );
 
             match res {
                 Ok(val) => {
-                    if val <= response_time as u64 {
+                    if val <= response_duration as u64 {
                         Ok(JudgmentsResult::Pass)
                     } else {
                         Ok(JudgmentsResult::Failed)

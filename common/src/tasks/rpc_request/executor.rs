@@ -24,7 +24,7 @@ impl RpcRequestExecutor {
         }
     }
     pub async fn call_ping(&self, job: &Job) -> Result<JobRpcResponse, RpcRequestError> {
-        // Measure response_time
+        // Measure response_duration
         let now = Instant::now();
         let resp = self
             .client
@@ -39,10 +39,10 @@ impl RpcRequestExecutor {
             .await
             .map_err(|err| RpcRequestError::GetBodyError(format!("{}", err)))?;
 
-        let response_time = now.elapsed();
+        let response_duration = now.elapsed();
 
         let ping_result = JobRpcResponse {
-            response_time: response_time.as_millis() as i64,
+            response_duration: response_duration.as_millis() as i64,
             response_body,
             http_code,
             error_code: 0,

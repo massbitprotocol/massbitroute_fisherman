@@ -27,7 +27,7 @@ impl PingExecutor {
         }
     }
     pub async fn call_ping(&self, job: &Job) -> Result<PingResponse, CallPingError> {
-        // Measure response_time
+        // Measure response_duration
         let now = Instant::now();
         let resp = self
             .client
@@ -42,10 +42,10 @@ impl PingExecutor {
             .await
             .map_err(|err| CallPingError::GetBodyError(format!("{}", err)))?;
 
-        let response_time = now.elapsed();
+        let response_timestamp = now.elapsed();
 
         let ping_result = PingResponse {
-            response_time: response_time.as_millis() as i64,
+            response_duration: response_timestamp.as_millis() as i64,
             response_body,
             http_code,
             error_code: 0,

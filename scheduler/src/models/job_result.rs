@@ -38,11 +38,11 @@ pub struct StoredJobResult {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PingResultDetail {
-    pub response_times: Vec<i64>,
+    pub response_durations: Vec<i64>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct LatestBlockResultDetail {
-    pub response_time: Timestamp,
+    pub response_duration: Timestamp,
     pub block_number: u64,
     pub block_timestamp: Timestamp,
     pub block_hash: String,

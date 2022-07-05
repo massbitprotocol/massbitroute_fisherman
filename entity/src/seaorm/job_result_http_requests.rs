@@ -19,7 +19,7 @@ pub struct Model {
     pub error_code: i32,
     pub message: String,
     pub values: Json,
-    pub response_time: i64,
+    pub response_duration: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
