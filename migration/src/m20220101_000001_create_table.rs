@@ -366,7 +366,7 @@ impl MigrationTrait for Migration {
         */
 
         let sqls = r#"
-create table workers
+create table if not exists workers
 (
     id            serial
         primary key,
@@ -380,7 +380,7 @@ create table workers
 );
 
 
-create table providers
+create table if not exists providers
 (
     id            serial
         primary key,
@@ -391,7 +391,7 @@ create table providers
 );
 
 
-create table jobs
+create table if not exists jobs
 (
     id               serial
         primary key,
@@ -413,7 +413,7 @@ create table jobs
 );
 
 
-create table job_result_benchmarks
+create table if not exists job_result_benchmarks
 (
     id                  bigserial
         constraint job_result_benchmarks_pk
@@ -432,7 +432,7 @@ create table job_result_benchmarks
     histogram99         double precision default 0                     not null,
     error_code          integer          default 0                     not null,
     message             varchar          default ''::character varying not null,
-    response_time       integer          default 0                     not null,
+    response_duration       integer          default 0                     not null,
     plan_id             varchar          default ''::character varying not null
 );
 
@@ -440,7 +440,7 @@ create table job_result_benchmarks
 create unique index job_result_benchmarks_id_uindex
     on job_result_benchmarks (id);
 
-create table job_result_pings
+create table if not exists job_result_pings
 (
     id                  bigserial
         constraint job_result_pings_pk
@@ -452,12 +452,12 @@ create table job_result_pings
     execution_timestamp bigint  default 0                     not null,
     recorded_timestamp  bigint  default 0                     not null,
     plan_id             varchar default ''::character varying not null,
-    response_times      jsonb   default '[]'::jsonb           not null,
+    response_durations      jsonb   default '[]'::jsonb           not null,
     error_number        bigint  default 0                     not null
 );
 
 
-create table job_result_latest_blocks
+create table if not exists job_result_latest_blocks
 (
     id                  bigserial
         constraint job_result_latest_blocks_pk
@@ -475,11 +475,11 @@ create table job_result_latest_blocks
     http_code           integer                               not null,
     error_code          integer                               not null,
     message             varchar default ''::character varying not null,
-    response_time       bigint  default 0                     not null
+    response_duration       bigint  default 0                     not null
 );
 
 
-create table plans
+create table if not exists plans
 (
     id           bigserial
         constraint plans_pk
@@ -499,7 +499,7 @@ create table plans
 create unique index plans_id_uindex
     on plans (id);
 
-create table job_assignments
+create table if not exists job_assignments
 (
     id          serial
         primary key,
@@ -513,16 +513,16 @@ create table job_assignments
 );
 
 
-create table worker_provider_maps
+create table if not exists worker_provider_maps
 (
     id                 serial
         primary key,
     worker_id          varchar not null,
     provider_id        varchar not null,
-    ping_response_time integer,
-    ping_time          bigint,
+    ping_response_duration integer,
+    ping_timestamp          bigint,
     bandwidth          bigint,
-    bandwidth_time     bigint,
+    bandwidth_timestamp     bigint,
     status             integer,
     last_connect_time  bigint,
     last_check         bigint,
@@ -531,7 +531,7 @@ create table worker_provider_maps
 );
 
 
-create table job_result_http_requests
+create table if not exists job_result_http_requests
 (
     id                  bigserial
         constraint job_result_http_requests_pk
@@ -548,7 +548,7 @@ create table job_result_http_requests
     error_code          integer                               not null,
     message             varchar default ''::character varying not null,
     values              jsonb   default '{}'::jsonb           not null,
-    response_time       bigint  default 0                     not null
+    response_duration       bigint  default 0                     not null
 );
 "#;
         let sqls = sqls.split(";");

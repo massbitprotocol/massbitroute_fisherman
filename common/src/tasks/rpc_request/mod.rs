@@ -14,7 +14,7 @@ impl JobRpcRequest {
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobRpcResponse {
-    pub response_time: Timestamp,
+    pub response_duration: Timestamp,
     pub response_body: String,
     pub http_code: u16,
     pub error_code: u32,
@@ -24,7 +24,7 @@ pub struct JobRpcResponse {
 impl JobRpcResponse {
     pub fn new_error(error_code: u32, message: &str) -> Self {
         JobRpcResponse {
-            response_time: 0,
+            response_duration: 0,
             response_body: "".to_string(),
             http_code: 0,
             error_code,

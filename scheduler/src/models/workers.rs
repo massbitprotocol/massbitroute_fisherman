@@ -68,10 +68,10 @@ impl WorkerInfoStorage {
         let mut distances = HashMap::<ComponentId, i32>::new();
         let provider_id = provider.id.as_str();
         for dist in self.map_worker_provider.iter() {
-            if dist.provider_id.as_str() == provider_id && dist.ping_response_time.is_some() {
+            if dist.provider_id.as_str() == provider_id && dist.ping_response_duration.is_some() {
                 distances.insert(
                     dist.worker_id.clone(),
-                    dist.ping_response_time.as_ref().unwrap().clone(),
+                    dist.ping_response_duration.as_ref().unwrap().clone(),
                 );
             }
         }

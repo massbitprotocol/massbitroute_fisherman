@@ -46,7 +46,7 @@ impl ResultValue {
             &job_result.result_detail
         {
             if let JobHttpResponseDetail::Values(values) = &response.detail {
-                return ResultValue::new(response.response_time.clone(), values.clone());
+                return ResultValue::new(response.response_duration.clone(), values.clone());
             }
         }
         ResultValue::default()
@@ -364,7 +364,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
                     if let Ok(diff) = comparator.compare(&latest_values, current_values) {
                         if diff < 0 {
                             latest_result_values = ResultValue::new(
-                                current_detail.response.response_time.clone(),
+                                current_detail.response.response_duration.clone(),
                                 current_values.clone(),
                             );
                             latest_job_result = result;
