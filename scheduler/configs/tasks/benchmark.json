@@ -1,7 +1,7 @@
 {
   "default": {
-    "benchmark_thread": 20,
-    "benchmark_connection": 20,
+    "benchmark_thread": 5,
+    "benchmark_connection": 5,
     "benchmark_duration": 15000,
     "benchmark_rate": 50,
     "script": "massbit.lua",
@@ -9,6 +9,13 @@
     "url_path":"/",
     "judge_histogram_percentile":  95,
     "response_threshold": 500
+  },
+  "verification": {
+    "dependencies": {
+      "HttpRequest": [
+        "RoundTripTime"
+      ]
+    }
   },
   "regular": {
     "benchmark_thread": 20,

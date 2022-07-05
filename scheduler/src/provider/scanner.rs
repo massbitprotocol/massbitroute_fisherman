@@ -14,7 +14,7 @@ use tokio::time::sleep;
 pub struct ProviderScanner {
     url_list_nodes: String,
     url_list_gateways: String,
-    providers: Arc<Mutex<ProviderStorage>>,
+    providers: Arc<ProviderStorage>,
     workers: Arc<Mutex<WorkerInfoStorage>>,
     provider_service: Arc<ProviderService>,
     client: Client,
@@ -26,7 +26,7 @@ impl ProviderScanner {
     pub fn new(
         url_list_nodes: String,
         url_list_gateways: String,
-        providers: Arc<Mutex<ProviderStorage>>,
+        providers: Arc<ProviderStorage>,
         workers: Arc<Mutex<WorkerInfoStorage>>,
         provider_service: Arc<ProviderService>,
     ) -> Self {
@@ -67,11 +67,11 @@ impl ProviderScanner {
             .await;
         let mut res = Ok(());
         {
-            let mut lock = self.providers.lock().await;
             match nodes {
                 Ok(nodes) => {
                     debug!("Found {} Nodes.", nodes.len());
-                    lock.update_components_list(ComponentType::Node, nodes)
+                    self.providers
+                        .update_components_list(ComponentType::Node, nodes)
                         .await;
                 }
                 Err(err) => {
@@ -82,7 +82,8 @@ impl ProviderScanner {
             match gateways {
                 Ok(gateways) => {
                     debug!("Found {} Gateways.", gateways.len());
-                    lock.update_components_list(ComponentType::Gateway, gateways)
+                    self.providers
+                        .update_components_list(ComponentType::Gateway, gateways)
                         .await;
                 }
                 Err(err) => {

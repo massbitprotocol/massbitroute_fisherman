@@ -7,6 +7,7 @@ pub use super::job_result_latest_blocks::Entity as JobResultLatestBlocks;
 pub use super::job_result_pings::Entity as JobResultPings;
 pub use super::jobs::Entity as Jobs;
 pub use super::plans::Entity as Plans;
+pub use super::provider_latest_blocks::Entity as ProviderLatestBlocks;
 pub use super::providers::Entity as Providers;
 pub use super::worker_provider_maps::Entity as WorkerProviderMaps;
 pub use super::workers::Entity as Workers;

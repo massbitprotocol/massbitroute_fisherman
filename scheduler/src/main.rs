@@ -69,7 +69,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let all_workers = worker_service.clone().get_active().await;
 
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
-    let provider_storage = Arc::new(Mutex::new(ProviderStorage::default()));
+    let provider_storage = Arc::new(ProviderStorage::default());
     log::debug!("Init with {:?} workers", all_workers.len());
     let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
     let assigment_buffer = Arc::new(Mutex::new(AssignmentBuffer::default()));

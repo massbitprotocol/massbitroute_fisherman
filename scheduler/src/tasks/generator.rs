@@ -4,6 +4,7 @@
  */
 use crate::models::jobs::AssignmentBuffer;
 use crate::persistence::PlanModel;
+use crate::tasks::benchmark::generator::BenchmarkGenerator;
 use crate::tasks::*;
 use crate::CONFIG;
 use common::component::ComponentInfo;
@@ -17,9 +18,12 @@ use common::{PlanId, Timestamp};
 use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
-
+type TaskDependency = HashMap<String, Vec<String>>;
 pub trait TaskApplicant: Sync + Send {
     fn get_name(&self) -> String;
+    fn get_task_dependencies(&self) -> TaskDependency {
+        TaskDependency::default()
+    }
     fn can_apply(&self, component: &ComponentInfo) -> bool;
     fn apply(
         &self,
