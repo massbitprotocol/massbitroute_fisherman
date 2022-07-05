@@ -32,7 +32,7 @@ impl HttpRequestExecutor {
         }
     }
     pub async fn call_http_request(&self, job: &Job) -> Result<JobHttpResponse, HttpRequestError> {
-        // Measure response_time
+        // Measure response_duration
         if let Some(JobDetail::HttpRequest(request)) = job.job_detail.as_ref() {
             let mut req_builder = match request.method.to_lowercase().as_str() {
                 "post" => self.client.post(job.component_url.as_str()),
@@ -66,14 +66,14 @@ impl HttpRequestExecutor {
             //     .await
             //     .map_err(|err| HttpRequestError::GetBodyError(format!("{}", err)))?;
 
-            let response_time = get_current_time();
             let response_detail = self
                 .parse_response(resp, &request.response_type, &request.response_values)
                 .await;
+            let response_duration = get_current_time() - request_time;
             match response_detail {
                 Ok(detail) => Ok(JobHttpResponse {
-                    request_time,
-                    response_time,
+                    request_timestamp: request_time,
+                    response_duration,
                     detail,
                     http_code,
                     error_code: 0,
@@ -82,8 +82,8 @@ impl HttpRequestExecutor {
                 Err(err) => {
                     error!("{:?}", &err);
                     Ok(JobHttpResponse {
-                        request_time,
-                        response_time,
+                        request_timestamp: request_time,
+                        response_duration,
                         detail: JobHttpResponseDetail::default(),
                         http_code,
                         error_code: 1,

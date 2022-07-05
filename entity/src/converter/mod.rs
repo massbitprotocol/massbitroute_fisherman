@@ -98,11 +98,11 @@ impl From<&JobAssignment> for job_assignments::ActiveModel {
 }
 
 impl job_result_pings::Model {
-    pub fn add_response_time(&mut self, response_time: i64) {
-        if let Some(response_times) = self.response_times.as_array_mut() {
-            response_times.push(Value::from(response_time))
+    pub fn add_response_time(&mut self, response_duration: i64) {
+        if let Some(response_durations) = self.response_durations.as_array_mut() {
+            response_durations.push(Value::from(response_duration))
         } else {
-            self.response_times = Value::Array(vec![Value::from(response_time)]);
+            self.response_durations = Value::Array(vec![Value::from(response_duration)]);
         }
     }
 }
@@ -157,8 +157,8 @@ impl From<&JobPingResult> for job_result_pings::Model {
                 provider_type: result.job.component_type.to_string(),
                 execution_timestamp: 0,
                 recorded_timestamp: 0,
-                response_times: Value::Array(vec![Value::from(
-                    result.response.response_time as i64,
+                response_durations: Value::Array(vec![Value::from(
+                    result.response.response_duration as i64,
                 )]),
                 error_number: 0,
             }
@@ -172,7 +172,7 @@ impl From<&JobPingResult> for job_result_pings::Model {
                 provider_type: result.job.component_type.to_string(),
                 execution_timestamp: 0,
                 recorded_timestamp: 0,
-                response_times: Value::Array(vec![]),
+                response_durations: Value::Array(vec![]),
                 error_number: 1,
             }
         }
@@ -187,7 +187,7 @@ impl job_result_pings::ActiveModel {
             worker_id: Set(model.worker_id.to_owned()),
             provider_id: Set(model.provider_id.to_owned()),
             provider_type: Set(model.provider_type.to_string()),
-            response_times: Set(model.response_times.clone()),
+            response_durations: Set(model.response_durations.clone()),
             error_number: Set(model.error_number),
             ..Default::default()
         }
@@ -203,7 +203,7 @@ impl From<&JobPingResult> for job_result_pings::ActiveModel {
             worker_id: Set(result.worker_id.to_owned()),
             provider_id: Set(result.job.component_id.to_owned()),
             provider_type: Set(result.job.component_type.to_string()),
-            response_times: Set(result.response.response_time as i64),
+            response_durations: Set(result.response.response_duration as i64),
             ..Default::default()
         }
     }
@@ -258,7 +258,7 @@ impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
             http_code: Set(result.response.http_code as i32),
             error_code: Set(result.response.error_code as i32),
             message: Set(result.response.message.to_string()),
-            response_time: Set(result.response.response_time),
+            response_duration: Set(result.response.response_duration),
             execution_timestamp: Set(result.execution_timestamp as i64),
             block_hash: Set(result.response.block_hash.to_owned()),
             ..Default::default()
@@ -293,7 +293,7 @@ impl From<&JobResult> for job_result_http_requests::ActiveModel {
             error_code: Set(result.response.error_code as i32),
             message: Set(result.response.message.to_string()),
             values: Set(values),
-            response_time: Set(result.response.response_time),
+            response_duration: Set(result.response.response_duration),
         }
     }
 }

@@ -52,7 +52,7 @@ impl LatestBlockExecutor {
             None => {}
             _ => {}
         }
-        // Measure response_time
+        // Measure response_duration
         let mut builder = self
             .client
             .post(job.component_url.as_str())
@@ -82,7 +82,7 @@ impl LatestBlockExecutor {
             .await
             .map_err(|err| CallLatestBlockError::GetBodyError(format!("{}", err)))?;
         //debug!("call_latest_block response_body: {}", response_body);
-        let response_time = now.elapsed();
+        let response_duration = now.elapsed();
 
         let BlockData {
             block_number,
@@ -100,7 +100,7 @@ impl LatestBlockExecutor {
         );
 
         let latest_block_result = LatestBlockResponse {
-            response_time: response_time.as_millis() as i64,
+            response_duration: response_duration.as_millis() as i64,
             block_number,
             block_timestamp,
             block_hash,
