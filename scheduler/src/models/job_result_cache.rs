@@ -1,9 +1,13 @@
+use crate::models::component::ProviderPlan;
+use crate::models::job_result::ProviderTask;
+use crate::persistence::PlanModel;
+use crate::service::judgment::JudgmentsResult;
 use crate::CONFIG;
 use common::job_manage::{JobDetail, JobPing, JobResultDetail};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;
-use common::{ComponentId, Timestamp};
+use common::{ComponentId, JobId, PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, DerefMut};
@@ -17,9 +21,26 @@ pub struct TaskKey {
     pub task_name: String,
 }
 
+#[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct PlanTaskResultKey {
+    pub plan_id: PlanId,
+    pub task_type: String,
+    pub task_name: String,
+}
+
+impl PlanTaskResultKey {
+    pub fn new(plan_id: String, task_type: TaskType, task_name: TaskName) -> Self {
+        Self {
+            plan_id,
+            task_type,
+            task_name,
+        }
+    }
+}
 #[derive(Clone, Debug, Default)]
 pub struct JobResultCache {
     pub result_cache_map: HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>,
+    pub task_judg_result: HashMap<ComponentId, HashMap<PlanTaskResultKey, JudgmentsResult>>,
 }
 
 impl JobResultCache {
@@ -30,6 +51,50 @@ impl JobResultCache {
         self.result_cache_map
             .iter()
             .fold(0, |count, (key, map)| count + map.len())
+    }
+    pub fn get_judg_result(
+        &self,
+        provider_plan: Arc<ProviderPlan>,
+        task_type: &String,
+        task_name: &String,
+    ) -> Option<JudgmentsResult> {
+        let key = PlanTaskResultKey::new(
+            provider_plan.plan.plan_id.clone(),
+            task_type.clone(),
+            task_name.clone(),
+        );
+        self.task_judg_result
+            .get(&provider_plan.plan.provider_id)
+            .and_then(|map| map.get(&key))
+            .map(|val| val.clone())
+    }
+    pub fn update_plan_results(
+        &mut self,
+        plan: &PlanEntity,
+        job_results: &HashMap<JobId, JudgmentsResult>,
+        plan_jobs: &Vec<Job>,
+    ) {
+        let map_jobs = plan_jobs
+            .iter()
+            .map(|job| {
+                (
+                    job.job_id.clone(),
+                    PlanTaskResultKey::new(
+                        plan.plan_id.clone(),
+                        job.job_type.clone(),
+                        job.job_name.clone(),
+                    ),
+                )
+            })
+            .collect::<HashMap<JobId, PlanTaskResultKey>>();
+        for (job_id, judgment_result) in job_results.iter() {
+            if let Some(key) = map_jobs.get(job_id) {
+                self.task_judg_result
+                    .entry(plan.provider_id.clone())
+                    .or_insert(HashMap::<PlanTaskResultKey, JudgmentsResult>::default())
+                    .insert(key.clone(), judgment_result.clone());
+            }
+        }
     }
 }
 

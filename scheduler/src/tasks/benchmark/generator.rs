@@ -84,6 +84,7 @@ impl TaskApplicant for BenchmarkGenerator {
         let job_detail = JobDetail::Benchmark(job_benchmark);
         let mut job = Job::new(
             plan_id.clone(),
+            Self::get_name(),
             job_detail.get_job_name(),
             component,
             job_detail,

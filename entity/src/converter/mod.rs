@@ -63,6 +63,7 @@ impl From<&Job> for jobs::ActiveModel {
 
         jobs::ActiveModel {
             job_id: Set(job.job_id.to_owned()),
+            job_type: Set(job.job_type.to_owned()),
             job_name: Set(job.job_name.to_owned()),
             plan_id: Set(job.plan_id.to_string()),
             component_id: Set(job.component_id.to_owned()),
@@ -125,6 +126,7 @@ impl From<&jobs::Model> for Job {
 
         Job {
             job_id: model.job_id.to_string(),
+            job_type: model.job_type.to_string(),
             job_name: model.job_name.to_string(),
             plan_id: model.plan_id.to_string(),
             component_id: model.component_id.to_string(),

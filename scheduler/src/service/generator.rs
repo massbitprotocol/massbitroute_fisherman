@@ -3,9 +3,11 @@ use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
 use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
+use crate::models::TaskDependency;
 use crate::persistence::services::{JobService, PlanService};
 use crate::persistence::PlanModel;
 use crate::service::judgment::http_latestblock_judg::CacheKey;
+use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::{get_tasks, TaskApplicant};
 use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use anyhow::{anyhow, Error};
@@ -25,7 +27,6 @@ use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use slog::log;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::default::Default;
 use std::mem::take;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -63,6 +64,10 @@ impl DetailJobGenerator {
      * Generate verification jobs with task dependencies
      */
     pub async fn generate_verification_jobs(&mut self) {
+        let expired_plans = self.providers.get_expired_verification_plans().await;
+        if expired_plans.len() > 0 {
+            self.clean_expired_plan(expired_plans).await;
+        }
         let providers = self.providers.get_components_for_verifications().await;
         if providers.len() > 0 {
             log::debug!(
@@ -77,21 +82,35 @@ impl DetailJobGenerator {
                     .await
                     .match_workers(&provider_plan.provider)
                     .unwrap_or(MatchedWorkers::default());
+                let mut plan_gen = true;
                 for task in self.tasks.iter() {
                     if !task.can_apply(&provider_plan.provider) {
                         continue;
                     }
-                    let task_dependencies = task.get_task_dependencies();
-                    if task_dependencies.is_empty() {
-                        if let Ok(applied_jobs) = task.apply(
+                    if self
+                        .check_task_for_generation(
+                            provider_plan.clone(),
+                            task.get_name().as_str(),
+                            task.get_task_dependencies(),
+                        )
+                        .await
+                    {
+                        if let Ok(mut applied_jobs) = task.apply(
                             &provider_plan.plan.plan_id,
                             &provider_plan.provider,
                             JobRole::Verification,
                             &matched_workers,
                         ) {
-                            total_assignment_buffer.append(applied_jobs);
+                            //Todo: Improve this, don't create redundant jobs
+                            if applied_jobs.jobs.len() > 0 {
+                                applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
+                            }
+                            if applied_jobs.jobs.len() > 0 {
+                                total_assignment_buffer.append(applied_jobs);
+                            }
                         }
                     } else {
+                        plan_gen = false
                     }
                 }
             }
@@ -115,7 +134,58 @@ impl DetailJobGenerator {
             }
         }
     }
+    async fn clean_expired_plan(&self, plans: Vec<Arc<ProviderPlan>>) {
+        //Todo: Implementation
+    }
+    async fn remote_duplicated_jobs(
+        &self,
+        assignment_buffer: AssignmentBuffer,
+    ) -> AssignmentBuffer {
+        let first_job = assignment_buffer.jobs.first().unwrap();
+        let plan_id = first_job.plan_id.as_str();
+        let task_type = first_job.job_type.as_str();
+        let exist_tasks = self
+            .assignments
+            .lock()
+            .await
+            .get_exist_jobs(plan_id, task_type);
+        assignment_buffer.remove_redundant_jobs(&exist_tasks)
+    }
+    /*
+     * Check if task is not generated for current plan,
+     * Dependencies already have results
+     */
 
+    async fn check_task_for_generation(
+        &self,
+        provider_plan: Arc<ProviderPlan>,
+        current_task_type: &str,
+        task_dependencies: TaskDependency,
+    ) -> bool {
+        //No dependencies
+        if task_dependencies.is_empty() {
+            return true;
+        }
+
+        for (task_type, task_names) in task_dependencies {
+            for name in task_names {
+                if let Some(task_result) = self.result_cache.lock().await.get_judg_result(
+                    provider_plan.clone(),
+                    &task_type,
+                    &name,
+                ) {
+                    if task_result != JudgmentsResult::Pass {
+                        debug!(
+                            "Task {}.{} is not passed while try generate task {}",
+                            &name, &task_type, current_task_type
+                        );
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
     /*
      * For verification job (long job) find next available worker
      */

@@ -4,6 +4,7 @@ use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::{ComponentInfo, ComponentType, Zone};
 use common::jobs::Job;
+use common::util::get_current_time;
 use common::ComponentId;
 use log::{debug, log};
 use serde::{Deserialize, Serialize};
@@ -59,8 +60,43 @@ impl ProviderStorage {
             }
         }
     }
+    pub async fn get_expired_verification_plans(&self) -> Vec<Arc<ProviderPlan>> {
+        let current_time = get_current_time();
+        let mut nodes = self.verification_nodes.lock().await;
+        let mut active_nodes = Vec::new();
+        let mut expired_nodes = Vec::new();
+        let mut renew_plans = Vec::new();
+        for plan in nodes.iter() {
+            if plan.plan.expiry_time <= current_time {
+                let renew_plan = Arc::new(plan.renew());
+                renew_plans.push(renew_plan.clone());
+                expired_nodes.push(plan.clone());
+                active_nodes.push(renew_plan);
+            } else {
+                active_nodes.push(plan.clone());
+            }
+        }
+        nodes.clear();
+        nodes.append(&mut active_nodes);
+        let mut gateways = self.verification_gateways.lock().await;
+        let mut active_gateways = Vec::new();
+        for plan in gateways.iter() {
+            if plan.plan.expiry_time <= current_time {
+                let renew_plan = Arc::new(plan.renew());
+                renew_plans.push(renew_plan.clone());
+                expired_nodes.push(plan.clone());
+                active_gateways.push(renew_plan);
+            } else {
+                active_gateways.push(plan.clone());
+            }
+        }
+        gateways.clear();
+        gateways.append(&mut active_gateways);
+        expired_nodes
+    }
     pub async fn get_components_for_verifications(&self) -> Vec<Arc<ProviderPlan>> {
         let mut res = Vec::new();
+        let current_time = get_current_time();
         let mut nodes = self.verification_nodes.lock().await;
         for plan in nodes.iter() {
             res.push(plan.clone());

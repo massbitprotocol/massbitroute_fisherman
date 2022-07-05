@@ -12,6 +12,7 @@ use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
 use log::{debug, error, info};
+use migration::IndexType::Hash;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -88,7 +89,7 @@ impl MainJudgment {
         plan: &PlanEntity,
         results: &Vec<JobResult>,
         plan_jobs: &Vec<Job>,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
+    ) -> Result<HashMap<JobId, JudgmentsResult>, anyhow::Error> {
         //Judg received results
         debug!(
             "Make judgment for {} job results of plan {} with provider {:?} and {} jobs",
@@ -97,55 +98,49 @@ impl MainJudgment {
             provider_task,
             plan_jobs.len()
         );
-        let mut plan_result = JudgmentsResult::Unfinished;
+        let mut total_result = HashMap::<JobId, JudgmentsResult>::new();
+        let mut currentjob_result = JudgmentsResult::Unfinished;
+        let job_id = results
+            .get(0)
+            .map(|job_result| job_result.job_id.clone())
+            .unwrap_or_default();
         for judgment in self.judgments.iter() {
             if judgment.can_apply_for_result(provider_task) {
-                plan_result = judgment
+                currentjob_result = judgment
                     .apply_for_results(provider_task, &results)
                     .await
                     .unwrap_or(JudgmentsResult::Failed);
                 info!(
                     "Verify judgment result {:?} for provider {:?} with results {:?}",
-                    &plan_result, provider_task, results
+                    &currentjob_result, provider_task, results
                 );
+                total_result.insert(job_id.clone(), currentjob_result.clone());
             };
         }
-        let job_id = results
-            .get(0)
-            .map(|job_result| job_result.job_id.clone())
-            .unwrap_or_default();
+
         //Put judgment result to cache
-        self.put_judment_result(plan, job_id, plan_result.clone());
+        self.put_judment_result(plan, job_id, currentjob_result.clone());
         //Input plan_result as result of current job
-
-        //Store first un Pass judgment result
-        if plan_result == JudgmentsResult::Pass {
-            for job in plan_jobs {
-                match self.get_latest_judgment(plan, &job.job_id) {
-                    Some(latest_result) => {
-                        if latest_result != JudgmentsResult::Pass {
-                            debug!(
-                                "Latest result of plan {:?}, job {:?} is {:?}",
-                                &plan.plan_id, &job.job_id, &latest_result
-                            );
-                            plan_result = latest_result;
-
-                            break;
-                        }
-                    }
-                    None => {
-                        debug!(
-                            "Result not found for plan {:?} and job {:?}",
-                            &plan.plan_id, &job.job_id
-                        );
-                        plan_result = JudgmentsResult::Unfinished;
-                        break;
-                    }
+        for job in plan_jobs {
+            match self.get_latest_judgment(plan, &job.job_id) {
+                Some(latest_result) => {
+                    debug!(
+                        "Latest result of plan {:?}, job {:?} is {:?}",
+                        &plan.plan_id, &job.job_id, &latest_result
+                    );
+                    total_result.insert(job.job_id.clone(), latest_result);
+                }
+                None => {
+                    debug!(
+                        "Result not found for plan {:?} and job {:?}",
+                        &plan.plan_id, &job.job_id
+                    );
+                    total_result.insert(job.job_id.clone(), JudgmentsResult::Unfinished);
                 }
             }
         }
         //If all task pass then plan result is Pass
-        Ok(plan_result)
+        Ok(total_result)
     }
     /*
     pub async fn apply(

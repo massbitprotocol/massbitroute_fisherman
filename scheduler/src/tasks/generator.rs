@@ -3,6 +3,7 @@
  * If task is suitable for node or gateway only then result is empty
  */
 use crate::models::jobs::AssignmentBuffer;
+use crate::models::TaskDependency;
 use crate::persistence::PlanModel;
 use crate::tasks::benchmark::generator::BenchmarkGenerator;
 use crate::tasks::*;
@@ -18,7 +19,7 @@ use common::{PlanId, Timestamp};
 use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
-type TaskDependency = HashMap<String, Vec<String>>;
+
 pub trait TaskApplicant: Sync + Send {
     fn get_name(&self) -> String;
     fn get_task_dependencies(&self) -> TaskDependency {

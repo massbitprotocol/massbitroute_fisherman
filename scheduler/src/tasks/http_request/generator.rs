@@ -122,6 +122,7 @@ impl HttpRequestGenerator {
             };
             let mut job = Job::new(
                 plan_id.clone(),
+                Self::get_name(),
                 config.name.clone(),
                 component,
                 JobDetail::HttpRequest(detail),

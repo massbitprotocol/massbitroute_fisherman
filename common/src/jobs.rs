@@ -31,6 +31,7 @@ impl Default for JobStatus {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Job {
     pub job_id: JobId,
+    pub job_type: String,
     pub job_name: String,
     pub plan_id: String,
     pub component_id: ComponentId,     //ProviderId
@@ -45,7 +46,6 @@ pub struct Job {
     pub header: HashMap<String, String>,
     pub job_detail: Option<JobDetail>,
     pub phase: JobRole,
-    // Todo: add job_type
 }
 
 impl From<&Job> for reqwest::Body {
@@ -64,6 +64,7 @@ impl Job {
 
     pub fn new(
         plan_id: String,
+        job_type: String,
         job_name: String,
         component: &ComponentInfo,
         job_detail: JobDetail,
@@ -72,6 +73,7 @@ impl Job {
         let uuid = Uuid::new_v4();
         Job {
             job_id: uuid.to_string(),
+            job_type,
             job_name,
             plan_id,
             component_id: component.id.clone(),

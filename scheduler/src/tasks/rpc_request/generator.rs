@@ -24,6 +24,9 @@ pub struct RpcRequestGenerator {
 }
 
 impl RpcRequestGenerator {
+    pub fn get_name() -> String {
+        String::from("RpcRequest")
+    }
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
         RpcRequestGenerator {
             config: RpcRequestConfig::load_config(
@@ -74,6 +77,7 @@ impl TaskApplicant for RpcRequestGenerator {
         let comp_url = detail.get_component_url(component);
         let mut job = Job::new(
             plan_id.clone(),
+            Self::get_name(),
             String::from("RpcRequest"),
             component,
             JobDetail::RpcRequest(detail),
