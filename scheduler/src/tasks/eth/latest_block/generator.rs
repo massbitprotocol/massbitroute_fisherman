@@ -65,6 +65,7 @@ impl TaskApplicant for LatestBlockGenerator {
         let job_detail = JobDetail::LatestBlock(job);
         let mut job = Job::new(
             plan_id.clone(),
+            Self::get_name(),
             job_detail.get_job_name(),
             node,
             job_detail,

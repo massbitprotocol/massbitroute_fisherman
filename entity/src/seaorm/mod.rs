@@ -9,6 +9,7 @@ pub mod job_result_latest_blocks;
 pub mod job_result_pings;
 pub mod jobs;
 pub mod plans;
+pub mod provider_latest_blocks;
 pub mod providers;
 pub mod worker_provider_maps;
 pub mod workers;

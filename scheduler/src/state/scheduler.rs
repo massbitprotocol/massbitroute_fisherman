@@ -24,7 +24,7 @@ pub struct SchedulerState {
     plan_service: Arc<PlanService>,
     worker_service: Arc<WorkerService>,
     worker_pool: Arc<Mutex<WorkerInfoStorage>>,
-    providers: Arc<Mutex<ProviderStorage>>,
+    providers: Arc<ProviderStorage>,
 }
 
 impl SchedulerState {
@@ -33,7 +33,7 @@ impl SchedulerState {
         plan_service: Arc<PlanService>,
         worker_service: Arc<WorkerService>,
         worker_pool: Arc<Mutex<WorkerInfoStorage>>,
-        providers: Arc<Mutex<ProviderStorage>>,
+        providers: Arc<ProviderStorage>,
     ) -> SchedulerState {
         SchedulerState {
             connection,
@@ -92,11 +92,7 @@ impl SchedulerState {
         let store_res = self.plan_service.store_plan(&plan).await;
         if let Ok(model) = store_res {
             //Generate verification job base on stored plan
-            self.providers
-                .lock()
-                .await
-                .add_verify_node(model, node_info)
-                .await;
+            self.providers.add_verify_node(model, node_info).await;
             /*
              self.job_generator
                  .generate_verification_job(plan.plan_id.clone(), &node_info)

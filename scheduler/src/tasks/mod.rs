@@ -8,6 +8,7 @@ use serde::Deserialize;
 use std::default;
 use std::sync::Arc;
 
+pub mod benchmark;
 pub mod dot;
 pub mod eth;
 pub mod generator;

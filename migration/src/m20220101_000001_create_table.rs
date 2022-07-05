@@ -396,6 +396,8 @@ create table if not exists jobs
     id               serial
         primary key,
     job_id           varchar                                   not null,
+    job_type         varchar default ''::character varying     not null,
+    job_name         varchar default ''::character varying     not null,
     component_id     varchar                                   not null,
     header           jsonb   default '{}'::jsonb,
     job_detail       jsonb   default '{}'::jsonb,
@@ -406,7 +408,6 @@ create table if not exists jobs
     component_url    varchar default ''::character varying     not null,
     repeat_number    integer default 0                         not null,
     interval         bigint  default 1000                      not null,
-    job_name         varchar default ''::character varying     not null,
     plan_id          varchar default ''::character varying     not null,
     component_type   varchar default 'node'::character varying not null,
     phase            varchar                                   not null

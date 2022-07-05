@@ -1,4 +1,5 @@
 use crate::models::job_result::{ProviderTask, StoredJobResult};
+use crate::models::job_result_cache::JobResultCache;
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
@@ -16,7 +17,8 @@ use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 // #[derive(Clone, Default)]
 // pub struct PlanEntityWithExpiry {
@@ -35,6 +37,7 @@ pub struct VerificationReportProcessor {
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
     result_service: Arc<JobResultService>,
+    result_cache: Arc<Mutex<JobResultCache>>,
     judgment: MainJudgment,
     active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
 }
@@ -45,6 +48,7 @@ impl VerificationReportProcessor {
         plan_service: Arc<PlanService>,
         job_service: Arc<JobService>,
         result_service: Arc<JobResultService>,
+        result_cache: Arc<Mutex<JobResultCache>>,
         judgment: MainJudgment,
     ) -> Self {
         VerificationReportProcessor {
@@ -52,6 +56,7 @@ impl VerificationReportProcessor {
             plan_service,
             job_service,
             result_service,
+            result_cache,
             judgment,
             active_plans: Default::default(),
         }
@@ -302,17 +307,30 @@ impl VerificationReportProcessor {
         results: Vec<JobResult>,
         plan_jobs: &Vec<Job>,
     ) {
-        let plan_result = self
+        let plan_results = self
             .judgment
             .apply_for_verify(&provider_task, plan, &results, plan_jobs)
             .await
-            .unwrap_or(JudgmentsResult::Failed);
+            .unwrap_or_default();
         debug!(
             "Plan result {:?} found for provider {:?} with plan {:?} and job_results {:?}",
-            &plan_result, &provider_task, &plan.plan_id, &results
+            &plan_results, &provider_task, &plan.plan_id, &results
         );
+        self.result_cache
+            .lock()
+            .await
+            .update_plan_results(plan, &plan_results, plan_jobs);
         //Handle plan result
-        self.report_judgment_result(&provider_task, plan, plan_result)
+        let mut final_result = JudgmentsResult::Pass;
+        for (job_id, plan_result) in plan_results {
+            if final_result == JudgmentsResult::Pass {
+                final_result = plan_result;
+            }
+            if final_result != JudgmentsResult::Pass {
+                break;
+            }
+        }
+        self.report_judgment_result(&provider_task, plan, final_result)
             .await;
     }
     pub async fn report_judgment_result(
@@ -322,7 +340,7 @@ impl VerificationReportProcessor {
         judg_result: JudgmentsResult,
     ) {
         match judg_result {
-            JudgmentsResult::Failed | JudgmentsResult::Error => {
+            JudgmentsResult::Failed | JudgmentsResult::Pass | JudgmentsResult::Error => {
                 let mut report = StoreReport::build(
                     &"Scheduler".to_string(),
                     &JobRole::Regular,
@@ -441,5 +459,4 @@ impl VerificationReportProcessor {
         }
     }
     */
-    pub async fn judg_plan_results(&self, plan: PlanEntity) {}
 }
