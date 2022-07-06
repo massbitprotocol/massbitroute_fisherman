@@ -1,14 +1,10 @@
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
-use crate::service::comparator::{
-    get_comparators, Comparator, LatestBlockDefaultComparator, LatestBlockDotComparator,
-};
-use crate::service::judgment::main_judg::JudgmentKey;
+use crate::service::comparator::{get_comparators, Comparator, LatestBlockDefaultComparator};
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
-use crate::tasks::latest_block;
 use anyhow::{anyhow, Error};
 use async_trait::async_trait;
-use common::component::{ChainInfo, ComponentType};
+use common::component::ComponentType;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;

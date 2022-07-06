@@ -11,12 +11,9 @@ use crate::CONFIG;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
-use common::models::PlanEntity;
-use common::tasks::eth::*;
 use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
-use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 

@@ -1,5 +1,4 @@
 use anyhow::Error;
-use async_trait::async_trait;
 use common::job_manage::{JobDetail, JobPing, JobRole};
 use common::tasks::LoadConfig;
 use std::str::FromStr;
@@ -9,12 +8,10 @@ use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::jobs::{AssignmentConfig, Job, JobAssignment};
-use common::models::PlanEntity;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::vec;
 use tokio::sync::mpsc::Sender;
 
 /*

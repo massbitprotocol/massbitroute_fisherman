@@ -1,13 +1,7 @@
-use crate::models::component::{ProviderPlan, ZoneComponents};
+use crate::models::component::ProviderPlan;
 use crate::persistence::PlanModel;
-use crate::tasks::generator::TaskApplicant;
-use anyhow::Error;
-use common::component::{ComponentInfo, ComponentType, Zone};
-use common::jobs::Job;
+use common::component::{ComponentInfo, ComponentType};
 use common::util::get_current_time;
-use common::ComponentId;
-use log::{debug, log};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -94,17 +88,13 @@ impl ProviderStorage {
         gateways.append(&mut active_gateways);
         expired_nodes
     }
-    pub async fn get_components_for_verifications(&self) -> Vec<Arc<ProviderPlan>> {
+    pub async fn pop_components_for_verifications(&self) -> Vec<Arc<ProviderPlan>> {
         let mut res = Vec::new();
         let current_time = get_current_time();
         let mut nodes = self.verification_nodes.lock().await;
-        for plan in nodes.iter() {
-            res.push(plan.clone());
-        }
+        res.append(&mut nodes);
         let mut gateways = self.verification_gateways.lock().await;
-        for plan in gateways.iter() {
-            res.push(plan.clone());
-        }
+        res.append(&mut gateways);
         res
     }
     /*

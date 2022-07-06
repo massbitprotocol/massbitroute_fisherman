@@ -1,6 +1,4 @@
 use crate::persistence::ProviderMapModel;
-use anyhow::anyhow;
-use common::component::Zone;
 use common::workers::WorkerInfo;
 use entity::worker_provider_maps;
 use log::{debug, error, log};

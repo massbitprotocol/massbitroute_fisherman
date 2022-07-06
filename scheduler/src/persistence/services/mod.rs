@@ -4,6 +4,7 @@ pub mod plan_service;
 pub mod provider_service;
 pub mod worker_service;
 
+use crate::SQLX_LOGGING;
 pub use job_result_service::JobResultService;
 pub use job_service::JobService;
 pub use plan_service::PlanService;
@@ -18,7 +19,7 @@ pub async fn get_sea_db_connection(url: &str) -> Result<DatabaseConnection, DbEr
         .connect_timeout(Duration::from_secs(8))
         .idle_timeout(Duration::from_secs(8))
         .max_lifetime(Duration::from_secs(8))
-        .sqlx_logging(true); // Enable logging sqlx
+        .sqlx_logging(*SQLX_LOGGING); // Enable logging sqlx
 
     Database::connect(opt).await
 }

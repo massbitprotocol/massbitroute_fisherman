@@ -3,10 +3,6 @@ use common::component::ComponentInfo;
 use common::jobs::{Job, JobAssignment};
 use common::workers::MatchedWorkers;
 use log::{debug, error};
-use serde::de::DeserializeOwned;
-use serde::Deserialize;
-use std::default;
-use std::sync::Arc;
 
 pub mod benchmark;
 pub mod dot;

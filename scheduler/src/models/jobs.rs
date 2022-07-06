@@ -1,15 +1,8 @@
-use crate::models::component::ProviderPlan;
-use common::component::Zone;
-use common::job_manage::JobResultDetail;
 use common::jobs::{AssignmentConfig, Job, JobAssignment};
-use common::workers::WorkerInfo;
-use common::workers::{MatchedWorkers, Worker};
-use common::{JobId, WorkerId};
-use log::debug;
+use common::workers::MatchedWorkers;
+use log::{debug, warn};
 use rand::Rng;
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::sync::Arc;
 
 #[derive(Clone, Debug, Default)]
 pub struct AssignmentBuffer {
@@ -35,20 +28,24 @@ impl AssignmentBuffer {
         match assignment_config {
             None => {
                 //without config, assign job for one random nearby worker
-
                 let worker = if workers.nearby_workers.len() > 0 {
                     let ind = rng.gen_range(0..workers.nearby_workers.len());
-                    workers.get_nearby_worker(ind).unwrap()
-                } else {
+                    workers.get_nearby_worker(ind)
+                } else if workers.best_workers.len() > 0 {
                     let ind = rng.gen_range(0..workers.best_workers.len());
-                    workers.get_best_worker(ind).unwrap()
+                    workers.get_best_worker(ind)
+                } else {
+                    warn!("No workers found for component {:?}", job.component_id);
+                    None
                 };
-                debug!(
-                    "Assign job {:?}.{:?} to one random worker {:?}",
-                    &job.job_name, &job.job_id, &worker.worker_info
-                );
-                let job_assignment = JobAssignment::new(worker, &job);
-                self.list_assignments.push(job_assignment);
+                if let Some(worker) = worker {
+                    debug!(
+                        "Assign job {:?}.{:?} to one random worker {:?}",
+                        &job.job_name, &job.job_id, &worker.worker_info
+                    );
+                    let job_assignment = JobAssignment::new(worker, &job);
+                    self.list_assignments.push(job_assignment);
+                }
             }
             Some(config) => {
                 self.assign_job_with_config(&job, workers, config);

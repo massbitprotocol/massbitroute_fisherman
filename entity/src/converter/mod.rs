@@ -4,12 +4,11 @@ use crate::seaorm::{
     job_result_pings, jobs, plans, workers,
 };
 use common::component::{ChainInfo, ComponentType, Zone};
-use common::job_manage::{JobBenchmarkResult, JobDetail, JobResultDetail, JobRole};
+use common::job_manage::{JobBenchmarkResult, JobResultDetail, JobRole};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
-use common::tasks::http_request::JobHttpResult;
 use common::tasks::ping::JobPingResult;
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
@@ -17,7 +16,7 @@ use core::default::Default;
 use log::debug;
 use sea_orm::ActiveValue::Set;
 use sea_orm::NotSet;
-use serde_json::{Error, Value};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -354,7 +353,7 @@ impl From<&workers::Model> for WorkerInfo {
     fn from(info: &workers::Model) -> Self {
         let zone = match Zone::from_str(info.zone.as_str()) {
             Ok(zone) => zone,
-            Err(err) => Zone::default(),
+            Err(_err) => Zone::default(),
         };
         WorkerInfo {
             worker_id: info.worker_id.clone(),

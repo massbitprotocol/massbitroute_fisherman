@@ -9,12 +9,9 @@ use common::tasks::eth::{JobLatestBlock, LatestBlockConfig};
 use common::tasks::LoadConfig;
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
-use common::{Node, PlanId, Timestamp, DOMAIN};
-use log::{debug, info};
+use common::{Node, PlanId, DOMAIN};
+use log::debug;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::vec;
 /*
  * Apply for node to get latest block number and time
  */

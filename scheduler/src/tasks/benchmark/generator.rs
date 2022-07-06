@@ -7,13 +7,11 @@ use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job};
-use common::models::PlanEntity;
 use common::tasks::LoadConfig;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct BenchmarkGenerator {

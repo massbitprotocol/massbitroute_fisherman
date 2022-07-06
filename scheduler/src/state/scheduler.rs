@@ -3,7 +3,6 @@ use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::plan_service::PlanService;
 use crate::persistence::services::WorkerService;
-use crate::service::generator::JobGenerator;
 use crate::{Config, CONFIG, REPORT_CALLBACK};
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;

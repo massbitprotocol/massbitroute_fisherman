@@ -1,9 +1,6 @@
 use crate::models::component::ProviderPlan;
-use crate::models::job_result::ProviderTask;
-use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::CONFIG;
-use common::job_manage::{JobDetail, JobPing, JobResultDetail};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;

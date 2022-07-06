@@ -180,7 +180,7 @@ impl HttpRequestJobConfig {
             serde_json::from_str(&*json_content).unwrap_or_default();
         let mut task_configs = Vec::new();
         let default = configs["default"].as_object().unwrap();
-        let mut tasks = configs["tasks"].as_array().unwrap();
+        let tasks = configs["tasks"].as_array().unwrap();
         for config in tasks.iter() {
             let mut map_config = serde_json::Map::from(default.clone());
             let mut task_config = config.as_object().unwrap().clone();
@@ -346,7 +346,6 @@ impl HttpRequestJobConfig {
                 }
                 Ok(Value::Object(rendered_map))
             }
-            Value::String(val) => Ok(Value::from(val.clone())),
             Value::Number(val) => Ok(Value::from(val.clone())),
             Value::Bool(val) => Ok(Value::from(val.clone())),
             Value::Null => Ok(Value::Null),

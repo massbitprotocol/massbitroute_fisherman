@@ -8,7 +8,7 @@ use entity::seaorm::job_result_pings::Model as ResultPingModel;
 use entity::seaorm::{
     job_result_benchmarks, job_result_http_requests, job_result_latest_blocks, job_result_pings,
 };
-use log::{debug, error, log};
+use log::debug;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use sea_orm::{Condition, DatabaseConnection};

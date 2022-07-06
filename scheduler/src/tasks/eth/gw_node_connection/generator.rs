@@ -6,7 +6,6 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
-use common::jobs::Job;
 use common::workers::MatchedWorkers;
 use common::{Gateway, Node, PlanId};
 use std::sync::Arc;
