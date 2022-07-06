@@ -1,16 +1,17 @@
 use crate::models::component::ProviderPlan;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
-use crate::persistence::seaorm::workers;
 use crate::persistence::services::plan_service::PlanService;
 use crate::persistence::services::WorkerService;
 use crate::service::generator::JobGenerator;
-use crate::REPORT_CALLBACK;
+use crate::{Config, CONFIG, REPORT_CALLBACK};
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
+use entity::workers;
+use log::debug;
 use sea_orm::ActiveModelTrait;
 use sea_orm::DatabaseConnection;
 use std::borrow::BorrowMut;
@@ -23,7 +24,7 @@ pub struct SchedulerState {
     plan_service: Arc<PlanService>,
     worker_service: Arc<WorkerService>,
     worker_pool: Arc<Mutex<WorkerInfoStorage>>,
-    providers: Arc<Mutex<ProviderStorage>>,
+    providers: Arc<ProviderStorage>,
 }
 
 impl SchedulerState {
@@ -32,7 +33,7 @@ impl SchedulerState {
         plan_service: Arc<PlanService>,
         worker_service: Arc<WorkerService>,
         worker_pool: Arc<Mutex<WorkerInfoStorage>>,
-        providers: Arc<Mutex<ProviderStorage>>,
+        providers: Arc<ProviderStorage>,
     ) -> SchedulerState {
         SchedulerState {
             connection,
@@ -80,19 +81,18 @@ impl SchedulerState {
     ) -> Result<PlanEntity, anyhow::Error> {
         log::debug!("Push node {:?} to verification queue", &node_info);
         //Create a scheduler in db
+        let current_time = get_current_time();
+        let expiry_time = current_time + CONFIG.plan_expiry_time;
         let plan = PlanEntity::new(
             node_info.id.clone(),
-            get_current_time(),
+            current_time,
+            expiry_time,
             JobRole::Verification.to_string(),
         );
         let store_res = self.plan_service.store_plan(&plan).await;
         if let Ok(model) = store_res {
             //Generate verification job base on stored plan
-            self.providers
-                .lock()
-                .await
-                .add_verify_node(model, node_info)
-                .await;
+            self.providers.add_verify_node(model, node_info).await;
             /*
              self.job_generator
                  .generate_verification_job(plan.plan_id.clone(), &node_info)

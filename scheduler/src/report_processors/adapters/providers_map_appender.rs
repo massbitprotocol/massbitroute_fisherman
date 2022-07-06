@@ -4,10 +4,9 @@ use crate::persistence::ProviderMapModel;
 use crate::report_processors::adapters::Appender;
 use anyhow::Error;
 use async_trait::async_trait;
-use clap::values_t_or_exit;
 use common::job_manage::JobResultDetail;
 use common::jobs::JobResult;
-use common::tasks::http_request::{JobHttpRequest, JobHttpResponseDetail, JobHttpResult};
+use common::tasks::http_request::{JobHttpResponseDetail, JobHttpResult};
 use common::tasks::ping::JobPingResult;
 use common::util::{get_current_time, remove_break_line};
 use log::debug;
@@ -41,7 +40,7 @@ impl Appender for ProvidersMapAdapter {
                     && item.job_name.as_str() == "RoundTripTime"
             })
             .map(|item| {
-                let (rtt, ping_time) = match &item.result_detail {
+                let (rtt, ping_timestamp) = match &item.result_detail {
                     JobResultDetail::HttpRequest(JobHttpResult { response, .. }) => {
                         match &response.detail {
                             JobHttpResponseDetail::Body(val) => {
@@ -50,7 +49,7 @@ impl Appender for ProvidersMapAdapter {
                                     .map(|val| val / 1000)
                                     .ok();
                                 debug!("Round trip time response {:?}, {:?}", val, &parsed_value);
-                                (parsed_value, Some(response.response_time))
+                                (parsed_value, Some(response.request_timestamp))
                             }
                             JobHttpResponseDetail::Values(_) => (None, None),
                         }
@@ -62,10 +61,10 @@ impl Appender for ProvidersMapAdapter {
                     id: 0,
                     worker_id: item.worker_id.clone(),
                     provider_id: item.provider_id.clone(),
-                    ping_response_time: rtt,
-                    ping_time,
+                    ping_response_duration: rtt,
+                    ping_timestamp,
                     bandwidth: None,
-                    bandwidth_time: None,
+                    bandwidth_timestamp: None,
                     status: Some(1),
                     last_connect_time: Some(current_time.clone()),
                     last_check: Some(current_time),
@@ -84,14 +83,14 @@ impl Appender for ProvidersMapAdapter {
         let current_time = get_current_time() as i64;
         let provider_maps = results
             .iter()
-            .map(|item| ProviderMapModel {
+            .map(|result| ProviderMapModel {
                 id: 0,
-                worker_id: item.worker_id.clone(),
-                provider_id: item.job.component_id.clone(),
-                ping_response_time: Some(item.response.response_time as i32),
-                ping_time: None,
+                worker_id: result.worker_id.clone(),
+                provider_id: result.job.component_id.clone(),
+                ping_response_duration: Some(result.response.response_duration as i32),
+                ping_timestamp: None,
                 bandwidth: None,
-                bandwidth_time: None,
+                bandwidth_timestamp: None,
                 status: Some(1),
                 last_connect_time: Some(current_time.clone()),
                 last_check: Some(current_time),

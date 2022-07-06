@@ -15,7 +15,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[derive(Clone)]
+#[derive()]
 pub struct ProcessorState {
     connection: Arc<DatabaseConnection>,
     regular_processor: Arc<dyn ReportProcessor>,
@@ -36,18 +36,19 @@ impl ProcessorState {
     ) -> ProcessorState {
         //For verification processor
         let mut report_adapters = get_report_adapters(connection.clone());
-        report_adapters.push(Arc::new(ResultCacheAppender::new(result_cache)));
-        let judgment = MainJudgment::new(result_service.clone());
-        let mut verification_processor = VerificationReportProcessor::new(
+        report_adapters.push(Arc::new(ResultCacheAppender::new(result_cache.clone())));
+        let verification_processor = VerificationReportProcessor::new(
             report_adapters.clone(),
             plan_service.clone(),
             job_service.clone(),
             result_service.clone(),
-            judgment.clone(),
+            result_cache,
+            MainJudgment::new(result_service.clone()),
         );
         //For regular processor
-        let mut regular_processor =
-            RegularReportProcessor::new(report_adapters.clone(), judgment.clone());
+        let judgment = MainJudgment::new(result_service.clone());
+        let regular_processor = RegularReportProcessor::new(report_adapters.clone(), judgment);
+        let judgment = MainJudgment::new(result_service.clone());
         ProcessorState {
             connection,
             regular_processor: Arc::new(regular_processor),
@@ -76,7 +77,7 @@ impl ProcessorState {}
 
 impl ProcessorState {
     pub async fn process_results(
-        &mut self,
+        &self,
         results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut regular_results = Vec::new();
@@ -97,7 +98,7 @@ impl ProcessorState {
         Ok(HashMap::new())
     }
     pub async fn process_regular_results(
-        &mut self,
+        &self,
         job_results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut stored_results = HashMap::<String, StoredJobResult>::new();
@@ -108,7 +109,7 @@ impl ProcessorState {
         Ok(stored_results)
     }
     pub async fn process_verification_results(
-        &mut self,
+        &self,
         job_results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let mut stored_results = HashMap::<String, StoredJobResult>::new();

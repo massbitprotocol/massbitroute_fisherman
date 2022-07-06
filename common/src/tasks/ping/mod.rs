@@ -2,7 +2,6 @@ pub mod executor;
 
 use crate::jobs::Job;
 use crate::Timestamp;
-use anyhow::{anyhow, Error};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -43,7 +42,7 @@ pub struct JobPingResult {
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct PingResponse {
-    pub response_time: Timestamp,
+    pub response_duration: Timestamp,
     pub response_body: String,
     pub http_code: u16,
     pub error_code: u32,
@@ -59,7 +58,7 @@ impl From<CallPingError> for PingResponse {
 impl PingResponse {
     pub fn new_error(error_code: u32, message: &str) -> Self {
         PingResponse {
-            response_time: 0,
+            response_duration: 0,
             response_body: "".to_string(),
             http_code: 0,
             error_code,

@@ -1,14 +1,13 @@
 use crate::component::{ChainInfo, ComponentType, Zone};
 use crate::job_manage::{JobDetail, JobResultDetail, JobRole};
 use crate::util::get_current_time;
-use crate::workers::{Worker, WorkerInfo};
+use crate::workers::Worker;
 use crate::{
-    ComponentId, ComponentInfo, JobId, Timestamp, Url, WorkerId, DEFAULT_JOB_INTERVAL,
+    ComponentId, ComponentInfo, JobId, PlanId, Timestamp, Url, WorkerId, DEFAULT_JOB_INTERVAL,
     DEFAULT_JOB_TIMEOUT, WORKER_ID,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::env::join_paths;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -32,6 +31,7 @@ impl Default for JobStatus {
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct Job {
     pub job_id: JobId,
+    pub job_type: String,
     pub job_name: String,
     pub plan_id: String,
     pub component_id: ComponentId,     //ProviderId
@@ -46,7 +46,6 @@ pub struct Job {
     pub header: HashMap<String, String>,
     pub job_detail: Option<JobDetail>,
     pub phase: JobRole,
-    // Todo: add job_type
 }
 
 impl From<&Job> for reqwest::Body {
@@ -65,6 +64,7 @@ impl Job {
 
     pub fn new(
         plan_id: String,
+        job_type: String,
         job_name: String,
         component: &ComponentInfo,
         job_detail: JobDetail,
@@ -73,6 +73,7 @@ impl Job {
         let uuid = Uuid::new_v4();
         Job {
             job_id: uuid.to_string(),
+            job_type,
             job_name,
             plan_id,
             component_id: component.id.clone(),
@@ -126,7 +127,8 @@ pub struct AssignmentConfig {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct JobResult {
-    pub job_id: String,
+    pub plan_id: PlanId,
+    pub job_id: JobId,
     pub job_name: String, //For http request use task_name in task config ex: RoundTripTime/LatestBlock
     pub worker_id: WorkerId,
     pub provider_id: ComponentId,
@@ -145,6 +147,7 @@ impl JobResult {
     ) -> JobResult {
         let receive_timestamp = get_current_time();
         JobResult {
+            plan_id: job.plan_id.clone(),
             job_id: job.job_id.clone(),
             job_name: job.job_name.clone(),
             worker_id: WORKER_ID.clone(),

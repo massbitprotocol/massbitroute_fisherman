@@ -2,26 +2,26 @@ use crate::models::job_result::ProviderTask;
 use crate::persistence::services::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use crate::tasks::ping::generator::PingConfig;
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
-use common::tasks::http_request::{JobHttpResponseDetail, JobHttpResult};
+use common::tasks::http_request::{HttpRequestJobConfig, JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
 use common::Timestamp;
 use histogram::Histogram;
-use log::info;
+use log::debug;
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::default::Default;
 use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 #[derive(Debug, Default)]
 pub struct HttpPingResultCache {
-    response_times: Mutex<HashMap<ProviderTask, JudRoundTripTimeDatas>>,
+    response_durations: Mutex<HashMap<ProviderTask, JudRoundTripTimeDatas>>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -54,7 +54,7 @@ impl DerefMut for JudRoundTripTimeDatas {
 
 #[derive(Debug, Default, Clone)]
 pub struct JudRoundTripTimeData {
-    response_time: Timestamp,
+    response_duration: Timestamp,
     receive_timestamp: Timestamp,
     success: bool,
 }
@@ -64,7 +64,7 @@ impl JudRoundTripTimeData {
         JudRoundTripTimeData {
             receive_timestamp: receive_time,
             success: false,
-            response_time: Default::default(),
+            response_duration: Default::default(),
         }
     }
 }
@@ -81,12 +81,12 @@ impl HttpPingResultCache {
             {
                 let mut data = JudRoundTripTimeData::new_false(res.receive_timestamp);
                 if let JobHttpResponseDetail::Body(val) = &response.detail {
-                    if let Ok(response_time) = val.parse::<Timestamp>() {
+                    if let Ok(response_duration) = val.parse::<Timestamp>() {
                         // Change unit of RTT response from us -> ms
-                        let response_time = response_time / 1000;
+                        let response_duration = response_duration / 1000;
 
                         data = JudRoundTripTimeData {
-                            response_time,
+                            response_duration: response_duration,
                             receive_timestamp: res.receive_timestamp,
                             success: true,
                         };
@@ -95,12 +95,14 @@ impl HttpPingResultCache {
                 res_times.push(data);
             }
         }
-        let mut values = self.response_times.lock().await;
-        let values = values
-            .entry(provider_task.clone())
-            .or_insert(JudRoundTripTimeDatas::new());
-        values.append(&mut res_times);
-        res_times = values.clone();
+        {
+            let mut values = self.response_durations.lock().await;
+            let values = values
+                .entry(provider_task.clone())
+                .or_insert(JudRoundTripTimeDatas::new());
+            values.append(&mut res_times);
+            res_times = values.clone();
+        }
         res_times
     }
 }
@@ -108,6 +110,7 @@ impl HttpPingResultCache {
 pub struct HttpPingJudgment {
     verification_config: PingConfig,
     regular_config: PingConfig,
+    task_configs: Vec<HttpRequestJobConfig>,
     result_service: Arc<JobResultService>,
     result_cache: HttpPingResultCache,
 }
@@ -122,39 +125,51 @@ impl HttpPingJudgment {
             format!("{}/ping.json", config_dir).as_str(),
             &JobRole::Regular,
         );
+        let path = format!("{}/http_request.json", config_dir);
+        let task_configs = HttpRequestJobConfig::read_config(path.as_str());
         HttpPingJudgment {
             verification_config,
             regular_config,
+            task_configs,
             result_service,
             result_cache: HttpPingResultCache::default(),
         }
+    }
+    pub fn get_judgment_thresholds(&self, phase: &JobRole) -> Map<String, Value> {
+        self.task_configs
+            .iter()
+            .filter(|config| {
+                config.match_phase(phase)
+                    && (config.name.as_str() == "RoundTripTime" || config.name.as_str() == "Ping")
+            })
+            .map(|config| config.clone())
+            .collect::<Vec<HttpRequestJobConfig>>()
+            .get(0)
+            .map(|config| config.thresholds.clone())
+            .unwrap_or_default()
+    }
+    pub fn get_threshold_value(
+        thresholds: &Map<String, Value>,
+        field: &String,
+    ) -> Result<i64, anyhow::Error> {
+        thresholds
+            .get(field)
+            .ok_or(anyhow!("Missing threshold config {}", field))?
+            .as_i64()
+            .ok_or(anyhow!("Invalid threshold config {}", field))
     }
 }
 
 #[async_trait]
 impl ReportCheck for HttpPingJudgment {
-    fn can_apply(&self, job: &Job) -> bool {
-        match job.job_name.as_str() {
-            "RoundTripTime" => true,
-            _ => false,
-        }
+    fn get_name(&self) -> String {
+        String::from("HttpPing")
     }
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         return task.task_type.as_str() == "HttpRequest"
             && task.task_name.as_str() == "RoundTripTime";
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
-        todo!();
-    }
-    async fn get_latest_judgment(
-        &self,
-        provider_task: &ProviderTask,
-        plan: &PlanEntity,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
-        //Todo: implement this function
-        Ok(JudgmentsResult::Pass)
-    }
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
@@ -164,45 +179,47 @@ impl ReportCheck for HttpPingJudgment {
             return Ok(JudgmentsResult::Unfinished);
         }
         let phase = result.first().unwrap().phase.clone();
-        let response_times = self
+        let response_durations = self
             .result_cache
             .append_results(provider_task, result)
             .await;
-        let config = match phase {
-            JobRole::Verification => &self.verification_config,
-            JobRole::Regular => &self.regular_config,
-        };
 
-        info!(
-            "{} Http Ping cache: {:?}",
-            response_times.len(),
-            response_times
-        );
-        return if response_times.len() < config.ping_number_for_decide as usize {
-            // Todo: Check timeout
+        // Get threshold from config
+        let thresholds = self.get_judgment_thresholds(&phase);
+        let number_for_decide =
+            Self::get_threshold_value(&thresholds, &String::from("number_for_decide"))?;
+        let success_percent =
+            Self::get_threshold_value(&thresholds, &String::from("success_percent"))?;
+        let histogram_percentile =
+            Self::get_threshold_value(&thresholds, &String::from("histogram_percentile"))?;
+        let response_duration =
+            Self::get_threshold_value(&thresholds, &String::from("response_duration"))?;
+
+        debug!("{} Http Ping in cache.", response_durations.len());
+        return if response_durations.len() < number_for_decide as usize {
             Ok(JudgmentsResult::Unfinished)
-        } else if response_times.get_success_percent() < config.ping_success_percent_threshold {
+        } else if response_durations.get_success_percent() < success_percent as f64 {
             Ok(JudgmentsResult::Error)
         } else {
             let mut histogram = Histogram::new();
-            for val in response_times.iter() {
+            for val in response_durations.iter() {
                 if val.success {
-                    histogram.increment(val.response_time as u64);
+                    histogram.increment(val.response_duration as u64);
                 }
             }
 
-            let res = histogram.percentile(config.ping_percentile);
+            let res = histogram.percentile(histogram_percentile as f64);
             log::info!(
                 "Http Ping job on {} has results: {:?} ans histogram {}%: {:?} ",
                 &provider_task.provider_id,
-                &response_times,
-                config.ping_percentile,
+                &response_durations,
+                histogram_percentile,
                 &res
             );
 
             match res {
                 Ok(val) => {
-                    if val < config.ping_response_time_threshold {
+                    if val <= response_duration as u64 {
                         Ok(JudgmentsResult::Pass)
                     } else {
                         Ok(JudgmentsResult::Failed)

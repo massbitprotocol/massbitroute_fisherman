@@ -3,9 +3,7 @@ extern crate diesel;
 extern crate diesel_migrations;
 
 use crate::server_config::Config;
-use dotenv;
 use lazy_static::lazy_static;
-use serde::Deserialize;
 use std::env;
 
 pub mod models;

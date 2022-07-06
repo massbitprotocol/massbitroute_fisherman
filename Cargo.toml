@@ -3,5 +3,8 @@ members = [
     "common",
     "fisherman",
     "scheduler",
-    "wrap_wrk"
+    "wrap_wrk",
+    "migration",
+    "entity"
+
 ]

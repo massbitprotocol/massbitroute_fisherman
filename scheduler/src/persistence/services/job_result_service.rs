@@ -1,17 +1,13 @@
-use crate::persistence::seaorm::job_result_pings::Model as ResultPingModel;
-use crate::persistence::seaorm::jobs::Model;
-use crate::persistence::seaorm::{
-    job_result_benchmarks, job_result_http_requests, job_result_latest_blocks, job_result_pings,
-    jobs,
-};
 use anyhow::anyhow;
-use common::component::{ChainInfo, Zone};
+use common::component::ChainInfo;
 use common::job_manage::{BenchmarkResponse, JobBenchmarkResult};
 use common::jobs::{Job, JobResult};
 use common::tasks::eth::{JobLatestBlockResult, LatestBlockResponse};
-use common::tasks::http_request::JobHttpResult;
 use common::tasks::ping::JobPingResult;
-use common::workers::WorkerInfo;
+use entity::seaorm::job_result_pings::Model as ResultPingModel;
+use entity::seaorm::{
+    job_result_benchmarks, job_result_http_requests, job_result_latest_blocks, job_result_pings,
+};
 use log::{debug, error, log};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
@@ -20,7 +16,7 @@ use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[derive(Default, Debug)]
+#[derive(Clone, Default, Debug)]
 pub struct JobResultService {
     db: Arc<DatabaseConnection>,
 }
@@ -61,7 +57,7 @@ impl JobResultService {
         for result in vec_results.iter() {
             if let Some(res) = map_results.get_mut(&result.job.job_id) {
                 if result.response.error_code == 0 {
-                    res.add_response_time(result.response.response_time as i64);
+                    res.add_response_time(result.response.response_duration as i64);
                 } else {
                     res.error_number += 1;
                 }
@@ -69,7 +65,7 @@ impl JobResultService {
                 map_update_results.insert(result.job.job_id.clone(), true);
             } else if let Some(res) = new_records.get_mut(&result.job.job_id) {
                 if result.response.error_code == 0 {
-                    res.add_response_time(result.response.response_time as i64);
+                    res.add_response_time(result.response.response_duration as i64);
                 } else {
                     res.error_number += 1;
                 }
@@ -91,9 +87,9 @@ impl JobResultService {
         let tnx = self.db.begin().await?;
         for (id, _) in map_update_results.iter() {
             let model = map_results.remove(id).unwrap();
-            let response_times = model.response_times.clone();
+            let response_durations = model.response_durations.clone();
             let mut active_model: job_result_pings::ActiveModel = model.into();
-            active_model.response_times = Set(response_times);
+            active_model.response_durations = Set(response_durations);
             log::debug!("Update model {:?}", &active_model);
             match active_model.update(self.db.as_ref()).await {
                 Ok(_) => {
@@ -198,8 +194,8 @@ impl JobResultService {
             Ok(results) => results
                 .get(0)
                 .and_then(|model| {
-                    let response_times: serde_json::Value = model.response_times.clone();
-                    let values = response_times
+                    let response_durations: serde_json::Value = model.response_durations.clone();
+                    let values = response_durations
                         .as_array()
                         .unwrap()
                         .iter()
@@ -221,8 +217,8 @@ impl JobResultService {
     //         Ok(results) => results
     //             .get(0)
     //             .and_then(|model| {
-    //                 let response_times: serde_json::Value = model.response_times.clone();
-    //                 let values = response_times
+    //                 let response_durations: serde_json::Value = model.response_durations.clone();
+    //                 let values = response_durations
     //                     .as_array()
     //                     .unwrap()
     //                     .iter()
@@ -334,7 +330,7 @@ trait FromDb<T> {
 impl FromDb<job_result_latest_blocks::Model> for JobLatestBlockResult {
     fn from_db(model: &job_result_latest_blocks::Model, job: &Job) -> Self {
         let res = LatestBlockResponse {
-            response_time: model.response_time,
+            response_duration: model.response_duration,
             block_number: model.block_number as u64,
             block_timestamp: model.block_timestamp,
             block_hash: model.block_hash.clone(),

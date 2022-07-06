@@ -2,15 +2,13 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::models::workers::WorkerInfoStorage;
 use crate::JOB_DELIVERY_PERIOD;
 use common::jobs::{Job, JobAssignment};
-use common::workers::{Worker, WorkerInfo};
+use common::workers::Worker;
 use common::WorkerId;
 use futures_util::future::join_all;
-use log::{debug, log};
-use sea_orm::sea_query::IndexType::Hash;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread::sleep;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::Mutex;
 
 #[derive(Default)]

@@ -1,16 +1,12 @@
-use crate::persistence::seaorm::jobs::Model;
-use crate::persistence::seaorm::{job_assignments, jobs};
 use crate::persistence::JobAssignmentActiveModel;
 use anyhow::anyhow;
-use common::component::Zone;
 use common::jobs::{Job, JobAssignment};
-use common::workers::WorkerInfo;
 use common::{ComponentId, JobId};
-use log::{debug, error, log};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
+use entity::seaorm::{job_assignments, jobs};
+use log::debug;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};
 use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -92,7 +88,7 @@ impl JobService {
         {
             Ok(entities) => Ok(entities
                 .iter()
-                .map(|entity| Job::from((entity)))
+                .map(|entity| Job::from(entity))
                 .collect::<Vec<Job>>()),
             Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }
@@ -112,7 +108,7 @@ impl JobService {
         {
             Ok(entities) => Ok(entities
                 .iter()
-                .map(|entity| Job::from((entity)))
+                .map(|entity| Job::from(entity))
                 .collect::<Vec<Job>>()),
             Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }

@@ -1,19 +1,14 @@
 use crate::job_manage::{JobDetail, JobResultDetail};
 use crate::jobs::{Job, JobResult};
-use crate::logger::helper::message;
 use crate::tasks::eth::{CallLatestBlockError, JobLatestBlockResult, LatestBlockResponse};
 use crate::tasks::executor::TaskExecutor;
 use crate::util::get_current_time;
-use crate::{task_spawn, Timestamp, WorkerId};
+use crate::{Timestamp, WorkerId};
 use anyhow::Error;
 use async_trait::async_trait;
 use log::{debug, info};
-use reqwest::header::HeaderMap;
-use reqwest::{get, Client};
-use serde::{Deserialize, Serialize};
+use reqwest::Client;
 use serde_json::Value;
-use std::collections::HashMap;
-use std::fmt::format;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
 use tokio::time::sleep;
@@ -57,7 +52,7 @@ impl LatestBlockExecutor {
             None => {}
             _ => {}
         }
-        // Measure response_time
+        // Measure response_duration
         let mut builder = self
             .client
             .post(job.component_url.as_str())
@@ -87,7 +82,7 @@ impl LatestBlockExecutor {
             .await
             .map_err(|err| CallLatestBlockError::GetBodyError(format!("{}", err)))?;
         //debug!("call_latest_block response_body: {}", response_body);
-        let response_time = now.elapsed();
+        let response_duration = now.elapsed();
 
         let BlockData {
             block_number,
@@ -105,7 +100,7 @@ impl LatestBlockExecutor {
         );
 
         let latest_block_result = LatestBlockResponse {
-            response_time: response_time.as_millis() as i64,
+            response_duration: response_duration.as_millis() as i64,
             block_number,
             block_timestamp,
             block_hash,

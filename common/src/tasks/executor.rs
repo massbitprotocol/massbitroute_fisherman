@@ -6,8 +6,6 @@ use crate::tasks::ping::executor::PingExecutor;
 use crate::util::get_current_time;
 use crate::WorkerId;
 use async_trait::async_trait;
-use log::{debug, info};
-use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 
 #[async_trait]

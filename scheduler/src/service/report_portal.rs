@@ -1,16 +1,17 @@
 use crate::CONFIG;
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use common::component::{ComponentInfo, ComponentType};
 use common::job_manage::JobRole;
 use common::{ComponentId, Deserialize, Serialize};
 use log::debug;
 use reqwest::Response;
+use serde_json::Value;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const report_path: &str = "logs/report.txt";
+const REPORT_PATH: &str = "logs/report.txt";
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct StoreReport {
@@ -122,11 +123,16 @@ impl StoreReport {
     }
 
     // For testing only
-    pub fn write_data(&self) -> Result<String, Error> {
-        let data = self.create_body()?;
-        let report_file = std::path::Path::new(report_path);
+    pub fn write_data(&self, data: Value) -> Result<String, Error> {
+        let data = serde_json::to_string(&data)?;
+        let report_file = std::path::Path::new(REPORT_PATH);
         if let Some(path) = report_file.parent() {
-            fs::create_dir_all(path);
+            match fs::create_dir_all(path) {
+                Ok(_) => {}
+                Err(err) => {
+                    anyhow!("{:?}", err);
+                }
+            }
         }
         let mut file = OpenOptions::new()
             .write(true)

@@ -1,14 +1,13 @@
+use crate::models::component::ProviderPlan;
 use crate::models::job_result::ProviderTask;
-use crate::service::judgment::http_latestblock_judg::CacheKey;
-use crate::tasks::generator::TaskApplicant;
+use crate::persistence::PlanModel;
+use crate::service::judgment::JudgmentsResult;
 use crate::CONFIG;
-use anyhow::Error;
-use common::component::ComponentInfo;
 use common::job_manage::{JobDetail, JobPing, JobResultDetail};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;
-use common::{ComponentId, Timestamp};
+use common::{ComponentId, JobId, PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, DerefMut};
@@ -22,9 +21,26 @@ pub struct TaskKey {
     pub task_name: String,
 }
 
+#[derive(Clone, Default, Debug, Serialize, Deserialize, Eq, PartialEq, Hash)]
+pub struct PlanTaskResultKey {
+    pub plan_id: PlanId,
+    pub task_type: String,
+    pub task_name: String,
+}
+
+impl PlanTaskResultKey {
+    pub fn new(plan_id: String, task_type: TaskType, task_name: TaskName) -> Self {
+        Self {
+            plan_id,
+            task_type,
+            task_name,
+        }
+    }
+}
 #[derive(Clone, Debug, Default)]
 pub struct JobResultCache {
     pub result_cache_map: HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>,
+    pub task_judg_result: HashMap<ComponentId, HashMap<PlanTaskResultKey, JudgmentsResult>>,
 }
 
 impl JobResultCache {
@@ -36,12 +52,56 @@ impl JobResultCache {
             .iter()
             .fold(0, |count, (key, map)| count + map.len())
     }
+    pub fn get_judg_result(
+        &self,
+        provider_plan: Arc<ProviderPlan>,
+        task_type: &String,
+        task_name: &String,
+    ) -> Option<JudgmentsResult> {
+        let key = PlanTaskResultKey::new(
+            provider_plan.plan.plan_id.clone(),
+            task_type.clone(),
+            task_name.clone(),
+        );
+        self.task_judg_result
+            .get(&provider_plan.plan.provider_id)
+            .and_then(|map| map.get(&key))
+            .map(|val| val.clone())
+    }
+    pub fn update_plan_results(
+        &mut self,
+        plan: &PlanEntity,
+        job_results: &HashMap<JobId, JudgmentsResult>,
+        plan_jobs: &Vec<Job>,
+    ) {
+        let map_jobs = plan_jobs
+            .iter()
+            .map(|job| {
+                (
+                    job.job_id.clone(),
+                    PlanTaskResultKey::new(
+                        plan.plan_id.clone(),
+                        job.job_type.clone(),
+                        job.job_name.clone(),
+                    ),
+                )
+            })
+            .collect::<HashMap<JobId, PlanTaskResultKey>>();
+        for (job_id, judgment_result) in job_results.iter() {
+            if let Some(key) = map_jobs.get(job_id) {
+                self.task_judg_result
+                    .entry(plan.provider_id.clone())
+                    .or_insert(HashMap::<PlanTaskResultKey, JudgmentsResult>::default())
+                    .insert(key.clone(), judgment_result.clone());
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct TaskResultCache {
     pub results: VecDeque<JobResult>,
-    pub create_time: Timestamp,
+    pub update_time: Timestamp,
 }
 
 impl Deref for TaskResultCache {
@@ -58,29 +118,31 @@ impl DerefMut for TaskResultCache {
 }
 
 impl TaskResultCache {
+    pub fn push_back_cache(&mut self, job_result: JobResult) {
+        self.results.push_back(job_result);
+        self.update_time = get_current_time();
+    }
+
     pub fn new(create_time: Timestamp) -> Self {
         Self {
             results: VecDeque::new(),
-            create_time,
+            update_time: create_time,
         }
     }
     pub fn is_result_too_old(&self) -> bool {
-        let update_time = if self.results.is_empty() {
-            self.create_time
-        } else {
-            self.results.back().unwrap().receive_timestamp
-        };
-        (get_current_time() - update_time) > (CONFIG.generate_new_regular_timeout * 1000)
+        (get_current_time() - self.get_latest_update_time())
+            > (CONFIG.generate_new_regular_timeout * 1000)
     }
-    pub fn get_latest_time(&self) -> Timestamp {
-        if self.results.is_empty() {
-            self.create_time
-        } else {
-            self.results.back().unwrap().receive_timestamp
-        }
+    pub fn get_latest_update_time(&self) -> Timestamp {
+        self.update_time
+        // if self.results.is_empty() {
+        //     self.update_time
+        // } else {
+        //     self.results.back().unwrap().receive_timestamp
+        // }
     }
     pub fn reset_timestamp(&mut self, timestamp: Timestamp) {
-        self.create_time = timestamp;
+        self.update_time = timestamp;
         self.results.clear()
     }
 }
@@ -89,7 +151,7 @@ impl Default for TaskResultCache {
     fn default() -> Self {
         Self {
             results: VecDeque::new(),
-            create_time: 0,
+            update_time: 0,
         }
     }
 }

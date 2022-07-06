@@ -1,20 +1,13 @@
 use crate::job_manage::JobResultDetail;
 use crate::jobs::{Job, JobResult};
-use crate::logger::helper::message;
-use crate::task_spawn;
 use crate::tasks::executor::TaskExecutor;
-use crate::tasks::ping::{CallPingError, JobPingResult};
 use crate::tasks::rpc_request::{JobRpcResponse, JobRpcResult, RpcRequestError};
-use crate::util::get_current_time;
 use anyhow::Error;
 use async_trait::async_trait;
-use log::{debug, info};
-use reqwest::{get, Client};
-use serde::{Deserialize, Serialize};
-use std::fmt::format;
+use log::debug;
+use reqwest::Client;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Default)]
 pub struct RpcRequestExecutor {
@@ -31,7 +24,7 @@ impl RpcRequestExecutor {
         }
     }
     pub async fn call_ping(&self, job: &Job) -> Result<JobRpcResponse, RpcRequestError> {
-        // Measure response_time
+        // Measure response_duration
         let now = Instant::now();
         let resp = self
             .client
@@ -46,10 +39,10 @@ impl RpcRequestExecutor {
             .await
             .map_err(|err| RpcRequestError::GetBodyError(format!("{}", err)))?;
 
-        let response_time = now.elapsed();
+        let response_duration = now.elapsed();
 
         let ping_result = JobRpcResponse {
-            response_time: response_time.as_millis() as i64,
+            response_duration: response_duration.as_millis() as i64,
             response_body,
             http_code,
             error_code: 0,

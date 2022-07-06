@@ -1,24 +1,35 @@
+mod default_comparator;
 mod dot_comparator;
 mod eth_comparator;
+use anyhow::{anyhow, Error};
 use async_trait::async_trait;
 use common::tasks::http_request::HttpResponseValues;
+use common::util::from_str_radix16;
+pub use default_comparator::LatestBlockDefaultComparator;
 pub use dot_comparator::LatestBlockDotComparator;
 pub use eth_comparator::LatestBlockEthComparator;
+use log::debug;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
+
 #[async_trait]
 pub trait Comparator: Sync + Send + Debug {
-    fn get_number_value(&self, value: &HttpResponseValues, field: &str) -> Option<i64> {
-        value
+    fn get_number_value(&self, value: &HttpResponseValues, field: &str) -> Result<i64, Error> {
+        let res = value
             .get(field)
-            .and_then(|val| val.as_str())
-            .and_then(|str| i64::from_str_radix(str, 16).ok())
+            .ok_or(anyhow!("Field {} not found", field))
+            .and_then(|val| val.as_str().ok_or(anyhow!("Invalid value")))
+            .and_then(|str| from_str_radix16(str));
+        debug!("Get field {} from {:?} return {:?}", field, value, &res);
+        res
     }
-    fn get_latest_value(&self, value: &HttpResponseValues) -> Option<i64> {
-        None
-    }
-    fn compare(&self, value1: &HttpResponseValues, value2: &HttpResponseValues) -> i64;
+    fn get_latest_value(&self, value: &HttpResponseValues) -> Option<i64>;
+    fn compare(
+        &self,
+        value1: &HttpResponseValues,
+        value2: &HttpResponseValues,
+    ) -> Result<i64, Error>;
 }
 
 pub fn get_comparators() -> HashMap<String, Arc<dyn Comparator>> {

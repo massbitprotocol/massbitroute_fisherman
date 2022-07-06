@@ -19,10 +19,11 @@ use crate::models::job_result::ProviderTask;
 use crate::service::judgment::http_latestblock_judg::HttpLatestBlockJudgment;
 use crate::service::judgment::http_ping_judg::HttpPingJudgment;
 use common::jobs::{Job, JobResult};
+use common::PlanId;
 use sea_orm::DatabaseConnection;
 use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum JudgmentsResult {
     Pass = 1,
     Failed = -1,
@@ -41,24 +42,18 @@ impl JudgmentsResult {
 
 #[async_trait]
 pub trait ReportCheck: Sync + Send + Debug {
-    fn can_apply(&self, job: &Job) -> bool;
-    fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
-        false
-    }
-    async fn get_latest_judgment(
-        &self,
-        provider_task: &ProviderTask,
-        plan: &PlanEntity,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
-        //Todo: implement this function
-        Ok(JudgmentsResult::Pass)
-    }
+    fn get_name(&self) -> String;
+    //fn can_apply(&self, job: &Job) -> bool;
+    fn can_apply_for_result(&self, task: &ProviderTask) -> bool;
     /// For Verification phase
     async fn apply(
         &self,
         plan: &PlanEntity,
         job: &Vec<Job>,
-    ) -> Result<JudgmentsResult, anyhow::Error>;
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        //Todo: remove this function
+        Ok(JudgmentsResult::Unfinished)
+    }
     /// For Regular phase
     async fn apply_for_results(
         &self,
@@ -90,9 +85,9 @@ pub fn get_report_judgments(
         config_dir,
         result_service.clone(),
     )));
-    // result.push(Arc::new(HttpLatestBlockJudgment::new(
-    //     config_dir,
-    //     result_service.clone(),
-    // )));
+    result.push(Arc::new(HttpLatestBlockJudgment::new(
+        config_dir,
+        result_service.clone(),
+    )));
     result
 }

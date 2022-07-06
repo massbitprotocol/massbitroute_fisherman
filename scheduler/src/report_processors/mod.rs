@@ -5,20 +5,13 @@ pub mod eth;
 pub mod regular_processor;
 pub mod verification_processor;
 use crate::models::job_result::StoredJobResult;
-use crate::models::job_result_cache::JobResultCache;
-use crate::report_processors::adapters::get_report_adapters;
-use crate::report_processors::adapters::result_cache_appender::ResultCacheAppender;
-use crate::report_processors::regular_processor::RegularReportProcessor;
-use crate::report_processors::verification_processor::VerificationReportProcessor;
 use async_trait::async_trait;
 pub use channel::ReportChannel;
-use common::job_manage::JobResultDetail;
 use common::jobs::JobResult;
 pub use dot::*;
 pub use eth::*;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[async_trait]
 pub trait ReportProcessor: Sync + Send {

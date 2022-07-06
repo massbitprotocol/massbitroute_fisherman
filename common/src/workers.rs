@@ -5,7 +5,6 @@ use crate::{ComponentInfo, IPAddress, WorkerId};
 use anyhow::anyhow;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -33,7 +32,7 @@ impl WorkerInfo {
         let zone = match Zone::from_str(zone) {
             Ok(zone) => zone,
             Err(_) => {
-                panic!("Please enter worker zone!!!");
+                panic!("ZONE={}, please enter correct worker zone!!!", zone);
             }
         };
         WorkerInfo {
@@ -71,7 +70,7 @@ impl WorkerRegisterResult {
 pub struct WorkerStateParam {}
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Worker {
-    worker_info: WorkerInfo,
+    pub worker_info: WorkerInfo,
 }
 
 impl Worker {

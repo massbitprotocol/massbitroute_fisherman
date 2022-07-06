@@ -1,3 +1,4 @@
+use crate::models::component::ProviderPlan;
 use common::component::Zone;
 use common::job_manage::JobResultDetail;
 use common::jobs::{AssignmentConfig, Job, JobAssignment};
@@ -7,6 +8,7 @@ use common::{JobId, WorkerId};
 use log::debug;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Default)]
@@ -33,6 +35,7 @@ impl AssignmentBuffer {
         match assignment_config {
             None => {
                 //without config, assign job for one random nearby worker
+
                 let worker = if workers.nearby_workers.len() > 0 {
                     let ind = rng.gen_range(0..workers.nearby_workers.len());
                     workers.get_nearby_worker(ind).unwrap()
@@ -40,6 +43,10 @@ impl AssignmentBuffer {
                     let ind = rng.gen_range(0..workers.best_workers.len());
                     workers.get_best_worker(ind).unwrap()
                 };
+                debug!(
+                    "Assign job {:?}.{:?} to one random worker {:?}",
+                    &job.job_name, &job.job_id, &worker.worker_info
+                );
                 let job_assignment = JobAssignment::new(worker, &job);
                 self.list_assignments.push(job_assignment);
             }
@@ -100,7 +107,7 @@ impl AssignmentBuffer {
     pub fn add_assignments(&mut self, mut assignments: Vec<JobAssignment>) {
         self.list_assignments.append(&mut assignments);
     }
-    pub fn push_back(&mut self, mut assignments: Vec<JobAssignment>) {
+    pub fn push_back(&mut self, assignments: Vec<JobAssignment>) {
         for job in assignments.into_iter().rev() {
             self.list_assignments.insert(0, job);
         }
@@ -109,5 +116,35 @@ impl AssignmentBuffer {
         let mut res = Vec::default();
         res.append(&mut self.list_assignments);
         res
+    }
+    pub fn get_exist_jobs(&self, plan_id: &str, task_type: &str) -> HashSet<String> {
+        self.jobs
+            .iter()
+            .filter(|job| job.job_type.as_str() == task_type && job.plan_id.as_str() == plan_id)
+            .map(|job| job.job_name.clone())
+            .collect::<HashSet<String>>()
+    }
+    pub fn remove_redundant_jobs(mut self, exist_jobs: &HashSet<String>) -> Self {
+        let Self {
+            jobs,
+            list_assignments,
+        } = self;
+
+        let mut active_jobs = Vec::new();
+        for job in jobs {
+            if !exist_jobs.contains(&job.job_name) {
+                active_jobs.push(job);
+            }
+        }
+        let mut active_assignments = Vec::new();
+        for assignment in list_assignments {
+            if !exist_jobs.contains(&assignment.job.job_name) {
+                active_assignments.push(assignment);
+            }
+        }
+        Self {
+            jobs: active_jobs,
+            list_assignments: active_assignments,
+        }
     }
 }

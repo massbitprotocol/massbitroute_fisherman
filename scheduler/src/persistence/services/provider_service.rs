@@ -1,8 +1,8 @@
-use crate::persistence::seaorm::worker_provider_maps;
 use crate::persistence::ProviderMapModel;
 use anyhow::anyhow;
 use common::component::Zone;
 use common::workers::WorkerInfo;
+use entity::worker_provider_maps;
 use log::{debug, error, log};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Value,
@@ -13,12 +13,12 @@ use std::fmt::Error;
 use std::str::FromStr;
 use std::sync::Arc;
 
-const TABLE_NAME: &str = "worker_provider_maps";
+//const TABLE_NAME: &str = "worker_provider_maps";
 const INSERT_RESPONSE_TIME_QUERY: &str = r#"INSERT INTO worker_provider_maps
-                                (worker_id, provider_id, ping_response_time, ping_time, last_connect_time, last_check)"#;
+                                (worker_id, provider_id, ping_response_duration, ping_timestamp, last_connect_time, last_check)"#;
 const CONFLICT_RESPONSE_TIME_QUERY: &str = r#"ON CONFLICT ON CONSTRAINT worker_provider_maps_worker_provider_key
-                                DO UPDATE SET ping_response_time = EXCLUDED.ping_response_time
-                                              ,ping_time= EXCLUDED.ping_time
+                                DO UPDATE SET ping_response_duration = EXCLUDED.ping_response_duration
+                                              ,ping_timestamp= EXCLUDED.ping_timestamp
                                               ,last_connect_time = EXCLUDED.last_connect_time
                                               ,last_check = EXCLUDED.last_check;"#;
 #[derive(Default)]
@@ -60,8 +60,8 @@ impl ProviderService {
             let mut rows = Vec::new();
             values.push(Value::from(item.worker_id.clone()));
             values.push(Value::from(item.provider_id.clone()));
-            values.push(Value::from(item.ping_response_time.clone()));
-            values.push(Value::from(item.ping_time.clone()));
+            values.push(Value::from(item.ping_response_duration.clone()));
+            values.push(Value::from(item.ping_timestamp.clone()));
             values.push(Value::from(item.last_connect_time.clone()));
             values.push(Value::from(item.last_check.clone()));
             for i in 0..column_count {

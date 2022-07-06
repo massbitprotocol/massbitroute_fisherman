@@ -1,11 +1,10 @@
 use crate::persistence::PlanModel;
 use common::component::{ComponentInfo, Zone};
-use common::models::PlanEntity;
-use common::ComponentId;
+use common::util::get_current_time;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ops::Index;
 use std::sync::Arc;
+use warp::get;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct ZoneComponents {
@@ -46,5 +45,10 @@ pub struct ProviderPlan {
 impl ProviderPlan {
     pub fn new(provider: ComponentInfo, plan: PlanModel) -> Self {
         ProviderPlan { provider, plan }
+    }
+    //Create new plan from expired one
+    pub fn renew(&self) -> Self {
+        let current_time = get_current_time();
+        self.clone()
     }
 }

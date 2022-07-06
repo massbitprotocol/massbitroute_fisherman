@@ -1,10 +1,8 @@
 use common::jobs::Job;
-use common::util::get_current_time;
 use common::Timestamp;
-use log::{debug, info};
+use log::trace;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
-use uuid::Uuid;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct JobBuffer {
@@ -30,7 +28,7 @@ impl JobBuffer {
                 break;
             }
         }
-        log::debug!("insert job {:?} to index of queue {}", &job, next_ind);
+        log::trace!("insert job {:?} to index of queue {}", &job, next_ind);
         self.jobs.insert(next_ind, job);
     }
     pub fn get_job_existed_position(&mut self, job: &Job) -> Option<usize> {
@@ -39,7 +37,7 @@ impl JobBuffer {
             .position(|job_in_queue| job_in_queue.is_eq(job))
     }
 
-    pub fn add_jobs(&mut self, mut jobs: Vec<Job>) -> usize {
+    pub fn add_jobs(&mut self, jobs: Vec<Job>) -> usize {
         for job in jobs {
             let pos = self.get_job_existed_position(&job);
             if let Some(pos) = pos {
@@ -65,7 +63,7 @@ impl JobBuffer {
     }
     pub fn pop_job(&mut self) -> Option<Job> {
         let first_expected_time = self.jobs.front().and_then(|job| {
-            log::debug!(
+            log::trace!(
                 "Found new job with expected runtime {}: {:?}",
                 &job.expected_runtime,
                 job
@@ -77,17 +75,20 @@ impl JobBuffer {
                 .duration_since(std::time::SystemTime::UNIX_EPOCH)
                 .expect("Unix time doesn't go backwards;")
                 .as_millis() as Timestamp;
-            debug!(
-                "Found new job with expected run time {}. Current time is {}. Job is executed after {}",
-                expected_time, current_time, expected_time - current_time);
             if expected_time <= current_time {
+                trace!(
+                    "Found job is executed after {}. Job with runtime {}. Current time: {}",
+                    expected_time - current_time,
+                    expected_time,
+                    current_time
+                );
                 let job = self.jobs.pop_front();
                 if let Some(inner) = job.as_ref() {
                     let mut next_job = inner.clone();
                     if inner.repeat_number > 0 {
                         next_job.expected_runtime = current_time + inner.interval;
                         next_job.repeat_number = next_job.repeat_number - 1;
-                        debug!("Schedule new repeat job: {:?}", &next_job);
+                        trace!("Schedule new repeat job: {:?}", &next_job);
                         self.add_job(next_job);
                     }
                 }
@@ -96,7 +97,7 @@ impl JobBuffer {
                 None
             }
         } else {
-            //log::debug!("Job queue is empty");
+            //log::trace!("Job queue is empty");
             None
         }
     }
