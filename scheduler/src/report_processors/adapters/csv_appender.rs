@@ -14,6 +14,9 @@ impl CsvAppender {
 }
 #[async_trait]
 impl Appender for CsvAppender {
+    fn get_name(&self) -> String {
+        "CsvAppender".to_string()
+    }
     async fn append(&self, channel: String, report: &Map<String, Value>) -> Result<(), Error> {
         Ok(())
     }

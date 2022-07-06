@@ -25,11 +25,7 @@ pub trait Appender: Sync + Send {
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
-    async fn append_job_results(
-        &self,
-        key: &ProviderTask,
-        results: &Vec<JobResult>,
-    ) -> Result<(), anyhow::Error> {
+    async fn append_job_results(&self, results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
         Ok(())
     }
 
@@ -54,6 +50,7 @@ pub trait Appender: Sync + Send {
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
+    fn get_name(&self) -> String;
 }
 
 pub fn get_report_adapters(connection: Arc<DatabaseConnection>) -> Vec<Arc<dyn Appender>> {

@@ -238,11 +238,12 @@ impl SchedulerServer {
                         PROCESS_THREAD_COUNT.load(Ordering::Relaxed),
                         job_results_len
                     );
-                    clone_service.process_report(job_results, clone_state).await;
+                    let res = clone_service.process_report(job_results, clone_state).await;
                     info!(
-                        "** Finished process {} job results in {:.2?} **",
+                        "** Finished process {} job results in {:.2?} with res: {:?} **",
                         job_results_len,
-                        now.elapsed()
+                        now.elapsed(),
+                        res
                     );
                     PROCESS_THREAD_COUNT.fetch_sub(1, Ordering::Relaxed);
                 });

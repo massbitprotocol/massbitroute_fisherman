@@ -49,6 +49,16 @@ impl ReportProcessor for RegularReportProcessor {
         log::info!("Regular report process jobs");
         let stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
+
+        for adapter in self.report_adapters.iter() {
+            log::info!(
+                "With Adapter {} append {} results",
+                adapter.get_name(),
+                reports.len()
+            );
+            adapter.append_job_results(&reports).await;
+        }
+
         for report in reports {
             let key = ProviderTask::new(
                 report.provider_id.clone(),
@@ -60,10 +70,6 @@ impl ReportProcessor for RegularReportProcessor {
             jobs.push(report);
         }
         for (key, results) in provider_task_results {
-            log::info!("Process {} results for task {:?}", results.len(), &key);
-            for adapter in self.report_adapters.iter() {
-                adapter.append_job_results(&key, &results).await;
-            }
             match self.judgment.apply_for_regular(&key, &results).await {
                 Ok(res) => {}
                 Err(err) => {

@@ -149,7 +149,7 @@ impl ReportProcessor for VerificationReportProcessor {
         for (key, results) in active_provider_task_results.iter() {
             log::debug!("Process results {:?} for task {:?}", results, key);
             for adapter in self.report_adapters.iter() {
-                adapter.append_job_results(key, results).await;
+                adapter.append_job_results(results).await;
             }
         }
         for (provider_task, job_results) in active_provider_task_results {

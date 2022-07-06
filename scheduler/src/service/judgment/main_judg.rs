@@ -211,7 +211,7 @@ impl MainJudgment {
                 .apply_for_results(provider_task, results)
                 .await
                 .unwrap_or(JudgmentsResult::Failed);
-            info!(
+            debug!(
                 "Regular judgment result {:?} on task {} for provider {:?}",
                 &judg_result, provider_task.task_name, provider_task.provider_id
             );
@@ -224,8 +224,8 @@ impl MainJudgment {
                         &DOMAIN,
                     );
                     report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
-                    debug!("Send plan report to portal:{:?}", report);
                     if !CONFIG.is_test_mode {
+                        debug!("Send plan report to portal:{:?}", report);
                         let res = report.send_data().await;
                         info!("Send report to portal res: {:?}", res);
                     } else {
