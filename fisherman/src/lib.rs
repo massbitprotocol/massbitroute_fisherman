@@ -18,8 +18,8 @@ lazy_static! {
     pub static ref WORKER_ID: String =
         env::var("WORKER_ID").unwrap_or(Uuid::new_v4().to_string());
     pub static ref ZONE: String = env::var("ZONE")
-        .unwrap_or(String::from("AS"))
-        .to_uppercase();
+        .unwrap()
+        .trim_start_matches("\"").trim_end_matches("\"").to_uppercase();
     pub static ref ENVIRONMENT: String = env::var("ENVIRONMENT").unwrap_or(String::from("unset"));
     //Endpoint for scheduler push jobs
     pub static ref WORKER_ENDPOINT: String =

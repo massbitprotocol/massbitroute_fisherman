@@ -1,10 +1,11 @@
 use crate::JOB_RESULT_REPORTER_PERIOD;
 use anyhow::anyhow;
 use common::jobs::JobResult;
-use log::{info, trace};
-use std::thread::sleep;
+use log::{debug, info, trace};
+//use std::thread::sleep;
 use std::time::Duration;
 use tokio::sync::mpsc::Receiver;
+use tokio::time::sleep;
 
 pub struct JobResultReporter {
     receiver: Receiver<JobResult>,
@@ -30,7 +31,8 @@ impl JobResultReporter {
                 self.send_results(results).await;
                 info!("Finished sending results.");
             } else {
-                sleep(Duration::from_millis(JOB_RESULT_REPORTER_PERIOD))
+                debug!("No job result for report.");
+                sleep(Duration::from_millis(JOB_RESULT_REPORTER_PERIOD)).await;
             }
         }
     }
