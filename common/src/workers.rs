@@ -94,13 +94,7 @@ impl Worker {
         format!("{}/{}", self.worker_info.url, path)
     }
     pub fn get_host(&self) -> String {
-        let parts = self.worker_info.url.split('/').collect::<Vec<&str>>();
-        if parts.len() >= 3 {
-            parts[2].to_string()
-        } else {
-            String::default()
-        }
-        //format!("{}/{}", self.worker_info.url, path)
+        format!("{}.gw.mbr.massbitroute.net", self.worker_info.worker_id)
     }
     pub async fn send_job(&self, job: &Job) -> Result<(), anyhow::Error> {
         let client_builder = reqwest::ClientBuilder::new();

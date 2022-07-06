@@ -24,7 +24,7 @@ lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String =
         env::var("SCHEDULER_ENDPOINT").unwrap_or(String::from("0.0.0.0:3031"));
     pub static ref REPORT_CALLBACK: String =
-        env::var("REPORT_CALLBACK").unwrap_or(String::from("http://127.0.0.1:3031/report"));
+        env::var("REPORT_CALLBACK").expect("There is no env var REPORT_CALLBACK");
     pub static ref SCHEDULER_CONFIG: String =
         env::var("SCHEDULER_CONFIG").unwrap_or(String::from("configs/scheduler.json"));
     pub static ref CONNECTION_POOL_SIZE: u32 = env::var("CONNECTION_POOL_SIZE")

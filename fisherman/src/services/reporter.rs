@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use common::jobs::JobResult;
 use log::{debug, info, trace};
 //use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Receiver;
 use tokio::time::sleep;
 
@@ -23,13 +23,14 @@ impl JobResultReporter {
         loop {
             let mut results = Vec::<JobResult>::new();
             while let Ok(job_result) = self.receiver.try_recv() {
-                info!("Received job result: {:?}", job_result);
+                trace!("Received job result: {:?}", job_result);
                 results.push(job_result);
             }
             if !results.is_empty() {
+                let now = Instant::now();
                 info!("Sending {} results.", results.len());
                 self.send_results(results).await;
-                info!("Finished sending results.");
+                info!("Finished sending results in {:.2?}.", now.elapsed());
             } else {
                 debug!("No job result for report.");
                 sleep(Duration::from_millis(JOB_RESULT_REPORTER_PERIOD)).await;

@@ -209,7 +209,7 @@ impl ReportCheck for HttpPingJudgment {
             }
 
             let res = histogram.percentile(histogram_percentile as f64);
-            log::info!(
+            log::trace!(
                 "Http Ping job on {} has results: {:?} ans histogram {}%: {:?} ",
                 &provider_task.provider_id,
                 &response_durations,

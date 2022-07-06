@@ -27,7 +27,7 @@ impl Appender for ResultCacheAppender {
         key: &ProviderTask,
         results: &Vec<JobResult>,
     ) -> Result<(), anyhow::Error> {
-        log::info!("ResultCacheAppender append results");
+        //log::info!("ResultCacheAppender append results");
         if results.is_empty() {
             return Ok(());
         }

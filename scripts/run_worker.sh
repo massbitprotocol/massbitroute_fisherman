@@ -3,7 +3,7 @@
 export ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
 
 export DOMAIN=massbitroute.net
-export RUST_LOG=debug
+export RUST_LOG=info
 export SCHEDULER_ENDPOINT=https://scheduler.fisherman.$DOMAIN
 export WORKER_ID=$(cat $ROOT/vars/ID)
 export WORKER_IP=$(cat $ROOT/vars/IP)

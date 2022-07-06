@@ -31,7 +31,7 @@ RUN cargo build  --release
 ################
 # ##### Runtime
 FROM debian AS runtime 
-
+WORKDIR /usr/local/bin
 
 COPY scheduler/configs /usr/local/bin/configs
 # Copy application binary from builder image
