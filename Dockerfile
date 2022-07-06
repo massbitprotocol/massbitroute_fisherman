@@ -19,6 +19,7 @@ RUN rustup target add x86_64-unknown-linux-musl
 COPY common  /usr/src/common
 COPY wrap_wrk  /usr/src/wrap_wrk
 COPY entity /usr/src/entity
+COPY migration /usr/src/migration
 
 # Now copy in the rest of the sources
 COPY scheduler /usr/src/fisherman-scheduler/
