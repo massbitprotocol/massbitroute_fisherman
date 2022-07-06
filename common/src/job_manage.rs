@@ -141,11 +141,11 @@ impl JobResultDetail {
             .expect("Time went backwards")
             .as_millis();
         match job.job_detail.as_ref().unwrap() {
-            JobDetail::HttpRequest(rpc) => JobResultDetail::HttpRequest(JobHttpResult::new(
+            JobDetail::HttpRequest(_rpc) => JobResultDetail::HttpRequest(JobHttpResult::new(
                 job.clone(),
                 JobHttpResponse::default(),
             )),
-            JobDetail::RpcRequest(rpc) => JobResultDetail::RpcRequest(JobRpcResult::new(
+            JobDetail::RpcRequest(_rpc) => JobResultDetail::RpcRequest(JobRpcResult::new(
                 job.clone(),
                 JobRpcResponse::default(),
             )),

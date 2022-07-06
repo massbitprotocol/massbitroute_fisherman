@@ -4,17 +4,13 @@ use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use crate::tasks::benchmark::generator::BenchmarkConfig;
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{
-    BenchmarkResponse, JobBenchmarkResult, JobDetail, JobResultDetail, JobRole,
-};
+use common::job_manage::{BenchmarkResponse, JobBenchmarkResult, JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::tasks::LoadConfig;
-use common::{Timestamp, WorkerId};
-use log::{debug, info};
-use sea_orm::DatabaseConnection;
+use common::WorkerId;
+use log::debug;
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]

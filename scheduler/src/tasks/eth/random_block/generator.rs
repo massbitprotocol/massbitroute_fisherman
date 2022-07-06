@@ -2,14 +2,11 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::ComponentInfo;
-use common::job_manage::{JobDetail, JobPing, JobResultDetail, JobRole};
-use common::jobs::Job;
-use common::models::PlanEntity;
+use common::job_manage::JobRole;
 use common::workers::MatchedWorkers;
 use common::{Node, PlanId};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use std::vec;
+
 /*
  * Apply for node to get randome block number and response time
  */

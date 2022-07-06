@@ -8,7 +8,6 @@ pub mod ping;
 pub mod rpc_request;
 
 use crate::job_manage::JobRole;
-use log::info;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 use std::fmt::Debug;

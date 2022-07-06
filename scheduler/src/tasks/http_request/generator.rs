@@ -2,26 +2,18 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
-use anyhow::{anyhow, Context, Error};
-use async_trait::async_trait;
-use common::component::{ChainInfo, ComponentInfo, ComponentType, Zone};
+use anyhow::{anyhow, Error};
+use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
-use common::jobs::{AssignmentConfig, Job, JobAssignment};
+use common::jobs::{Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
-use handlebars::template::TemplateMapping;
 use handlebars::Handlebars;
-use log::{debug, info, trace};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use log::{debug, trace};
+use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::vec;
-use tokio::sync::mpsc::Sender;
-use warp::head;
-use warp::reply::json;
 
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
@@ -158,7 +150,11 @@ impl TaskApplicant for HttpRequestGenerator {
             component,
             &context
         );
-        for config in self.task_configs.iter() {
+        for config in self.task_configs.iter().filter(|config| {
+            config.match_phase(&phase)
+                && config.match_blockchain(&component.blockchain)
+                && config.match_network(&component.network)
+        }) {
             if !config.can_apply(component, &phase) {
                 debug!("Can not apply config {:?} for {:?}", config, component);
                 continue;
@@ -225,7 +221,7 @@ impl TaskApplicant for HttpRequestGenerator {
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
         let mut assignments = Vec::default();
         jobs.iter().enumerate().for_each(|(ind, job)| {
-            for worker in workers.best_workers.iter() {
+            for worker in workers.measured_workers.iter() {
                 let job_assignment = JobAssignment::new(worker.clone(), job);
                 assignments.push(job_assignment);
                 debug!(
