@@ -3,6 +3,7 @@
  */
 
 use crate::models::jobs::AssignmentBuffer;
+use crate::models::TaskDependency;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
@@ -40,12 +41,10 @@ impl BenchmarkGenerator {
         String::from("Benchmark")
     }
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
-        BenchmarkGenerator {
-            config: BenchmarkConfig::load_config(
-                format!("{}/benchmark.json", config_dir).as_str(),
-                role,
-            ),
-        }
+        let config: BenchmarkConfig =
+            BenchmarkConfig::load_config(format!("{}/benchmark.json", config_dir).as_str(), role);
+        log::debug!("Benchmark config {:?}", &config);
+        BenchmarkGenerator { config }
     }
     pub fn get_url(&self, component: &ComponentInfo) -> String {
         format!("https://{}", component.ip)
@@ -55,10 +54,16 @@ impl TaskApplicant for BenchmarkGenerator {
     fn get_name(&self) -> String {
         String::from("Benchmark")
     }
+    fn get_task_dependencies(&self) -> TaskDependency {
+        self.config
+            .dependencies
+            .as_ref()
+            .map(|dep| dep.clone())
+            .unwrap_or_default()
+    }
     fn can_apply(&self, component: &ComponentInfo) -> bool {
         true
     }
-
     fn apply(
         &self,
         plan_id: &PlanId,

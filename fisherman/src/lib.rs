@@ -23,7 +23,7 @@ lazy_static! {
     pub static ref ENVIRONMENT: String = env::var("ENVIRONMENT").unwrap_or(String::from("unset"));
     //Endpoint for scheduler push jobs
     pub static ref WORKER_ENDPOINT: String =
-        env::var("WORKER_ENDPOINT").unwrap_or(String::from("http://127.0.0.1:4040/jobs_handle"));
+        env::var("WORKER_ENDPOINT").unwrap_or(String::from("http://127.0.0.1:4040"));
     //For init webservice
     pub static ref WORKER_SERVICE_ENDPOINT: String =
         env::var("WORKER_SERVICE_ENDPOINT").unwrap_or(String::from("127.0.0.1:4040"));

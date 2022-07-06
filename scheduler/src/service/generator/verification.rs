@@ -44,23 +44,56 @@ pub struct VerificationJobGenerator {
     pub job_service: Arc<JobService>,
     pub assignments: Arc<Mutex<AssignmentBuffer>>,
     pub result_cache: Arc<Mutex<JobResultCache>>,
-    pub generated_plans: Vec<Arc<ProviderPlan>>,
+    pub processing_plans: Vec<Arc<ProviderPlan>>,
+    pub waiting_tasks: Vec<WaitingProviderPlanTask>,
+}
+/*
+ * Struct for store dependent task, waiting for others' results
+ */
+#[derive(Clone)]
+pub struct WaitingProviderPlanTask {
+    provider_plan: Arc<ProviderPlan>,
+    tasks: Vec<Arc<dyn TaskApplicant>>,
 }
 
+impl WaitingProviderPlanTask {
+    fn new(provider_plan: Arc<ProviderPlan>) -> Self {
+        Self {
+            provider_plan,
+            tasks: Vec::new(),
+        }
+    }
+    pub fn add_task(&mut self, task: Arc<dyn TaskApplicant>) {
+        self.tasks.push(task);
+    }
+    pub fn is_empty(&self) -> bool {
+        self.tasks.is_empty()
+    }
+}
 impl VerificationJobGenerator {
     /*
      * Generate verification jobs with task dependencies
      */
     pub async fn generate_jobs(&mut self) {
-        // let expired_plans = self.providers.get_expired_verification_plans().await;
-        // if expired_plans.len() > 0 {
-        //     self.clean_expired_plan(expired_plans).await;
-        // }
+        //Clean up processing plan base on received result
+        self.clean_processing_plan();
+        //renew expired plan
+        self.renew_expired_plan();
+        //Generate jobs for waiting task from previous iteration base on new incoming results
+        if self.waiting_tasks.len() > 0 {
+            log::debug!(
+                "Try generating jobs for {} waiting tasks in queue",
+                self.waiting_tasks.len()
+            );
+            self.generate_jobs_for_waiting_tasks().await;
+        }
+
         let mut providers = self.providers.pop_components_for_verifications().await;
         if providers.len() > 0 {
             log::debug!(
-                "Generate verification jobs for {} providers",
-                providers.len()
+                "Generate verification jobs for {} providers with {} tasks",
+                providers.len(),
+                self.tasks.len()
             );
             let mut total_assignment_buffer = AssignmentBuffer::default();
             for provider_plan in providers.iter() {
@@ -70,57 +103,115 @@ impl VerificationJobGenerator {
                     .await
                     .match_workers(&provider_plan.provider)
                 {
-                    self.generate_provider_plan_jobs(
-                        provider_plan.clone(),
-                        &matched_workers,
-                        &mut total_assignment_buffer,
-                    );
+                    let plan_task = WaitingProviderPlanTask {
+                        provider_plan: provider_plan.clone(),
+                        tasks: self.tasks.clone(),
+                    };
+                    let waiting_task = self
+                        .generate_provider_plan_jobs(
+                            &plan_task,
+                            &matched_workers,
+                            &mut total_assignment_buffer,
+                        )
+                        .await;
+                    if !waiting_task.is_empty() {
+                        self.waiting_tasks.push(waiting_task);
+                    }
                 } else {
-                    log::warn!(
+                    log::debug!(
                         "Workers not found for provider {:?}",
                         &provider_plan.provider
                     );
                 }
             }
-            self.generated_plans.append(&mut providers);
-            let AssignmentBuffer {
-                mut jobs,
-                mut list_assignments,
-            } = total_assignment_buffer;
-            if list_assignments.len() > 0 {
-                self.job_service
-                    .save_job_assignments(&list_assignments)
+            self.processing_plans.append(&mut providers);
+            self.process_assignment_buffer(total_assignment_buffer)
+                .await;
+        }
+    }
+    fn clean_processing_plan(&mut self) {}
+    fn renew_expired_plan(&mut self) {
+        let mut expired_plans = Vec::new();
+        let current_timestamp = get_current_time();
+        self.processing_plans.retain(|plan| {
+            expired_plans.push(plan.clone());
+            if plan.plan.expiry_time < current_timestamp {
+                false
+            } else {
+                true
+            }
+        });
+    }
+    async fn generate_jobs_for_waiting_tasks(&mut self) {
+        let mut assignment_buffer = AssignmentBuffer::default();
+        let mut waiting_tasks = Vec::new();
+        for item in self.waiting_tasks.iter() {
+            let provider_plan = item.provider_plan.clone();
+            if let Ok(matched_workers) = self
+                .worker_infos
+                .lock()
+                .await
+                .match_workers(&provider_plan.provider)
+            {
+                let waiting_task = self
+                    .generate_provider_plan_jobs(item, &matched_workers, &mut assignment_buffer)
                     .await;
-                self.assignments
-                    .lock()
-                    .await
-                    .add_assignments(list_assignments);
-                //Store job assignments to db
+                if !waiting_task.is_empty() {
+                    waiting_tasks.push(waiting_task);
+                }
+            } else {
+                waiting_tasks.push(item.clone());
             }
-            if jobs.len() > 0 {
-                //Store jobs to db
-                self.store_jobs(jobs).await;
-            }
+        }
+        self.waiting_tasks = waiting_tasks;
+        self.process_assignment_buffer(assignment_buffer).await;
+    }
+    async fn process_assignment_buffer(&self, assignment_buffer: AssignmentBuffer) {
+        let AssignmentBuffer {
+            mut jobs,
+            mut list_assignments,
+        } = assignment_buffer;
+        if list_assignments.len() > 0 {
+            self.job_service
+                .save_job_assignments(&list_assignments)
+                .await;
+            self.assignments
+                .lock()
+                .await
+                .add_assignments(list_assignments);
+            //Store job assignments to db
+        }
+        if jobs.len() > 0 {
+            //Store jobs to db
+            self.store_jobs(jobs).await;
         }
     }
     async fn generate_provider_plan_jobs(
         &self,
-        provider_plan: Arc<ProviderPlan>,
+        plan_task: &WaitingProviderPlanTask,
         matched_workers: &MatchedWorkers,
         assignment_buffer: &mut AssignmentBuffer,
-    ) {
-        for task in self.tasks.iter() {
+    ) -> WaitingProviderPlanTask {
+        let provider_plan = plan_task.provider_plan.clone();
+        let mut waiting_task = WaitingProviderPlanTask::new(provider_plan.clone());
+        for task in plan_task.tasks.iter() {
             if !task.can_apply(&provider_plan.provider) {
+                log::debug!(
+                    "Task {} cannot apply for component {}",
+                    task.get_name(),
+                    &provider_plan.provider
+                );
                 continue;
             }
             if self
-                .check_task_for_generation(
+                .check_task_dependencies(
                     provider_plan.clone(),
                     task.get_name().as_str(),
                     task.get_task_dependencies(),
                 )
                 .await
             {
+                log::debug!("Generate jobs for task {}", task.get_name());
                 if let Ok(mut applied_jobs) = task.apply(
                     &provider_plan.plan.plan_id,
                     &provider_plan.provider,
@@ -135,8 +226,12 @@ impl VerificationJobGenerator {
                         assignment_buffer.append(applied_jobs);
                     }
                 }
+            } else {
+                waiting_task.add_task(task.clone());
+                log::debug!("Task {} is not ready for job generation", task.get_name());
             }
         }
+        waiting_task
     }
     async fn clean_expired_plan(&self, plans: Vec<Arc<ProviderPlan>>) {
         //Todo: Implementation
@@ -163,115 +258,40 @@ impl VerificationJobGenerator {
      * true: task ready for generation
      * false: task must is in waiting state
      */
-    async fn check_task_for_generation(
+    async fn check_task_dependencies(
         &self,
         provider_plan: Arc<ProviderPlan>,
         current_task_type: &str,
         task_dependencies: TaskDependency,
     ) -> bool {
         //No dependencies
+        log::debug!(
+            "Check task dependencies for {:?} with dependencies {:?}",
+            current_task_type,
+            &task_dependencies
+        );
         if task_dependencies.is_empty() {
             return true;
         }
         for (task_type, task_names) in task_dependencies {
             for name in task_names {
-                if let Some(task_result) = self.result_cache.lock().await.get_judg_result(
-                    provider_plan.clone(),
-                    &task_type,
-                    &name,
-                ) {
-                    if task_result != JudgmentsResult::Pass {
-                        debug!(
-                            "Task {}.{} is not passed while try to generate task {}",
-                            &name, &task_type, current_task_type
-                        );
-                        return false;
-                    }
+                let task_result = self
+                    .result_cache
+                    .lock()
+                    .await
+                    .get_judg_result(provider_plan.clone(), &task_type, &name)
+                    .unwrap_or(JudgmentsResult::Unfinished);
+                if task_result != JudgmentsResult::Pass {
+                    debug!(
+                        "Task {}.{} is not passed while try to generate task {}",
+                        &name, &task_type, current_task_type
+                    );
+                    return false;
                 }
             }
         }
         return true;
     }
-    /*
-     * For verification job (long job) find next available worker
-     */
-    /*
-    pub async fn _generate_verification_jobs(&mut self) {
-        //let mut gen_jobs = HashMap::<Zone, Vec<Job>>::new();
-        let mut total_assignment_buffer = AssignmentBuffer::default();
-        // Get Nodes for verification
-        let nodes = self.providers.pop_nodes_for_verifications().await;
-
-        if nodes.len() > 0 {
-            log::debug!("Generate verification jobs for {} nodes", nodes.len());
-            for provider_plan in nodes.iter() {
-                let matched_workers = self
-                    .worker_infos
-                    .lock()
-                    .await
-                    .match_workers(&provider_plan.provider)
-                    .unwrap_or(MatchedWorkers::default());
-                for task in self.tasks.iter() {
-                    if !task.can_apply(&provider_plan.provider) {
-                        continue;
-                    }
-                    if let Ok(applied_jobs) = task.apply(
-                        &provider_plan.plan.plan_id,
-                        &provider_plan.provider,
-                        JobRole::Verification,
-                        &matched_workers,
-                    ) {
-                        total_assignment_buffer.append(applied_jobs);
-                    }
-                }
-            }
-        }
-        //Generate jobs for gateways
-        let gateways = self.providers.pop_gateways_for_verifications().await;
-        if gateways.len() > 0 {
-            log::debug!("Generate verification jobs for {} gateways", gateways.len());
-            for provider_plan in gateways.iter() {
-                let matched_workers = self
-                    .worker_infos
-                    .lock()
-                    .await
-                    .match_workers(&provider_plan.provider)
-                    .unwrap_or(MatchedWorkers::default());
-                for task in self.tasks.iter() {
-                    if !task.can_apply(&provider_plan.provider) {
-                        continue;
-                    }
-                    if let Ok(applied_jobs) = task.apply(
-                        &provider_plan.plan.plan_id,
-                        &provider_plan.provider,
-                        JobRole::Verification,
-                        &matched_workers,
-                    ) {
-                        total_assignment_buffer.append(applied_jobs);
-                    }
-                }
-            }
-        }
-        let AssignmentBuffer {
-            mut jobs,
-            mut list_assignments,
-        } = total_assignment_buffer;
-        if list_assignments.len() > 0 {
-            self.job_service
-                .save_job_assignments(&list_assignments)
-                .await;
-            self.assignments
-                .lock()
-                .await
-                .add_assignments(list_assignments);
-            //Store job assignments to db
-        }
-        if jobs.len() > 0 {
-            //Store jobs to db
-            self.store_jobs(jobs).await;
-        }
-    }
-     */
     pub async fn store_jobs(&self, jobs: Vec<Job>) -> Result<(), anyhow::Error> {
         let mut gen_plans = HashSet::<String>::default();
         for job in jobs.iter() {

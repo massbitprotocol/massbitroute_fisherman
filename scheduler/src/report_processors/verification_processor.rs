@@ -343,7 +343,7 @@ impl VerificationReportProcessor {
             JudgmentsResult::Failed | JudgmentsResult::Pass | JudgmentsResult::Error => {
                 let mut report = StoreReport::build(
                     &"Scheduler".to_string(),
-                    &JobRole::Regular,
+                    &JobRole::Verification,
                     &*PORTAL_AUTHORIZATION,
                     &DOMAIN,
                 );

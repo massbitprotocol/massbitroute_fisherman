@@ -221,7 +221,7 @@ impl TaskApplicant for HttpRequestGenerator {
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
         let mut assignments = Vec::default();
         jobs.iter().enumerate().for_each(|(ind, job)| {
-            for worker in workers.best_workers.iter() {
+            for worker in workers.measured_workers.iter() {
                 let job_assignment = JobAssignment::new(worker.clone(), job);
                 assignments.push(job_assignment);
                 debug!(

@@ -60,7 +60,8 @@ impl JobGenerator {
             job_service: job_service.clone(),
             assignments: assignments.clone(),
             result_cache: result_cache.clone(),
-            generated_plans: vec![],
+            processing_plans: vec![],
+            waiting_tasks: vec![],
         };
 
         let regular = RegularJobGenerator {
