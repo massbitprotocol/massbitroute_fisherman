@@ -437,9 +437,6 @@ create table if not exists job_result_benchmarks
 );
 
 
-create unique index job_result_benchmarks_id_uindex
-    on job_result_benchmarks (id);
-
 create table if not exists job_result_pings
 (
     id                  bigserial
@@ -495,9 +492,6 @@ create table if not exists plans
     expiry_time  bigint default 0 not null
 );
 
-
-create unique index plans_id_uindex
-    on plans (id);
 
 create table if not exists job_assignments
 (

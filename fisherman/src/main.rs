@@ -47,7 +47,6 @@ async fn main() {
         let service = WebServiceBuilder::new().build();
         let access_control = AccessControl::default();
         // Create job process thread
-        //let task_process_job = create_job_process_thread(receiver);
         let server = WebServerBuilder::default()
             .with_entry_point(WORKER_SERVICE_ENDPOINT.as_str())
             .with_access_control(access_control)
@@ -137,29 +136,4 @@ async fn try_register() -> Result<WorkerRegisterResult, anyhow::Error> {
         sleep(Duration::from_millis(2000));
     }
     Err(anyhow!("Cannot register worker"))
-}
-
-async fn register() -> Result<WorkerRegisterResult, anyhow::Error> {
-    let client_builder = reqwest::ClientBuilder::new();
-    let client = client_builder.danger_accept_invalid_certs(true).build()?;
-    let worker_info = WorkerInfo::new(
-        WORKER_ID.as_str(),
-        WORKER_ENDPOINT.as_str(),
-        WORKER_IP.as_str(),
-        ZONE.as_str(),
-    );
-    let scheduler_url = SCHEDULER_ENDPOINT.as_str();
-    let request_builder = client
-        .post(scheduler_url.to_string())
-        .header("content-type", "application/json")
-        .body(serde_json::to_string(&worker_info)?);
-    debug!("request_builder: {:?}", request_builder);
-    let response = request_builder.send().await?;
-    match response.status() {
-        StatusCode::OK => match response.json::<WorkerRegisterResult>().await {
-            Ok(parsed) => Ok(parsed),
-            Err(err) => Err(anyhow!(format!("{:?}", &err))),
-        },
-        _ => Err(anyhow!("Cannot register worker")),
-    }
 }
