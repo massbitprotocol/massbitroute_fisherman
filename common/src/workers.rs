@@ -32,7 +32,7 @@ impl WorkerInfo {
         let zone = match Zone::from_str(zone) {
             Ok(zone) => zone,
             Err(_) => {
-                panic!("Please enter worker zone!!!");
+                panic!("ZONE={}, please enter correct worker zone!!!", zone);
             }
         };
         WorkerInfo {

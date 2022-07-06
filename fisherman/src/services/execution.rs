@@ -6,14 +6,15 @@ use crate::{
 };
 use common::jobs::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
-use log::trace;
+use log::{debug, trace};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::thread::sleep;
+// use std::thread::sleep;
 use std::time::Duration;
 use tokio::runtime::{Builder, Runtime};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::Mutex;
+use tokio::time::sleep;
 /*
  * For repeated jobs, after execution executor generate new job with new parameters and push back to JobBuffer
  */
@@ -77,7 +78,7 @@ impl JobExecution {
                 } else {
                     //wait until all task in  parallelable runtime pool is terminated
                     while self.thread_counter.load(Ordering::Relaxed) > 0 {
-                        sleep(Duration::from_millis(*WAITING_TIME_FOR_EXECUTING_THREAD))
+                        sleep(Duration::from_millis(*WAITING_TIME_FOR_EXECUTING_THREAD)).await;
                     }
                     for executor in self.executors.iter() {
                         let can_apply = executor.can_apply(&next_job);
@@ -94,7 +95,8 @@ impl JobExecution {
             //Jun 13 - Don't use this anymore
             //Get new generated jobs
             //self.get_jobs_from_executions().await;
-            sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD));
+            debug!("No Job for execution.");
+            sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD)).await;
         }
     }
     // pub async fn get_jobs_from_executions(&mut self) {
