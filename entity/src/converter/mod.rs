@@ -1,11 +1,12 @@
-use crate::persistence::seaorm::{
+use crate::seaorm::plans::Model as PlanModel;
+use crate::seaorm::{
     job_assignments, job_result_benchmarks, job_result_http_requests, job_result_latest_blocks,
     job_result_pings, jobs, plans, workers,
 };
-use crate::persistence::PlanModel;
-use common::component::{ChainInfo, ComponentType};
+use common::component::{ChainInfo, ComponentType, Zone};
 use common::job_manage::{JobBenchmarkResult, JobDetail, JobResultDetail, JobRole};
 use common::jobs::{Job, JobAssignment, JobResult};
+use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::http_request::JobHttpResult;
@@ -13,15 +14,12 @@ use common::tasks::ping::JobPingResult;
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
 use core::default::Default;
-use diesel::expression::array_comparison::In;
 use log::debug;
-use sea_orm::sea_query::ConditionHolderContents::Chain;
 use sea_orm::ActiveValue::Set;
 use sea_orm::NotSet;
 use serde_json::{Error, Value};
 use std::collections::HashMap;
 use std::str::FromStr;
-use warp::header::value;
 
 impl From<&WorkerInfo> for workers::ActiveModel {
     fn from(worker: &WorkerInfo) -> Self {
@@ -65,6 +63,7 @@ impl From<&Job> for jobs::ActiveModel {
 
         jobs::ActiveModel {
             job_id: Set(job.job_id.to_owned()),
+            job_type: Set(job.job_type.to_owned()),
             job_name: Set(job.job_name.to_owned()),
             plan_id: Set(job.plan_id.to_string()),
             component_id: Set(job.component_id.to_owned()),
@@ -100,11 +99,11 @@ impl From<&JobAssignment> for job_assignments::ActiveModel {
 }
 
 impl job_result_pings::Model {
-    pub fn add_response_time(&mut self, response_time: i64) {
-        if let Some(response_times) = self.response_times.as_array_mut() {
-            response_times.push(Value::from(response_time))
+    pub fn add_response_time(&mut self, response_duration: i64) {
+        if let Some(response_durations) = self.response_durations.as_array_mut() {
+            response_durations.push(Value::from(response_duration))
         } else {
-            self.response_times = Value::Array(vec![Value::from(response_time)]);
+            self.response_durations = Value::Array(vec![Value::from(response_duration)]);
         }
     }
 }
@@ -127,6 +126,7 @@ impl From<&jobs::Model> for Job {
 
         Job {
             job_id: model.job_id.to_string(),
+            job_type: model.job_type.to_string(),
             job_name: model.job_name.to_string(),
             plan_id: model.plan_id.to_string(),
             component_id: model.component_id.to_string(),
@@ -159,8 +159,8 @@ impl From<&JobPingResult> for job_result_pings::Model {
                 provider_type: result.job.component_type.to_string(),
                 execution_timestamp: 0,
                 recorded_timestamp: 0,
-                response_times: Value::Array(vec![Value::from(
-                    result.response.response_time as i64,
+                response_durations: Value::Array(vec![Value::from(
+                    result.response.response_duration as i64,
                 )]),
                 error_number: 0,
             }
@@ -174,7 +174,7 @@ impl From<&JobPingResult> for job_result_pings::Model {
                 provider_type: result.job.component_type.to_string(),
                 execution_timestamp: 0,
                 recorded_timestamp: 0,
-                response_times: Value::Array(vec![]),
+                response_durations: Value::Array(vec![]),
                 error_number: 1,
             }
         }
@@ -189,7 +189,7 @@ impl job_result_pings::ActiveModel {
             worker_id: Set(model.worker_id.to_owned()),
             provider_id: Set(model.provider_id.to_owned()),
             provider_type: Set(model.provider_type.to_string()),
-            response_times: Set(model.response_times.clone()),
+            response_durations: Set(model.response_durations.clone()),
             error_number: Set(model.error_number),
             ..Default::default()
         }
@@ -205,7 +205,7 @@ impl From<&JobPingResult> for job_result_pings::ActiveModel {
             worker_id: Set(result.worker_id.to_owned()),
             provider_id: Set(result.job.component_id.to_owned()),
             provider_type: Set(result.job.component_type.to_string()),
-            response_times: Set(result.response.response_time as i64),
+            response_durations: Set(result.response.response_duration as i64),
             ..Default::default()
         }
     }
@@ -260,7 +260,7 @@ impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
             http_code: Set(result.response.http_code as i32),
             error_code: Set(result.response.error_code as i32),
             message: Set(result.response.message.to_string()),
-            response_time: Set(result.response.response_time),
+            response_duration: Set(result.response.response_duration),
             execution_timestamp: Set(result.execution_timestamp as i64),
             block_hash: Set(result.response.block_hash.to_owned()),
             ..Default::default()
@@ -295,7 +295,7 @@ impl From<&JobResult> for job_result_http_requests::ActiveModel {
             error_code: Set(result.response.error_code as i32),
             message: Set(result.response.message.to_string()),
             values: Set(values),
-            response_time: Set(result.response.response_time),
+            response_duration: Set(result.response.response_duration),
         }
     }
 }
@@ -307,6 +307,7 @@ impl From<&PlanEntity> for plans::ActiveModel {
             provider_id: Set(entity.provider_id.to_owned()),
             request_time: Set(entity.request_time.to_owned()),
             finish_time: Set(entity.finish_time.to_owned()),
+            expiry_time: Set(entity.expiry_time.to_owned()),
             result: Set(entity.result.to_owned()),
             message: Set(entity.message.to_owned()),
             status: Set(entity.status.to_string()),
@@ -328,6 +329,40 @@ impl From<&PlanEntity> for PlanModel {
             message: None,
             status: entity.status.to_string(),
             phase: entity.phase.to_string(),
+            expiry_time: entity.expiry_time,
+        }
+    }
+}
+impl From<&crate::plans::Model> for PlanEntity {
+    fn from(info: &crate::plans::Model) -> Self {
+        PlanEntity {
+            id: info.id.clone(),
+            provider_id: info.provider_id.clone(),
+            request_time: info.request_time.clone(),
+            finish_time: info.finish_time.clone(),
+            expiry_time: info.expiry_time.clone(),
+            result: info.result.clone(),
+            message: info.message.clone(),
+            status: PlanStatus::from_str(&*info.status).unwrap_or_default(),
+            plan_id: info.plan_id.clone(),
+            phase: info.phase.clone(),
+        }
+    }
+}
+
+impl From<&workers::Model> for WorkerInfo {
+    fn from(info: &workers::Model) -> Self {
+        let zone = match Zone::from_str(info.zone.as_str()) {
+            Ok(zone) => zone,
+            Err(err) => Zone::default(),
+        };
+        WorkerInfo {
+            worker_id: info.worker_id.clone(),
+            worker_ip: info.worker_ip.clone(),
+            url: info.url.clone(),
+            zone,
+            worker_spec: Default::default(),
+            available_time_frame: None,
         }
     }
 }

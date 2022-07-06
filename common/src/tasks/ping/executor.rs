@@ -1,19 +1,14 @@
 use crate::job_manage::{JobDetail, JobResultDetail};
 use crate::jobs::{Job, JobResult};
-use crate::logger::helper::message;
 use crate::tasks::executor::TaskExecutor;
 use crate::tasks::ping::{CallPingError, JobPingResult, PingResponse};
-use crate::util::get_current_time;
-use crate::{task_spawn, WorkerId};
+use crate::WorkerId;
 use anyhow::Error;
 use async_trait::async_trait;
-use log::{debug, info};
-use reqwest::{get, Client};
-use serde::{Deserialize, Serialize};
-use std::fmt::format;
+use log::debug;
+use reqwest::Client;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Default)]
 pub struct PingExecutor {
@@ -32,7 +27,7 @@ impl PingExecutor {
         }
     }
     pub async fn call_ping(&self, job: &Job) -> Result<PingResponse, CallPingError> {
-        // Measure response_time
+        // Measure response_duration
         let now = Instant::now();
         let resp = self
             .client
@@ -47,10 +42,10 @@ impl PingExecutor {
             .await
             .map_err(|err| CallPingError::GetBodyError(format!("{}", err)))?;
 
-        let response_time = now.elapsed();
+        let response_timestamp = now.elapsed();
 
         let ping_result = PingResponse {
-            response_time: response_time.as_millis() as i64,
+            response_duration: response_timestamp.as_millis() as i64,
             response_body,
             http_code,
             error_code: 0,

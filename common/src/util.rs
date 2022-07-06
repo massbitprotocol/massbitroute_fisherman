@@ -1,6 +1,7 @@
 use crate::Timestamp;
+use anyhow::anyhow;
 use log::debug;
-use regex::{Error, Regex};
+use regex::Regex;
 
 pub fn get_current_time() -> Timestamp {
     std::time::SystemTime::now()
@@ -24,10 +25,25 @@ pub fn remove_break_line(input: &String) -> String {
     }
 }
 
+pub fn from_str_radix16(input: &str) -> Result<i64, anyhow::Error> {
+    let result = Regex::new(r#"0x(?P<result>\w+)"#)
+        .map_err(|err| anyhow!("{:?}", err))
+        .and_then(|regex| regex.captures(input).ok_or(anyhow!("Capture not found")))
+        .and_then(|caps| caps.name("result").ok_or(anyhow!("Match result not found")))
+        .and_then(|m| i64::from_str_radix(m.as_str(), 16).map_err(|err| anyhow!("{:?}", err)));
+    result
+}
 #[test]
 fn test_remove_break_line() {
     let input = "  1\t\n".to_string();
     let output = remove_break_line(&input);
     assert_eq!(output.as_str(), "1");
     assert_eq!(remove_break_line(&String::from(" 12 \n")).as_str(), "12")
+}
+
+#[test]
+fn test_from_str_radix16() {
+    let input = "0x12";
+    let output = from_str_radix16(input).ok();
+    assert_eq!(output, Some(18));
 }

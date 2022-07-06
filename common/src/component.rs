@@ -1,6 +1,8 @@
 use crate::{BlockChainType, ChainId, ComponentId, NetworkType, UrlType};
 use crate::{Deserialize, Serialize};
 use anyhow::{anyhow, Error};
+use std::fmt;
+use std::fmt::Formatter;
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default, Hash, PartialEq, Eq)]
@@ -43,6 +45,12 @@ impl ComponentInfo {
 
     pub fn get_chain_id(&self) -> String {
         format!("{}.{}", self.blockchain, self.network)
+    }
+}
+
+impl fmt::Display for ComponentInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "({:?} {:?} {})", self.zone, self.component_type, self.id,)
     }
 }
 

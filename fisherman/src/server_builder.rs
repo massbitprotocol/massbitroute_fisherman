@@ -1,23 +1,18 @@
 use crate::server_config::AccessControl;
 use common::jobs::Job;
-use log::{debug, info};
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
 
-use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::sync::mpsc::Sender;
 use warp::http::{HeaderMap, Method};
 
 use crate::services::WebService;
 use crate::state::WorkerState;
-use common::workers::WorkerInfo;
 use common::workers::WorkerStateParam;
 use std::default::Default;
 use tokio::sync::Mutex;
-use warp::reply::Json;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
@@ -110,7 +105,11 @@ impl WorkerServer {
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |jobs: Vec<Job>| {
-                info!("#### Received handle_jobs request body {:?} ####", &jobs);
+                info!(
+                    "#### Received {} handle_jobs request body {:?} ####",
+                    &jobs.len(),
+                    &jobs
+                );
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move { clone_service.handle_jobs(jobs, clone_state).await }
@@ -141,7 +140,7 @@ impl WorkerServer {
             .and(WorkerServer::log_headers())
             .and(warp::get())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |param: WorkerStateParam| {
+            .and_then(move |_param: WorkerStateParam| {
                 info!("#### Received request body ####");
                 let clone_service = service.clone();
                 let clone_state = state.clone();
@@ -177,10 +176,10 @@ impl WorkerServer {
     fn log_headers() -> impl Filter<Extract = (), Error = Infallible> + Copy {
         warp::header::headers_cloned()
             .map(|headers: HeaderMap| {
-                debug!("#### Received request header ####");
+                trace!("#### Received request header ####");
                 for (k, v) in headers.iter() {
                     // Error from `to_str` should be handled properly
-                    debug!(
+                    trace!(
                         "{}: {}",
                         k,
                         v.to_str().expect("Failed to print header value")

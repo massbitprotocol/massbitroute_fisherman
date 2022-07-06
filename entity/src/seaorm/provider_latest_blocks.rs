@@ -3,24 +3,17 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "job_result_latest_blocks")]
+#[sea_orm(table_name = "provider_latest_blocks")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub job_id: String,
-    pub worker_id: String,
     pub provider_id: String,
-    pub provider_type: String,
-    pub execution_timestamp: i64,
-    pub chain_id: String,
-    pub block_number: i64,
-    pub block_timestamp: i64,
-    pub plan_id: String,
-    pub block_hash: String,
-    pub http_code: i32,
-    pub error_code: i32,
-    pub message: String,
-    pub response_time: i64,
+    pub blockchain: String,
+    pub network: String,
+    pub block_number: Option<i64>,
+    pub block_timestamp: Option<i64>,
+    pub block_hash: Option<String>,
+    pub response_timestamp: Option<i64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

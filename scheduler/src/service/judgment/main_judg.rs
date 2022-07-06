@@ -10,18 +10,49 @@ use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult, JobResultWithJob};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
-use common::{JobId, DOMAIN};
+use common::{ComponentId, JobId, PlanId, DOMAIN};
 use log::{debug, error, info};
+use migration::IndexType::Hash;
 use sea_orm::DatabaseConnection;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct MainJudgment {
     result_service: Arc<JobResultService>,
     judgments: Vec<Arc<dyn ReportCheck>>,
+    judgment_result_cache: LatestJudgmentCache,
+}
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Default)]
+pub struct JudgmentKey {
+    pub plan_id: PlanId,
+    pub job_id: JobId,
+}
+
+impl JudgmentKey {
+    pub fn new(plan_id: PlanId, job_id: JobId) -> JudgmentKey {
+        Self { plan_id, job_id }
+    }
+}
+#[derive(Debug, Default)]
+pub struct LatestJudgmentCache {
+    values: Mutex<HashMap<JudgmentKey, JudgmentsResult>>,
+}
+
+impl LatestJudgmentCache {
+    pub fn insert_value(&self, plan_id: PlanId, job_id: JobId, judg_result: JudgmentsResult) {
+        let key = JudgmentKey::new(plan_id, job_id);
+        let mut map = self.values.lock().unwrap();
+        map.insert(key, judg_result);
+    }
+    pub fn get_value(&self, key: &JudgmentKey) -> Option<JudgmentsResult> {
+        let values = self.values.lock().unwrap();
+        values.get(key).map(|r| r.clone())
+    }
 }
 
 impl MainJudgment {
@@ -30,49 +61,86 @@ impl MainJudgment {
         MainJudgment {
             result_service,
             judgments,
+            judgment_result_cache: Default::default(),
         }
+    }
+    pub fn put_judment_result(&self, plan: &PlanEntity, job_id: JobId, result: JudgmentsResult) {
+        self.judgment_result_cache
+            .insert_value(plan.plan_id.clone(), job_id.clone(), result);
+    }
+    pub fn get_latest_judgment(
+        &self,
+        plan: &PlanEntity,
+        job_id: &JobId,
+    ) -> Option<JudgmentsResult> {
+        let key = JudgmentKey::new(plan.plan_id.clone(), job_id.clone());
+        self.judgment_result_cache
+            .get_value(&key)
+            .map(|r| r.clone())
     }
     /*
      * for each plan, check result of all judgment,
      * For judgment wich can apply for input provider task, do judgment base on input result,
      * For other judgments get result by plan
      */
-    pub async fn judg_provider_results(
+    pub async fn apply_for_verify(
         &self,
         provider_task: &ProviderTask,
         plan: &PlanEntity,
         results: &Vec<JobResult>,
-        jobs: &HashMap<JobId, Job>,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
-        let mut plan_result = JudgmentsResult::Pass;
-
+        plan_jobs: &Vec<Job>,
+    ) -> Result<HashMap<JobId, JudgmentsResult>, anyhow::Error> {
+        //Judg received results
+        debug!(
+            "Make judgment for {} job results of plan {} with provider {:?} and {} jobs",
+            results.len(),
+            &plan.plan_id,
+            provider_task,
+            plan_jobs.len()
+        );
+        let mut total_result = HashMap::<JobId, JudgmentsResult>::new();
+        let mut currentjob_result = JudgmentsResult::Unfinished;
+        let job_id = results
+            .get(0)
+            .map(|job_result| job_result.job_id.clone())
+            .unwrap_or_default();
         for judgment in self.judgments.iter() {
-            let judg_result = if !judgment.can_apply_for_result(&provider_task) {
-                //Get judgment result from cache o db
-                judgment.get_latest_judgment(provider_task, plan).await?
-            } else {
-                let judg_result = judgment
+            if judgment.can_apply_for_result(provider_task) {
+                currentjob_result = judgment
                     .apply_for_results(provider_task, &results)
                     .await
                     .unwrap_or(JudgmentsResult::Failed);
                 info!(
-                    "Judgment result {:?} for provider {:?} with results {:?}",
-                    &judg_result, provider_task, results
+                    "Verify judgment result {:?} for provider {:?} with results {:?}",
+                    &currentjob_result, provider_task, results
                 );
-
-                judg_result
+                total_result.insert(job_id.clone(), currentjob_result.clone());
             };
-            //Store first un Pass judgment result
-            match judg_result {
-                JudgmentsResult::Pass => {}
-                JudgmentsResult::Failed | JudgmentsResult::Unfinished | JudgmentsResult::Error => {
-                    //Failed if single task failed
-                    return Ok(judg_result);
+        }
+
+        //Put judgment result to cache
+        self.put_judment_result(plan, job_id, currentjob_result.clone());
+        //Input plan_result as result of current job
+        for job in plan_jobs {
+            match self.get_latest_judgment(plan, &job.job_id) {
+                Some(latest_result) => {
+                    debug!(
+                        "Latest result of plan {:?}, job {:?} is {:?}",
+                        &plan.plan_id, &job.job_id, &latest_result
+                    );
+                    total_result.insert(job.job_id.clone(), latest_result);
+                }
+                None => {
+                    debug!(
+                        "Result not found for plan {:?} and job {:?}",
+                        &plan.plan_id, &job.job_id
+                    );
+                    total_result.insert(job.job_id.clone(), JudgmentsResult::Unfinished);
                 }
             }
         }
         //If all task pass then plan result is Pass
-        Ok(plan_result)
+        Ok(total_result)
     }
     /*
     pub async fn apply(
@@ -124,7 +192,7 @@ impl MainJudgment {
     /*
      * Use for regular judgment
      */
-    pub async fn apply_for_provider(
+    pub async fn apply_for_regular(
         &self,
         provider_task: &ProviderTask,
         results: &Vec<JobResult>,
@@ -144,8 +212,8 @@ impl MainJudgment {
                 .await
                 .unwrap_or(JudgmentsResult::Failed);
             info!(
-                "Judgment result {:?} for provider {:?} with results {:?}",
-                &judg_result, provider_task, results
+                "Regular judgment result {:?} on task {} for provider {:?}",
+                &judg_result, provider_task.task_name, provider_task.provider_id
             );
             match judg_result {
                 JudgmentsResult::Failed | JudgmentsResult::Error => {
@@ -161,7 +229,8 @@ impl MainJudgment {
                         let res = report.send_data().await;
                         info!("Send report to portal res: {:?}", res);
                     } else {
-                        let res = report.write_data();
+                        let result = json!({"provider_task":provider_task,"result":judg_result});
+                        let res = report.write_data(result);
                         info!("Write report to file res: {:?}", res);
                     }
                 }

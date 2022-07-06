@@ -4,21 +4,124 @@ use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use crate::tasks::benchmark::generator::BenchmarkConfig;
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{JobDetail, JobRole};
+use common::job_manage::{
+    BenchmarkResponse, JobBenchmarkResult, JobDetail, JobResultDetail, JobRole,
+};
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::tasks::LoadConfig;
-use common::Timestamp;
-use log::info;
+use common::{Timestamp, WorkerId};
+use log::{debug, info};
 use sea_orm::DatabaseConnection;
+use std::collections::HashMap;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+#[derive(Debug, Default)]
+pub struct BenchmarkResultCache {
+    benchmarks: Mutex<HashMap<ProviderTask, ProviderBenchmarkResult>>,
+}
+#[derive(Clone, Debug, Default)]
+pub struct ProviderBenchmarkResult {
+    best_benchmark: BestBenchmarkResult,
+    worker_benchmarks: HashMap<WorkerId, BenchmarkResponse>,
+}
+#[derive(Clone, Debug, Default)]
+pub struct BestBenchmarkResult {
+    pub result_count: usize,
+    pub worker_id: WorkerId,
+    pub response: BenchmarkResponse,
+}
+
+impl BestBenchmarkResult {
+    pub fn new(result_count: usize, worker_id: WorkerId, response: BenchmarkResponse) -> Self {
+        Self {
+            result_count,
+            worker_id,
+            response,
+        }
+    }
+    //Check if current is greater than other
+    pub fn greater(&self, other: &BestBenchmarkResult, percentile: u32) -> bool {
+        if let (Some(v1), Some(v2)) = (
+            self.response.histograms.get(&percentile),
+            other.response.histograms.get(&percentile),
+        ) {
+            return v1 > v2;
+        }
+        false
+    }
+}
+impl ProviderBenchmarkResult {
+    pub fn add_results(
+        &mut self,
+        benchmark_results: Vec<JobBenchmarkResult>,
+        histogram_percentile: u32,
+    ) -> Option<BestBenchmarkResult> {
+        if benchmark_results.is_empty() {
+            return None;
+        }
+        let first = benchmark_results.first().unwrap();
+        let mut best_benchmark = BestBenchmarkResult::new(
+            self.worker_benchmarks.len() + benchmark_results.len(),
+            first.worker_id.clone(),
+            first.response.clone(),
+        );
+        for result in benchmark_results.into_iter() {
+            self.worker_benchmarks
+                .insert(result.worker_id.clone(), result.response.clone());
+            if let (Some(best), Some(cur)) = (
+                best_benchmark
+                    .response
+                    .histograms
+                    .get(&histogram_percentile),
+                result.response.histograms.get(&histogram_percentile),
+            ) {
+                if best < cur {
+                    best_benchmark.response = result.response.clone();
+                    best_benchmark.worker_id = result.worker_id.clone();
+                }
+            }
+        }
+        if !self
+            .best_benchmark
+            .greater(&best_benchmark, histogram_percentile)
+        {
+            self.best_benchmark = best_benchmark;
+        }
+        Some(self.best_benchmark.clone())
+    }
+}
+impl BenchmarkResultCache {
+    pub async fn append_results(
+        &self,
+        provider_task: &ProviderTask,
+        results: &Vec<JobResult>,
+        histogram_percentile: u32,
+    ) -> Option<BestBenchmarkResult> {
+        if results.is_empty() {
+            return None;
+        }
+        let mut benchmark_results = Vec::default();
+        for res in results.iter() {
+            if let JobResultDetail::Benchmark(benchmark_result) = &res.result_detail {
+                benchmark_results.push(benchmark_result.clone());
+            }
+        }
+        let mut povider_benchmark_result = self.benchmarks.lock().unwrap();
+
+        povider_benchmark_result
+            .entry(provider_task.clone())
+            .or_insert(ProviderBenchmarkResult::default())
+            .add_results(benchmark_results, histogram_percentile)
+    }
+}
 #[derive(Debug)]
 pub struct BenchmarkJudgment {
     result_service: Arc<JobResultService>,
     verification_config: BenchmarkConfig,
     regular_config: BenchmarkConfig,
+    result_cache: BenchmarkResultCache,
 }
 
 impl BenchmarkJudgment {
@@ -35,19 +138,20 @@ impl BenchmarkJudgment {
             result_service,
             verification_config,
             regular_config,
+            result_cache: BenchmarkResultCache::default(),
         }
     }
 }
 
 #[async_trait]
 impl ReportCheck for BenchmarkJudgment {
-    fn can_apply(&self, job: &Job) -> bool {
-        match job.job_name.as_str() {
-            "Benchmark" => true,
-            _ => false,
-        }
+    fn get_name(&self) -> String {
+        String::from("Benchmark")
     }
 
+    fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
+        return task.task_name.as_str() == "Benchmark";
+    }
     async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         //Todo: unimplement
         Ok(JudgmentsResult::Unfinished)
@@ -97,8 +201,42 @@ impl ReportCheck for BenchmarkJudgment {
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
-        result: &Vec<JobResult>,
+        results: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
-        Ok(JudgmentsResult::Error)
+        if results.is_empty() {
+            return Ok(JudgmentsResult::Unfinished);
+        }
+        let phase = results.first().unwrap().phase.clone();
+        let config = match phase {
+            JobRole::Verification => &self.verification_config,
+            JobRole::Regular => &self.regular_config,
+        };
+        if let Some(best_benchmark) = self
+            .result_cache
+            .append_results(provider_task, results, config.judge_histogram_percentile)
+            .await
+        {
+            debug!(
+                "Best benchmark result for provider {:?} is {:?}",
+                provider_task.provider_id, &best_benchmark
+            );
+            if let Some(res) = best_benchmark
+                .response
+                .histograms
+                .get(&config.judge_histogram_percentile)
+            {
+                debug!(
+                    "Histogram value at {}% is {}. Config response time threshold {:?}",
+                    &config.judge_histogram_percentile, res, config.response_threshold
+                );
+                if *res < config.response_threshold as f32 {
+                    return Ok(JudgmentsResult::Pass);
+                } else {
+                    return Ok(JudgmentsResult::Failed);
+                }
+            }
+        }
+
+        Ok(JudgmentsResult::Unfinished)
     }
 }

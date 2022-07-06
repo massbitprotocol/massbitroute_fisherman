@@ -2,8 +2,6 @@ use anyhow::Error;
 use bytesize::ByteSize;
 use log::{debug, info};
 use regex::Regex;
-use std::io::stdout;
-use std::path::Component;
 use std::process::Command;
 use std::str::FromStr;
 use std::time::Duration;
@@ -256,7 +254,7 @@ impl WrkBenchmark {
         latency
     }
 
-    fn get_report(&self, stdout: &String, percent_pass_latency: f32) -> Result<WrkReport, Error> {
+    fn get_report(&self, stdout: &String, _percent_pass_latency: f32) -> Result<WrkReport, Error> {
         //info!("{}", stdout);
         // Get percent_low_latency
         let sorted_table = self.get_latency_table(stdout)?;

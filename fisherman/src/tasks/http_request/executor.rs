@@ -2,24 +2,18 @@ use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobDetail, JobResultDetail};
 use common::jobs::{Job, JobResult};
-use common::logger::helper::message;
 use common::tasks::executor::TaskExecutor;
 use common::tasks::http_request::{
     HttpRequestError, HttpResponseValues, JobHttpResponse, JobHttpResponseDetail, JobHttpResult,
 };
-use common::tasks::ping::{CallPingError, JobPingResult};
-use common::tasks::rpc_request::{JobRpcResponse, JobRpcResult, RpcRequestError};
 use common::util::{get_current_time, remove_break_line};
-use common::{task_spawn, WorkerId};
-use log::{debug, error, info};
-use reqwest::{get, Client, Response};
-use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use common::WorkerId;
+use log::{error, trace};
+use reqwest::{Client, Response};
+use serde_json::Value;
 use std::collections::HashMap;
-use std::fmt::format;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Default)]
 pub struct HttpRequestExecutor {
@@ -38,8 +32,7 @@ impl HttpRequestExecutor {
         }
     }
     pub async fn call_http_request(&self, job: &Job) -> Result<JobHttpResponse, HttpRequestError> {
-        // Measure response_time
-        let now = Instant::now();
+        // Measure response_duration
         if let Some(JobDetail::HttpRequest(request)) = job.job_detail.as_ref() {
             let mut req_builder = match request.method.to_lowercase().as_str() {
                 "post" => self.client.post(job.component_url.as_str()),
@@ -53,13 +46,15 @@ impl HttpRequestExecutor {
             for (key, value) in request.headers.iter() {
                 req_builder = req_builder.header(key, value);
             }
-            log::debug!("Request header {:?}", &request.headers);
+            log::trace!("Request header {:?}", &request.headers);
             //Body
             if let Some(body) = &request.body {
                 let req_body = body.clone().to_string();
-                log::debug!("Request body {:?}", &req_body);
+                log::trace!("Request body {:?}", &req_body);
                 req_builder = req_builder.body(req_body);
             }
+            //let now = Instant::now();
+            let request_time = get_current_time();
             let resp = req_builder
                 .send()
                 .await
@@ -71,13 +66,14 @@ impl HttpRequestExecutor {
             //     .await
             //     .map_err(|err| HttpRequestError::GetBodyError(format!("{}", err)))?;
 
-            let response_time = now.elapsed();
             let response_detail = self
                 .parse_response(resp, &request.response_type, &request.response_values)
                 .await;
+            let response_duration = get_current_time() - request_time;
             match response_detail {
                 Ok(detail) => Ok(JobHttpResponse {
-                    response_time: response_time.as_millis() as i64,
+                    request_timestamp: request_time,
+                    response_duration,
                     detail,
                     http_code,
                     error_code: 0,
@@ -86,7 +82,8 @@ impl HttpRequestExecutor {
                 Err(err) => {
                     error!("{:?}", &err);
                     Ok(JobHttpResponse {
-                        response_time: response_time.as_millis() as i64,
+                        request_timestamp: request_time,
+                        response_duration,
                         detail: JobHttpResponseDetail::default(),
                         http_code,
                         error_code: 1,
@@ -118,7 +115,7 @@ impl HttpRequestExecutor {
                 .map_err(|err| HttpRequestError::SendError(format!("{}", err)))
                 .map(|res| JobHttpResponseDetail::Body(remove_break_line(&res))),
         };
-        log::debug!("Extracted response detail {:?}", response_detail);
+        log::trace!("Extracted response detail {:?}", response_detail);
         response_detail
     }
     fn extract_values(
@@ -153,13 +150,20 @@ impl HttpRequestExecutor {
 #[async_trait]
 impl TaskExecutor for HttpRequestExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
-        debug!("HttpRequestExecutor execute job {:?}", &job);
+        trace!("HttpRequestExecutor execute job {:?}", &job);
         let res = self.call_http_request(job).await;
         let response = match res {
             Ok(res) => res,
-            Err(err) => err.into(),
+            Err(err) => {
+                JobHttpResponse::new_error(
+                    get_current_time(),
+                    err.get_code(),
+                    err.get_message().as_str(),
+                )
+                //err.into()
+            }
         };
-        debug!("Http request result {:?}", &response);
+        trace!("Http request result {:?}", &response);
         let result = JobHttpResult {
             job: job.clone(),
             //response_timestamp: get_current_time(),
@@ -171,9 +175,9 @@ impl TaskExecutor for HttpRequestExecutor {
                 request.chain_info.clone(),
                 job,
             );
-            debug!("send job_result: {:?}", job_result);
+            trace!("send job_result: {:?}", job_result);
             let res = result_sender.send(job_result).await;
-            debug!("send res: {:?}", res);
+            trace!("send res: {:?}", res);
         };
 
         Ok(())

@@ -1,11 +1,3 @@
-use anyhow::Error;
-use bytesize::ByteSize;
-use log::info;
-use std::env::current_dir;
-use std::path::Component;
-use std::process::Command;
-use std::str::FromStr;
-use std::time::Duration;
 use wrap_wrk::WrkBenchmark;
 fn main() {
     //let _res = init_logger(&String::from("CheckComponent"));

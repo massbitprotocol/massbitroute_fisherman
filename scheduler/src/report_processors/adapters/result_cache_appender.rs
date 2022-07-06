@@ -1,14 +1,10 @@
 use crate::models::job_result::ProviderTask;
 use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
 use crate::report_processors::adapters::Appender;
-use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{JobBenchmarkResult, JobResultDetail};
-use common::jobs::{Job, JobResult};
-use common::tasks::eth::JobLatestBlockResult;
-use common::tasks::ping::JobPingResult;
+use common::jobs::JobResult;
 use common::util::get_current_time;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -31,10 +27,11 @@ impl Appender for ResultCacheAppender {
         key: &ProviderTask,
         results: &Vec<JobResult>,
     ) -> Result<(), anyhow::Error> {
-        log::info!("ResultCacheAppender append results");
+        //log::info!("ResultCacheAppender append results");
         if results.is_empty() {
             return Ok(());
         }
+
         {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
@@ -44,16 +41,19 @@ impl Appender for ResultCacheAppender {
                     task_type: key.task_type.clone(),
                     task_name: key.task_name.clone(),
                 };
+                // Create new entry if need
                 let result_by_task = result_cache
                     .result_cache_map
                     .entry(component_id.clone())
                     .or_insert(HashMap::new());
-                let e = result_by_task
+                let task_result_cache = result_by_task
                     .entry(task_key)
                     .or_insert(TaskResultCache::new(get_current_time()));
-                e.push_back(result.clone());
-                while e.len() > RESULT_CACHE_MAX_LENGTH {
-                    e.pop_front();
+                // Store to cache
+                task_result_cache.push_back_cache(result.clone());
+
+                while task_result_cache.len() > RESULT_CACHE_MAX_LENGTH {
+                    task_result_cache.pop_front();
                 }
             }
             log::debug!(

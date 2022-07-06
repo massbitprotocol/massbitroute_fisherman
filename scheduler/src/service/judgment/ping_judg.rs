@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
 pub struct PingResultCache {
-    response_times: Mutex<HashMap<ProviderTask, Vec<u64>>>,
+    response_durations: Mutex<HashMap<ProviderTask, Vec<u64>>>,
 }
 
 impl PingResultCache {
@@ -38,7 +38,7 @@ impl PingResultCache {
                 }
             }
         }
-        let mut values = self.response_times.lock().unwrap();
+        let mut values = self.response_durations.lock().unwrap();
         let values = values.entry(provider_task.clone()).or_insert(Vec::new());
         values.append(&mut res_times);
         res_times = values.clone();
@@ -74,11 +74,11 @@ impl PingJudgment {
 
 #[async_trait]
 impl ReportCheck for PingJudgment {
-    fn can_apply(&self, job: &Job) -> bool {
-        match job.job_name.as_str() {
-            "Ping" => true,
-            _ => false,
-        }
+    fn get_name(&self) -> String {
+        String::from("Ping")
+    }
+    fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
+        return task.task_name.as_str() == "Ping";
     }
 
     async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
@@ -128,7 +128,7 @@ impl ReportCheck for PingJudgment {
         provider_task: &ProviderTask,
         result: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
-        let response_times = self.result_cache.append_results(provider_task, result);
+        let response_durations = self.result_cache.append_results(provider_task, result);
         Ok(JudgmentsResult::Error)
     }
 }

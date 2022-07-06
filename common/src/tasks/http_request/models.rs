@@ -2,10 +2,12 @@ use crate::component::ChainInfo;
 use crate::job_manage::JobRole;
 use crate::jobs::{AssignmentConfig, Job};
 use crate::{ComponentInfo, Timestamp};
-use handlebars::{Handlebars, RenderError};
+use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value};
 use std::collections::HashMap;
+use std::fmt;
+use std::fmt::Formatter;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
@@ -23,7 +25,8 @@ pub struct JobHttpRequest {
 impl JobHttpRequest {}
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct JobHttpResponse {
-    pub response_time: Timestamp,
+    pub request_timestamp: Timestamp, //Time to call request in second
+    pub response_duration: Timestamp, //Time to receipt response;
     pub detail: JobHttpResponseDetail,
     pub http_code: u16,
     pub error_code: u32,
@@ -67,9 +70,10 @@ impl Default for JobHttpResponseDetail {
 }
 
 impl JobHttpResponse {
-    pub fn new_error(error_code: u32, message: &str) -> Self {
+    pub fn new_error(request_time: Timestamp, error_code: u32, message: &str) -> Self {
         JobHttpResponse {
-            response_time: 0,
+            request_timestamp: request_time,
+            response_duration: request_time,
             detail: JobHttpResponseDetail::default(),
             http_code: 0,
             error_code,
@@ -116,11 +120,11 @@ impl HttpRequestError {
     }
 }
 
-impl From<HttpRequestError> for JobHttpResponse {
-    fn from(error: HttpRequestError) -> Self {
-        JobHttpResponse::new_error(error.get_code(), error.get_message().as_str())
-    }
-}
+// impl From<HttpRequestError> for JobHttpResponse {
+//     fn from(error: HttpRequestError) -> Self {
+//         JobHttpResponse::new_error(error.get_code(), error.get_message().as_str())
+//     }
+// }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct HttpRequestJobConfig {
@@ -151,6 +155,17 @@ pub struct HttpRequestJobConfig {
     #[serde(default)]
     pub thresholds: serde_json::Map<String, serde_json::Value>,
 }
+
+impl fmt::Display for HttpRequestJobConfig {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "({} {} {})",
+            self.name, self.request_type, self.repeat_number,
+        )
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct HttpResponseConfig {
     #[serde(default)]
@@ -161,7 +176,7 @@ pub struct HttpResponseConfig {
 impl HttpRequestJobConfig {
     pub fn read_config(path: &str) -> Vec<HttpRequestJobConfig> {
         let json_content = std::fs::read_to_string(path).unwrap_or_default();
-        let mut configs: Map<String, serde_json::Value> =
+        let configs: Map<String, serde_json::Value> =
             serde_json::from_str(&*json_content).unwrap_or_default();
         let mut task_configs = Vec::new();
         let default = configs["default"].as_object().unwrap();

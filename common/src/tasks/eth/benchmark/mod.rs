@@ -1,6 +1,4 @@
 pub mod executor;
-
-use anyhow::{anyhow, Error};
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]

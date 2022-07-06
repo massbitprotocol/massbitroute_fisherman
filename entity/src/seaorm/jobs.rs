@@ -8,6 +8,8 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub job_id: String,
+    pub job_type: String,
+    pub job_name: String,
     pub component_id: String,
     pub header: Option<Json>,
     pub job_detail: Option<Json>,
@@ -18,7 +20,6 @@ pub struct Model {
     pub component_url: String,
     pub repeat_number: i32,
     pub interval: i64,
-    pub job_name: String,
     pub plan_id: String,
     pub component_type: String,
     pub phase: String,

@@ -5,7 +5,6 @@ use crate::{ComponentInfo, IPAddress, WorkerId};
 use anyhow::anyhow;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -33,7 +32,7 @@ impl WorkerInfo {
         let zone = match Zone::from_str(zone) {
             Ok(zone) => zone,
             Err(_) => {
-                panic!("Please enter worker zone!!!");
+                panic!("ZONE={}, please enter correct worker zone!!!", zone);
             }
         };
         WorkerInfo {
@@ -71,7 +70,7 @@ impl WorkerRegisterResult {
 pub struct WorkerStateParam {}
 #[derive(Default, Debug, Deserialize, Serialize)]
 pub struct Worker {
-    worker_info: WorkerInfo,
+    pub worker_info: WorkerInfo,
 }
 
 impl Worker {
@@ -95,13 +94,7 @@ impl Worker {
         format!("{}/{}", self.worker_info.url, path)
     }
     pub fn get_host(&self) -> String {
-        let parts = self.worker_info.url.split('/').collect::<Vec<&str>>();
-        if parts.len() >= 3 {
-            parts[2].to_string()
-        } else {
-            String::default()
-        }
-        //format!("{}/{}", self.worker_info.url, path)
+        format!("{}.gw.mbr.massbitroute.net", self.worker_info.worker_id)
     }
     pub async fn send_job(&self, job: &Job) -> Result<(), anyhow::Error> {
         let client_builder = reqwest::ClientBuilder::new();

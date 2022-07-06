@@ -41,7 +41,7 @@ pub struct LatestBlockConfig {
 impl LoadConfig<LatestBlockConfig> for LatestBlockConfig {}
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct LatestBlockResponse {
-    pub response_time: Timestamp,
+    pub response_duration: Timestamp,
     pub block_number: u64,
     pub block_timestamp: Timestamp, // in sec
     pub block_hash: String,
@@ -81,7 +81,7 @@ impl CallLatestBlockError {
 impl LatestBlockResponse {
     pub fn new_error(error_code: u32, message: &str, chain_info: ChainInfo) -> Self {
         LatestBlockResponse {
-            response_time: 0,
+            response_duration: 0,
             block_number: 0,
             http_code: 0,
             error_code,
