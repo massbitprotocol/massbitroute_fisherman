@@ -14,7 +14,7 @@ pub const JOB_RESULT_REPORTER_PERIOD: u64 = 2000; //In milliseconds
 
 lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String = env::var("SCHEDULER_ENDPOINT")
-        .unwrap_or(String::from("https://scheduler.massbitroute.net"));
+        .expect("There is no env var SCHEDULER_ENDPOINT");
     pub static ref WORKER_ID: String =
         env::var("WORKER_ID").unwrap_or(Uuid::new_v4().to_string());
     pub static ref ZONE: String = env::var("ZONE")

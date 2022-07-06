@@ -379,11 +379,7 @@ impl DetailJobGenerator {
         } = total_assignment_buffer;
         //info!("There is {} components", components.len());
         info!("There is {} gen_jobs", jobs.len(),);
-        info!(
-            "There is {} job_assignments {:?}",
-            list_assignments.len(),
-            list_assignments
-        );
+        info!("There is {} job_assignments.", list_assignments.len());
 
         if list_assignments.len() > 0 {
             self.job_service
