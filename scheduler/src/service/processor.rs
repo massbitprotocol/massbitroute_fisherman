@@ -5,6 +5,7 @@ use crate::service::judgment::{get_report_judgments, JudgmentsResult, PingJudgme
 use crate::service::report_portal::StoreReport;
 use crate::state::ProcessorState;
 use crate::{CONFIG, PORTAL_AUTHORIZATION};
+use anyhow::Error;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::util::get_current_time;
@@ -35,7 +36,7 @@ impl ProcessorService {
         &self,
         results: Vec<JobResult>,
         state: Arc<ProcessorState>,
-    ) -> Result<impl Reply, Rejection> {
+    ) -> Result<(), Error> {
         if results.len() > 0 {
             let worker_id = results.get(0).unwrap().worker_id.clone();
             info!(
@@ -44,9 +45,9 @@ impl ProcessorService {
                 results.len()
             );
             //Store results to persistence storage: csv file, sql db, monitor system v.v...
-            state.process_results(results).await;
+            return state.process_results(results).await;
         }
-        return Ok(warp::reply::json(&json!({ "Message": "Report received" })));
+        return Ok(());
     }
 }
 #[derive(Default)]

@@ -22,12 +22,11 @@ impl ResultCacheAppender {
 
 #[async_trait]
 impl Appender for ResultCacheAppender {
-    async fn append_job_results(
-        &self,
-        key: &ProviderTask,
-        results: &Vec<JobResult>,
-    ) -> Result<(), anyhow::Error> {
-        log::info!("ResultCacheAppender append results");
+    fn get_name(&self) -> String {
+        "ResultCacheAppender".to_string()
+    }
+    async fn append_job_results(&self, results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
+        //log::info!("ResultCacheAppender append results");
         if results.is_empty() {
             return Ok(());
         }
@@ -35,11 +34,11 @@ impl Appender for ResultCacheAppender {
         {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
-                let component_id = &key.provider_id;
+                let component_id = &result.provider_id;
 
                 let task_key = TaskKey {
-                    task_type: key.task_type.clone(),
-                    task_name: key.task_name.clone(),
+                    task_type: result.result_detail.get_name(),
+                    task_name: result.job_name.clone(),
                 };
                 // Create new entry if need
                 let result_by_task = result_cache
