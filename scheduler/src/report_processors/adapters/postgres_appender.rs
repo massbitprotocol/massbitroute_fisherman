@@ -7,7 +7,9 @@ use common::job_manage::{JobBenchmarkResult, JobResultDetail};
 use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
+use futures_util::StreamExt;
 use sea_orm::DatabaseConnection;
+use serde_json::{Map, Value};
 use std::sync::Arc;
 
 pub struct PostgresAppender {
@@ -23,11 +25,10 @@ impl PostgresAppender {
 
 #[async_trait]
 impl Appender for PostgresAppender {
-    async fn append_job_results(
-        &self,
-        key: &ProviderTask,
-        reports: &Vec<JobResult>,
-    ) -> Result<(), anyhow::Error> {
+    fn get_name(&self) -> String {
+        "PostgresAppender".to_string()
+    }
+    async fn append_job_results(&self, reports: &Vec<JobResult>) -> Result<(), anyhow::Error> {
         let mut ping_results = Vec::new();
         let mut benchmark_results: Vec<JobBenchmarkResult> = Vec::new();
         let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
@@ -45,6 +46,9 @@ impl Appender for PostgresAppender {
                     benchmark_results.push(result.clone());
                 }
                 JobResultDetail::HttpRequest(ref result) => {
+                    if result.job.job_name == "RoundTripTime" {
+                        continue;
+                    }
                     http_request_results.push(report.clone());
                 }
                 _ => {}
@@ -74,39 +78,53 @@ impl Appender for PostgresAppender {
         }
         Ok(())
     }
-    async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {
-        log::debug!("PostgresAppender append ping results");
-        self.job_result_service.save_result_pings(&results).await;
-        Ok(())
-    }
-    async fn append_latest_block_results(
-        &self,
-        results: &Vec<JobLatestBlockResult>,
-    ) -> Result<(), anyhow::Error> {
-        log::debug!("PostgresAppender append ping results");
-        self.job_result_service
-            .save_result_latest_blocks(&results)
-            .await;
-        Ok(())
-    }
-    async fn append_benchmark_results(
-        &self,
-        results: &Vec<JobBenchmarkResult>,
-    ) -> Result<(), anyhow::Error> {
-        log::debug!("PostgresAppender append benchmark results");
-        self.job_result_service
-            .save_result_benchmarks(&results)
-            .await;
-        Ok(())
-    }
-    async fn append_http_request_results(
-        &self,
-        results: &Vec<JobResult>,
-    ) -> Result<(), anyhow::Error> {
-        log::debug!("PostgresAppender append benchmark results");
-        self.job_result_service
-            .save_result_http_requests(&results)
-            .await;
-        Ok(())
-    }
+    // async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {
+    //     log::debug!("PostgresAppender append ping results");
+    //     self.job_result_service.save_result_pings(&results).await;
+    //     Ok(())
+    // }
+    // async fn append_latest_block_results(
+    //     &self,
+    //     results: &Vec<JobLatestBlockResult>,
+    // ) -> Result<(), anyhow::Error> {
+    //     log::debug!("PostgresAppender append ping results");
+    //     self.job_result_service
+    //         .save_result_latest_blocks(&results)
+    //         .await;
+    //     Ok(())
+    // }
+    // async fn append_benchmark_results(
+    //     &self,
+    //     results: &Vec<JobBenchmarkResult>,
+    // ) -> Result<(), anyhow::Error> {
+    //     log::debug!("PostgresAppender append benchmark results");
+    //     self.job_result_service
+    //         .save_result_benchmarks(&results)
+    //         .await;
+    //     Ok(())
+    // }
+    // async fn append_http_request_results(
+    //     &self,
+    //     results: &Vec<JobResult>,
+    // ) -> Result<(), anyhow::Error> {
+    //     log::debug!("PostgresAppender append benchmark results");
+    //     // We do not write RoundTripTime result because there are too many.
+    //     let filter_results: Vec<JobResult> = results
+    //         .iter()
+    //         .filter_map(|result| {
+    //             if result.job_name == "RoundTripTime" {
+    //                 None
+    //             } else {
+    //                 Some(result.clone())
+    //             }
+    //         })
+    //         .collect();
+    //     if filter_results.is_empty() {
+    //         return Ok(());
+    //     }
+    //     self.job_result_service
+    //         .save_result_http_requests(&filter_results)
+    //         .await;
+    //     Ok(())
+    // }
 }

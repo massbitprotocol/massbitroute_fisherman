@@ -26,11 +26,10 @@ impl ProvidersMapAdapter {
 
 #[async_trait]
 impl Appender for ProvidersMapAdapter {
-    async fn append_job_results(
-        &self,
-        key: &ProviderTask,
-        results: &Vec<JobResult>,
-    ) -> Result<(), anyhow::Error> {
+    fn get_name(&self) -> String {
+        "ProvidersMapAdapter".to_string()
+    }
+    async fn append_job_results(&self, results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
         log::debug!("ProvidersMapAdapter append RoundTripTime results");
         let current_time = get_current_time() as i64;
         let provider_maps = results

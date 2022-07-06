@@ -76,10 +76,7 @@ impl Default for ProcessorState {
 impl ProcessorState {}
 
 impl ProcessorState {
-    pub async fn process_results(
-        &self,
-        results: Vec<JobResult>,
-    ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
+    pub async fn process_results(&self, results: Vec<JobResult>) -> Result<(), anyhow::Error> {
         let mut regular_results = Vec::new();
         let mut verification_result = Vec::new();
         for result in results {
@@ -95,7 +92,7 @@ impl ProcessorState {
         if verification_result.len() > 0 {
             self.process_verification_results(verification_result).await;
         }
-        Ok(HashMap::new())
+        Ok(())
     }
     pub async fn process_regular_results(
         &self,
