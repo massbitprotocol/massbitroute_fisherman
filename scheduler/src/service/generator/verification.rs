@@ -229,7 +229,7 @@ impl VerificationJobGenerator {
         }
         waiting_task
     }
-    async fn clean_expired_plan(&self, plans: Vec<Arc<ProviderPlan>>) {
+    async fn clean_expired_plan(&self, _plans: Vec<Arc<ProviderPlan>>) {
         //Todo: Implementation
     }
     async fn remote_duplicated_jobs(
