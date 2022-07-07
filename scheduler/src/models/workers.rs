@@ -76,17 +76,17 @@ impl WorkerInfoStorage {
             }
         }
         let mut remain_workers = Vec::new();
-        let mut measured_worker = Vec::new();
+        let mut measured_workers = Vec::new();
         for (_, workers) in self.map_zone_workers.iter() {
             for w in workers {
                 if distances.contains_key(&w.worker_info.worker_id) {
-                    measured_worker.push(w.clone());
+                    measured_workers.push(w.clone());
                 } else {
                     remain_workers.push(w.clone());
                 }
             }
         }
-        measured_worker.sort_by(|a, b| {
+        measured_workers.sort_by(|a, b| {
             let d1 = distances.get(&a.worker_info.worker_id).unwrap();
             let d2 = distances.get(&b.worker_info.worker_id).unwrap();
             d1.partial_cmp(d2).unwrap()
@@ -94,8 +94,8 @@ impl WorkerInfoStorage {
         Ok(MatchedWorkers {
             provider: provider.clone(),
             nearby_workers: zone_workers,
-            measured_workers: measured_worker,
-            remain_workers: remain_workers,
+            measured_workers,
+            remain_workers,
         })
     }
     pub fn set_map_worker_provider(&mut self, map_providers: Vec<ProviderMapModel>) {

@@ -84,6 +84,14 @@ impl ReportProcessor for VerificationReportProcessor {
         db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         log::debug!("Verification process report jobs: {:?}", &reports);
+        for adapter in self.report_adapters.iter() {
+            log::info!(
+                "With Adapter {} append {} results",
+                adapter.get_name(),
+                reports.len()
+            );
+            adapter.append_job_results(&reports).await;
+        }
         let stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         //let mut provider_ids = HashSet::<ComponentId>::new();
@@ -99,8 +107,10 @@ impl ReportProcessor for VerificationReportProcessor {
                 report.job_name.clone(),
             );
             job_ids.insert(report.job_id.clone());
-            let jobs = provider_task_results.entry(key).or_insert(Vec::default());
-            jobs.push(report);
+            provider_task_results
+                .entry(key)
+                .or_insert(Vec::default())
+                .push(report);
         }
         if job_ids.is_empty() {
             return Ok(Vec::default());
@@ -165,65 +175,6 @@ impl ReportProcessor for VerificationReportProcessor {
 
         Ok(stored_results)
     }
-    /*
-    async fn process_jobs(
-        &self,
-        reports: Vec<JobResult>,
-        db_connection: Arc<DatabaseConnection>,
-    ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
-        log::debug!("Verificatoin report process jobs");
-        let mut ping_results = Vec::new();
-        let mut benchmark_results: Vec<JobBenchmarkResult> = Vec::new();
-        let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
-        let mut stored_results = Vec::<StoredJobResult>::new();
-        let mut http_request_results: Vec<JobResult> = Vec::new();
-        let mut plan_ids = HashSet::<PlanId>::new();
-        for report in reports {
-            match report.result_detail {
-                JobResultDetail::Ping(result) => {
-                    plan_ids.insert(result.job.plan_id.clone());
-                    ping_results.push(result);
-                    //println!("{:?}", &ping_result);
-                }
-                JobResultDetail::LatestBlock(result) => {
-                    plan_ids.insert(result.job.plan_id.clone());
-                    latest_block_results.push(result);
-                }
-                JobResultDetail::Benchmark(result) => {
-                    plan_ids.insert(result.job.plan_id.clone());
-                    benchmark_results.push(result);
-                }
-                JobResultDetail::HttpRequest(ref result) => {
-                    plan_ids.insert(result.job.plan_id.clone());
-                    http_request_results.push(report);
-                }
-                _ => {}
-            }
-        }
-        //update provider map base on ping result
-        // Todo: Add response time for each Job result
-        for adapter in self.report_adapters.iter() {
-            if ping_results.len() > 0 {
-                adapter.append_ping_results(&ping_results).await;
-            }
-            if latest_block_results.len() > 0 {
-                adapter
-                    .append_latest_block_results(&latest_block_results)
-                    .await;
-            }
-            if benchmark_results.len() > 0 {
-                adapter.append_benchmark_results(&benchmark_results).await;
-            }
-            if http_request_results.len() > 0 {
-                adapter
-                    .append_http_request_results(&http_request_results)
-                    .await;
-            }
-        }
-        self.judg_results(Vec::from_iter(plan_ids)).await;
-        Ok(stored_results)
-    }
-     */
 }
 
 impl VerificationReportProcessor {

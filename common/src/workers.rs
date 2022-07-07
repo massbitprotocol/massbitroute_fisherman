@@ -176,4 +176,14 @@ impl MatchedWorkers {
             None
         }
     }
+    pub fn get_all_workers(&self) -> Vec<Arc<Worker>> {
+        let mut all_workers = Vec::new();
+        for worker in self.measured_workers.iter() {
+            all_workers.push(worker.clone());
+        }
+        for worker in self.remain_workers.iter() {
+            all_workers.push(worker.clone());
+        }
+        all_workers
+    }
 }

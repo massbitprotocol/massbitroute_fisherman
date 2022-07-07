@@ -87,6 +87,12 @@
           "timestamp": ["result", "timestamp"]
         }
       },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
       "thresholds": {
         "late_duration":  1200
       }
@@ -121,6 +127,12 @@
           "timestamp": ["result", "timestamp"]
         }
       },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
       "thresholds" : {
         "late_duration":  1200
       }
@@ -154,6 +166,12 @@
           "number": ["result", "block","header","number"]
         }
       },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
       "thresholds": {
         "max_block_missing": 200
       }
@@ -186,6 +204,12 @@
           "parent_hash": ["result", "block","header","parentHash"],
           "number": ["result", "block","header","number"]
         }
+      },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
       },
       "thresholds": {
         "max_block_missing": 200

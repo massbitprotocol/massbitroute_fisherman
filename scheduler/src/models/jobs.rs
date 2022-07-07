@@ -104,6 +104,32 @@ impl AssignmentBuffer {
                         self.list_assignments.push(job_assignment);
                     }
                 }
+            } else {
+                let all_workers = workers.get_all_workers();
+                log::debug!(
+                    "Try to assign job {:?}.{:?}.{:?} to {} random worker among {} workers",
+                    &job.job_type,
+                    &job.job_name,
+                    &job.job_id,
+                    val,
+                    all_workers.len()
+                );
+                if all_workers.len() > 0 {
+                    for _ in 0..val {
+                        let ind = rng.gen_range(0..all_workers.len());
+                        if let Some(worker) = all_workers.get(ind) {
+                            debug!(
+                                "Assign job {:?} to worker {:?}",
+                                job.job_name,
+                                worker.get_url("")
+                            );
+                            let job_assignment = JobAssignment::new(worker.clone(), &job);
+                            self.list_assignments.push(job_assignment);
+                        }
+                    }
+                } else {
+                    log::debug!("No worker found in {:?}", &self);
+                }
             }
         }
     }

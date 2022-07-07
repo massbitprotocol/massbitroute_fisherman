@@ -2,7 +2,9 @@ use crate::Timestamp;
 use anyhow::anyhow;
 use log::debug;
 use regex::Regex;
-
+/*
+ * Get current timestamp in milliseconds
+ */
 pub fn get_current_time() -> Timestamp {
     std::time::SystemTime::now()
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
