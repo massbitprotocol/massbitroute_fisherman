@@ -1,6 +1,6 @@
 use common::jobs::Job;
 use common::util::get_current_time;
-use common::Timestamp;
+
 use log::trace;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
@@ -91,7 +91,7 @@ impl JobBuffer {
 #[cfg(test)]
 mod test {
     use crate::models::job::JobBuffer;
-    use anyhow::Error;
+    
     use common::job_manage::JobDetail;
     use common::jobs::Job;
     use common::tasks::http_request::JobHttpRequest;
@@ -116,11 +116,11 @@ mod test {
     fn test_add_job() {
         let now = get_current_time();
         let mut buffer = JobBuffer::new();
-        let mut job_1 = new_test_job(0, 1, "job_1".to_string());
-        let mut job_2 = new_test_job(0, 2, "job_2".to_string());
-        let mut job_3 = new_test_job(now, 1, "job_3".to_string());
-        let mut job_4 = new_test_job(now + 1000, 1, "job_4".to_string());
-        let mut job_5 = new_test_job(now + 2000, 1, "job_5".to_string());
+        let job_1 = new_test_job(0, 1, "job_1".to_string());
+        let job_2 = new_test_job(0, 2, "job_2".to_string());
+        let job_3 = new_test_job(now, 1, "job_3".to_string());
+        let job_4 = new_test_job(now + 1000, 1, "job_4".to_string());
+        let job_5 = new_test_job(now + 2000, 1, "job_5".to_string());
         buffer.add_job(job_4);
         buffer.add_job(job_2);
         buffer.add_job(job_3);
@@ -140,11 +140,11 @@ mod test {
     fn test_add_jobs() {
         let now = get_current_time();
         let mut buffer = JobBuffer::new();
-        let mut job_1 = new_test_job(0, 1, "job_1".to_string());
-        let mut job_2 = new_test_job(0, 2, "job_2".to_string());
-        let mut job_3 = new_test_job(now, 1, "job_3".to_string());
-        let mut job_4 = new_test_job(now + 1000, 1, "job_4".to_string());
-        let mut job_5 = new_test_job(now + 2000, 1, "job_5".to_string());
+        let job_1 = new_test_job(0, 1, "job_1".to_string());
+        let job_2 = new_test_job(0, 2, "job_2".to_string());
+        let job_3 = new_test_job(now, 1, "job_3".to_string());
+        let job_4 = new_test_job(now + 1000, 1, "job_4".to_string());
+        let job_5 = new_test_job(now + 2000, 1, "job_5".to_string());
         buffer.add_job(job_4);
         buffer.add_job(job_2);
 
@@ -164,12 +164,12 @@ mod test {
     fn test_add_same_job() {
         let now = get_current_time();
         let mut buffer = JobBuffer::new();
-        let mut job_1 = new_test_job(0, 1, "job_1".to_string());
-        let mut job_2 = new_test_job(0, 2, "job_2".to_string());
-        let mut job_3 = new_test_job(now, 1, "job_3".to_string());
-        let mut job_4 = new_test_job(now + 1000, 1, "job_4".to_string());
-        let mut job_5 = new_test_job(now + 2000, 1, "job_5".to_string());
-        let mut same_job_5 = new_test_job(now + 2000, 1, "job_5".to_string());
+        let job_1 = new_test_job(0, 1, "job_1".to_string());
+        let job_2 = new_test_job(0, 2, "job_2".to_string());
+        let job_3 = new_test_job(now, 1, "job_3".to_string());
+        let job_4 = new_test_job(now + 1000, 1, "job_4".to_string());
+        let job_5 = new_test_job(now + 2000, 1, "job_5".to_string());
+        let same_job_5 = new_test_job(now + 2000, 1, "job_5".to_string());
         buffer.add_job(job_1);
         buffer.add_job(job_2);
         buffer.add_job(job_3);
