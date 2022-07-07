@@ -210,7 +210,7 @@ pub struct HttpLatestBlockJudgment {
 }
 
 impl HttpLatestBlockJudgment {
-    pub fn new(config_dir: &str, result_service: Arc<JobResultService>) -> Self {
+    pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
         let verification_config = LatestBlockConfig::load_config(
             format!("{}/latest_block.json", config_dir).as_str(),
             &JobRole::Verification,
@@ -220,7 +220,7 @@ impl HttpLatestBlockJudgment {
             &JobRole::Regular,
         );
         let path = format!("{}/http_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str());
+        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         let comparators = get_comparators();
         HttpLatestBlockJudgment {
             verification_config,

@@ -174,11 +174,11 @@ pub struct HttpResponseConfig {
     pub values: HashMap<String, Vec<Value>>, //Path to values
 }
 impl HttpRequestJobConfig {
-    pub fn read_config(path: &str) -> Vec<HttpRequestJobConfig> {
+    pub fn read_config(path: &str, phase: &JobRole) -> Vec<HttpRequestJobConfig> {
         let json_content = std::fs::read_to_string(path).unwrap_or_default();
         let configs: Map<String, serde_json::Value> =
             serde_json::from_str(&*json_content).unwrap_or_default();
-        let mut task_configs = Vec::new();
+        let mut task_configs: Vec<HttpRequestJobConfig> = Vec::new();
         let default = configs["default"].as_object().unwrap();
         let tasks = configs["tasks"].as_array().unwrap();
         for config in tasks.iter() {
@@ -188,8 +188,12 @@ impl HttpRequestJobConfig {
             Self::append(&mut map_config, &mut task_config);
             let value = serde_json::Value::Object(map_config);
             log::info!("Final task config {:?}", &value);
-            match serde_json::from_value(value) {
-                Ok(config) => task_configs.push(config),
+            match serde_json::from_value::<HttpRequestJobConfig>(value) {
+                Ok(config) => {
+                    if config.match_phase(phase) {
+                        task_configs.push(config)
+                    }
+                }
                 Err(err) => {
                     log::error!("{:?}", &err);
                 }
@@ -210,7 +214,7 @@ impl HttpRequestJobConfig {
         let blockchain = blockchain.to_lowercase();
         if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
         {
-            log::debug!(
+            log::trace!(
                 "Blockchain {:?} not match with {:?}",
                 &blockchain,
                 &self.blockchains
@@ -222,7 +226,7 @@ impl HttpRequestJobConfig {
     pub fn match_network(&self, network: &String) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
-            log::debug!(
+            log::trace!(
                 "Networks {:?} not match with {:?}",
                 &network,
                 &self.networks
@@ -236,7 +240,7 @@ impl HttpRequestJobConfig {
         if !self.provider_types.contains(&String::from("*"))
             && !self.provider_types.contains(&provider_type)
         {
-            log::debug!(
+            log::trace!(
                 "Provider type {:?} not match with {:?}",
                 &provider_type,
                 &self.networks

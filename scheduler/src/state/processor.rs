@@ -7,11 +7,11 @@ use crate::report_processors::regular_processor::RegularReportProcessor;
 use crate::report_processors::verification_processor::VerificationReportProcessor;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::MainJudgment;
-use common::job_manage::{JobRole};
+use common::job_manage::JobRole;
 use common::jobs::JobResult;
 
 use sea_orm::DatabaseConnection;
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -43,12 +43,12 @@ impl ProcessorState {
             job_service.clone(),
             result_service.clone(),
             result_cache,
-            MainJudgment::new(result_service.clone()),
+            MainJudgment::new(result_service.clone(), &JobRole::Verification),
         );
         //For regular processor
-        let judgment = MainJudgment::new(result_service.clone());
+        let judgment = MainJudgment::new(result_service.clone(), &JobRole::Regular);
         let regular_processor = RegularReportProcessor::new(report_adapters.clone(), judgment);
-        let judgment = MainJudgment::new(result_service.clone());
+        let judgment = MainJudgment::new(result_service.clone(), &JobRole::Regular);
         ProcessorState {
             connection,
             regular_processor: Arc::new(regular_processor),

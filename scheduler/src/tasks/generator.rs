@@ -76,24 +76,24 @@ pub trait TaskApplicant: Sync + Send {
 pub fn get_tasks(
     config_dir: &str,
     role: JobRole,
-    task_names: &Vec<String>,
+    task_types: &Vec<String>,
 ) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
     //Generic http request task
-    if task_names.contains(&HttpRequestGenerator::get_name()) {
-        result.push(Arc::new(HttpRequestGenerator::new(config_dir)));
+    if task_types.contains(&HttpRequestGenerator::get_name()) {
+        result.push(Arc::new(HttpRequestGenerator::new(config_dir, &role)));
     }
 
-    if task_names.contains(&BenchmarkGenerator::get_name()) {
+    if task_types.contains(&BenchmarkGenerator::get_name()) {
         result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
     }
-    if task_names.contains(&PingGenerator::get_name()) {
+    if task_types.contains(&PingGenerator::get_name()) {
         result.push(Arc::new(PingGenerator::new(config_dir, &role)));
     }
-    if task_names.contains(&LatestBlockGenerator::get_name()) {
+    if task_types.contains(&LatestBlockGenerator::get_name()) {
         result.push(Arc::new(LatestBlockGenerator::new(config_dir, &role)));
     }
-    if task_names.contains(&TaskGWNodeConnection::get_name()) {
+    if task_types.contains(&TaskGWNodeConnection::get_name()) {
         result.push(Arc::new(TaskGWNodeConnection::new()));
     }
     result

@@ -13,13 +13,27 @@ use entity::seaorm::provider_latest_blocks::Entity as ProviderLatestBlockEntity;
 use futures_util::StreamExt;
 use log::debug;
 
-use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait};
+use sea_orm::{
+    ActiveModelTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, EntityTrait, Statement,
+    Value,
+};
 
+use slog::log;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 const ROUND_TRIP_TIME: &str = "RoundTripTime";
 const LATEST_BLOCK: &str = "LatestBlock";
+const INSERT_PROVIDER_LATEST_BLOCK: &str = r#"INSERT INTO provider_latest_blocks
+(provider_id, blockchain, network, blockhash, block_timestamp, max_block_timestamp, 
+block_number, max_block_number, response_timestamp)"#;
+const CONFLICT_PROVIDER_LATEST_BLOCK: &str = r#"ON CONFLICT ON CONSTRAINT provider_latest_blocks_provider_id_uindex
+                                DO UPDATE SET blockhash = EXCLUDED.blockhash
+                                              ,block_timestamp= EXCLUDED.block_timestamp
+                                              ,max_block_timestamp = EXCLUDED.max_block_timestamp
+                                              ,block_number = EXCLUDED.block_number
+                                              ,max_block_number = EXCLUDED.max_block_number
+                                              ,response_timestamp = EXCLUDED.response_timestamp;"#;
 
 pub struct PostgresAppender {
     connection: Arc<DatabaseConnection>,
@@ -84,7 +98,7 @@ impl Appender for PostgresAppender {
                 .await;
         }
         if http_request_results.len() > 0 {
-            self.append_http_request_results(http_request_results);
+            self.append_http_request_results(http_request_results).await;
         }
         Ok(())
     }
@@ -142,29 +156,56 @@ impl PostgresAppender {
         }
         Ok(())
     }
-    async fn check_flush_latest_block_cache(&self) -> Result<usize, anyhow::Error> {
+    async fn check_flush_latest_block_cache(&self) -> Result<u64, anyhow::Error> {
         let mut cache = self.latest_block_cache.lock().await;
         let data = cache.get_cache_data_for_flushing();
         let length = data.len();
         if length > 0 {
-            let records = data
-                .iter()
-                .map(|item| LatestBlockCache::create_active_model(item))
-                .collect::<Vec<ProviderLatestBlockActiveModel>>();
-
-            debug!("Save {:?} records to table provider_latest_blocks", length);
-
-            match ProviderLatestBlockEntity::insert_many(records)
-                .exec(self.connection.as_ref())
+            let mut values = Vec::new();
+            let mut place_holders = Vec::new();
+            let mut row = 1;
+            let column_count = 9;
+            for item in data {
+                let mut rows = Vec::new();
+                values.push(Value::from(item.provider_id.clone()));
+                values.push(Value::from(item.blockchain.clone()));
+                values.push(Value::from(item.network.clone()));
+                values.push(Value::from(item.blockhash.clone()));
+                values.push(Value::from(item.block_timestamp.clone()));
+                values.push(Value::from(item.max_block_timestamp.clone()));
+                values.push(Value::from(item.block_number.clone()));
+                values.push(Value::from(item.max_block_number.clone()));
+                values.push(Value::from(item.response_timestamp.clone()));
+                for i in 0..column_count {
+                    rows.push(format!("${}", row + i));
+                }
+                row = row + column_count;
+                place_holders.push(format!("({})", rows.join(",")));
+            }
+            let query = format!(
+                "{} VALUES {} {}",
+                INSERT_PROVIDER_LATEST_BLOCK,
+                place_holders.join(","),
+                CONFLICT_PROVIDER_LATEST_BLOCK
+            );
+            debug!("{}", query.as_str());
+            match self
+                .connection
+                .as_ref()
+                .execute(Statement::from_sql_and_values(
+                    DatabaseBackend::Postgres,
+                    query.as_str(),
+                    values,
+                ))
                 .await
             {
-                Ok(res) => {
-                    log::debug!("Insert many records {:?}", length);
-                    Ok(res.last_insert_id as usize)
+                Ok(exec_res) => {
+                    log::debug!("{:?}", &exec_res);
+                    Ok(exec_res.rows_affected())
                 }
                 Err(err) => {
-                    log::debug!("Error {:?}", &err);
-                    Err(anyhow!("{:?}", &err))
+                    log::error!("Upsert error: {:?}", &err);
+                    Ok(0)
                 }
             }
         } else {

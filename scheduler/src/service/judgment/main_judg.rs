@@ -1,4 +1,3 @@
-
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 
@@ -12,13 +11,10 @@ use common::models::PlanEntity;
 use common::{JobId, PlanId, DOMAIN};
 use log::{debug, info};
 
-
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-
-
 
 #[derive(Default)]
 pub struct MainJudgment {
@@ -55,8 +51,8 @@ impl LatestJudgmentCache {
 }
 
 impl MainJudgment {
-    pub fn new(result_service: Arc<JobResultService>) -> Self {
-        let judgments = get_report_judgments(CONFIG_DIR.as_str(), result_service.clone());
+    pub fn new(result_service: Arc<JobResultService>, phase: &JobRole) -> Self {
+        let judgments = get_report_judgments(CONFIG_DIR.as_str(), result_service.clone(), phase);
         MainJudgment {
             result_service,
             judgments,

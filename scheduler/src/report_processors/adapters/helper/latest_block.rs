@@ -4,10 +4,11 @@ use common::component::ChainInfo;
 use common::job_manage::JobResultDetail;
 use common::jobs::JobResult;
 use common::tasks::http_request::{HttpResponseValues, JobHttpResponseDetail, JobHttpResult};
-use common::util::get_current_time;
+use common::util::{from_str_radix16, get_current_time};
 use common::ComponentId;
 pub use entity::seaorm::provider_latest_blocks::ActiveModel as ProviderLatestBlockActiveModel;
 pub use entity::seaorm::provider_latest_blocks::Model as ProviderLatestBlockModel;
+use log::debug;
 use sea_orm::ActiveValue::Set;
 use std::collections::HashMap;
 
@@ -37,7 +38,7 @@ impl BlockChainId {
         }
     }
 }
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct LatestBlockValue {
     pub block_timestamp: Option<i64>,
     pub block_number: Option<i64>,
@@ -56,12 +57,12 @@ impl From<HttpResponseValues> for LatestBlockValue {
     fn from(values: HttpResponseValues) -> Self {
         let block_number = values
             .get("number")
-            .and_then(|val| val.as_u64())
-            .map(|val| val as i64);
+            .and_then(|val| val.as_str())
+            .and_then(|str| from_str_radix16(str).ok());
         let block_timestamp = values
             .get("timestamp")
-            .and_then(|val| val.as_u64())
-            .map(|val| val as i64);
+            .and_then(|val| val.as_str())
+            .and_then(|str| from_str_radix16(str).ok());
         let block_hash = values
             .get("hash")
             .and_then(|val| val.as_str())
@@ -115,7 +116,11 @@ impl LatestBlockCache {
         {
             if response.error_code == 0 {
                 if let JobHttpResponseDetail::Values(values) = response.detail {
-                    let mut latest_value = LatestBlockValue::from(values);
+                    let mut latest_value = LatestBlockValue::from(values.clone());
+                    debug!(
+                        "Latest value {:?} from response {:?}",
+                        &latest_value, &values
+                    );
                     if !latest_value.is_empty() {
                         latest_value.response_timestamp = response.request_timestamp;
                         self.add_latest_value(chain_info, provider_id, latest_value);

@@ -20,7 +20,9 @@ create table if not exists provider_latest_blocks
     max_block_timestamp bigint,
     block_number        bigint,
     max_block_number    bigint,
-    response_timestamp  bigint            not null
+    response_timestamp  bigint            not null,
+    message             varchar not null default '',
+    CONSTRAINT provider_latest_blocks_provider_id_uindex UNIQUE (provider_id)
 )"#;
 
 #[async_trait::async_trait]
