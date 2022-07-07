@@ -11,7 +11,7 @@ use std::fmt::Formatter;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub struct JobHttpRequest {
     pub url: String,
     pub chain_info: Option<ChainInfo>,
