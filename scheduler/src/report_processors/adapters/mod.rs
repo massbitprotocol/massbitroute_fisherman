@@ -12,6 +12,7 @@ use serde_json::{Map, Value};
 use std::sync::Arc;
 
 pub mod csv_appender;
+pub mod helper;
 pub mod postgres_appender;
 pub mod providers_map_appender;
 pub mod result_cache_appender;

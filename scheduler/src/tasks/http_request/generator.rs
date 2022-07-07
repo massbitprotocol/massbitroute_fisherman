@@ -164,7 +164,11 @@ impl TaskApplicant for HttpRequestGenerator {
                 assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
             }
         }
-        log::debug!("Generated jobs {:?}", &assignment_buffer);
+        log::debug!(
+            "Generated {:?} jobs and {:?} assignments.",
+            &assignment_buffer.jobs.len(),
+            &assignment_buffer.list_assignments.len()
+        );
         Ok(assignment_buffer)
     }
     fn apply_with_cache(
