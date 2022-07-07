@@ -57,6 +57,7 @@ impl From<&Job> for reqwest::Body {
 impl Job {
     pub fn is_eq(&self, job: &Job) -> bool {
         self.job_name == job.job_name
+            && self.job_type == job.job_type
             && self.job_detail == job.job_detail
             && self.phase == job.phase
             && self.component_id == job.component_id
