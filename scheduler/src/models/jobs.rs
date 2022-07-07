@@ -88,7 +88,7 @@ impl AssignmentBuffer {
         } else if let Some(val) = config.worker_number {
             if let Some(true) = config.nearby_only {
                 if workers.nearby_workers.len() > 0 {
-                    for i in 0..val {
+                    for _i in 0..val {
                         let ind = rng.gen_range(0..workers.nearby_workers.len());
                         let worker = workers.get_nearby_worker(ind).unwrap();
                         let job_assignment = JobAssignment::new(worker.clone(), &job);
@@ -97,7 +97,7 @@ impl AssignmentBuffer {
                 }
             } else if let Some(true) = config.by_distance {
                 if workers.measured_workers.len() > 0 {
-                    for i in 0..val {
+                    for _i in 0..val {
                         let ind = rng.gen_range(0..workers.measured_workers.len());
                         let worker = workers.get_best_worker(ind).unwrap();
                         let job_assignment = JobAssignment::new(worker.clone(), &job);
@@ -161,7 +161,7 @@ impl AssignmentBuffer {
             .map(|job| job.job_name.clone())
             .collect::<HashSet<String>>()
     }
-    pub fn remove_redundant_jobs(mut self, exist_jobs: &HashSet<String>) -> Self {
+    pub fn remove_redundant_jobs(self, exist_jobs: &HashSet<String>) -> Self {
         let Self {
             jobs,
             list_assignments,

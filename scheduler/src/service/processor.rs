@@ -1,25 +1,25 @@
 use crate::models::job_result_cache::JobResultCache;
 use crate::persistence::services::{JobResultService, JobService, PlanService};
-use crate::service::judgment::main_judg::MainJudgment;
-use crate::service::judgment::{get_report_judgments, JudgmentsResult, PingJudgment, ReportCheck};
-use crate::service::report_portal::StoreReport;
+
+
+
 use crate::state::ProcessorState;
-use crate::{CONFIG, PORTAL_AUTHORIZATION};
+
 use anyhow::Error;
-use common::job_manage::{JobResultDetail, JobRole};
-use common::jobs::{Job, JobResult};
-use common::util::get_current_time;
-use common::workers::WorkerInfo;
-use common::DOMAIN;
-use log::{debug, info};
-use sea_orm::sea_query::IdenList;
-use serde_json::json;
-use std::collections::{HashMap, HashSet};
+
+use common::jobs::{JobResult};
+
+
+
+use log::{info};
+
+
+
 use std::default::Default;
-use std::str::FromStr;
+
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use warp::{Buf, Rejection, Reply};
+
 
 #[derive(Default)]
 pub struct ProcessorService {

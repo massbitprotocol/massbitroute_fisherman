@@ -32,7 +32,7 @@ impl PlanService {
         for status in statuses {
             condition_status = condition_status.add(plans::Column::Status.eq(status.to_string()));
         }
-        let mut condition = match phase {
+        let condition = match phase {
             None => condition_status,
             Some(phase) => {
                 let mut condition = Condition::all();
@@ -143,7 +143,7 @@ impl PlanService {
         for status in statuses {
             condition_status = condition_status.add(plans::Column::Status.eq(status.to_string()));
         }
-        let mut condition = match phase {
+        let condition = match phase {
             None => condition_status,
             Some(phase) => {
                 let mut condition = Condition::all();

@@ -1,4 +1,4 @@
-use crate::models::job_result::ProviderTask;
+
 use crate::report_processors::adapters::csv_appender::CsvAppender;
 use crate::report_processors::adapters::postgres_appender::PostgresAppender;
 use crate::report_processors::adapters::providers_map_appender::ProvidersMapAdapter;
@@ -21,33 +21,33 @@ pub mod result_cache_appender;
 pub trait Appender: Sync + Send {
     async fn append(
         &self,
-        channel: String,
-        report: &Map<String, Value>,
+        _channel: String,
+        _report: &Map<String, Value>,
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
-    async fn append_job_results(&self, results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
+    async fn append_job_results(&self, _results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
         Ok(())
     }
 
-    async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), anyhow::Error> {
+    async fn append_ping_results(&self, _results: &Vec<JobPingResult>) -> Result<(), anyhow::Error> {
         Ok(())
     }
     async fn append_latest_block_results(
         &self,
-        result: &Vec<JobLatestBlockResult>,
+        _result: &Vec<JobLatestBlockResult>,
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
     async fn append_benchmark_results(
         &self,
-        result: &Vec<JobBenchmarkResult>,
+        _result: &Vec<JobBenchmarkResult>,
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
     async fn append_http_request_results(
         &self,
-        results: &Vec<JobResult>,
+        _results: &Vec<JobResult>,
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }

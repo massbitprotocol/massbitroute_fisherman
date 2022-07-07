@@ -19,9 +19,9 @@ use crate::models::job_result::ProviderTask;
 use crate::service::judgment::http_latestblock_judg::HttpLatestBlockJudgment;
 use crate::service::judgment::http_ping_judg::HttpPingJudgment;
 use common::jobs::{Job, JobResult};
-use common::PlanId;
-use sea_orm::DatabaseConnection;
-use std::sync::{Arc, Mutex};
+
+
+use std::sync::{Arc};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum JudgmentsResult {
@@ -48,8 +48,8 @@ pub trait ReportCheck: Sync + Send + Debug {
     /// For Verification phase
     async fn apply(
         &self,
-        plan: &PlanEntity,
-        job: &Vec<Job>,
+        _plan: &PlanEntity,
+        _job: &Vec<Job>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         //Todo: remove this function
         Ok(JudgmentsResult::Unfinished)
@@ -57,8 +57,8 @@ pub trait ReportCheck: Sync + Send + Debug {
     /// For Regular phase
     async fn apply_for_results(
         &self,
-        provider_task: &ProviderTask,
-        result: &Vec<JobResult>,
+        _provider_task: &ProviderTask,
+        _result: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         Ok(JudgmentsResult::Error)
     }

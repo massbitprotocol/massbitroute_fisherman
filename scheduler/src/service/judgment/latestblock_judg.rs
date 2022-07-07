@@ -44,7 +44,7 @@ impl ReportCheck for LatestBlockJudgment {
         return task.task_name.as_str() == "LatestBlock";
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         //Todo: Unimplement
         Ok(JudgmentsResult::Unfinished)
         /*

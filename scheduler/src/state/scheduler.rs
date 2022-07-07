@@ -1,19 +1,19 @@
-use crate::models::component::ProviderPlan;
+
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::plan_service::PlanService;
 use crate::persistence::services::WorkerService;
-use crate::{Config, CONFIG, REPORT_CALLBACK};
+use crate::{CONFIG, REPORT_CALLBACK};
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
-use entity::workers;
-use log::debug;
-use sea_orm::ActiveModelTrait;
+
+
+
 use sea_orm::DatabaseConnection;
-use std::borrow::BorrowMut;
+
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

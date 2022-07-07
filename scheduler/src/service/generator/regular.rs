@@ -86,8 +86,8 @@ impl RegularJobGenerator {
             info!("There is {} jobs in cache.", cache.get_jobs_number(),);
         }
         let AssignmentBuffer {
-            mut jobs,
-            mut list_assignments,
+            jobs,
+            list_assignments,
         } = total_assignment_buffer;
         //info!("There is {} components", components.len());
         info!("There is {} gen_jobs", jobs.len(),);

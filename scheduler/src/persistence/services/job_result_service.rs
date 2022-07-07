@@ -78,7 +78,7 @@ impl JobResultService {
         //New records
         let active_models = new_records
             .into_iter()
-            .map(|(key, val)| job_result_pings::ActiveModel::from_model(&val))
+            .map(|(_key, val)| job_result_pings::ActiveModel::from_model(&val))
             .collect::<Vec<job_result_pings::ActiveModel>>();
         debug!(
             "Create new {:?} records for job_result_pings",
@@ -110,7 +110,7 @@ impl JobResultService {
                 .exec(self.db.as_ref())
                 .await
             {
-                Ok(res) => {
+                Ok(_res) => {
                     log::debug!("Insert many records {:?}", len);
                 }
                 Err(err) => {

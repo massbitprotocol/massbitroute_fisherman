@@ -90,7 +90,7 @@ impl ProviderStorage {
     }
     pub async fn pop_components_for_verifications(&self) -> Vec<Arc<ProviderPlan>> {
         let mut res = Vec::new();
-        let current_time = get_current_time();
+        let _current_time = get_current_time();
         let mut nodes = self.verification_nodes.lock().await;
         res.append(&mut nodes);
         let mut gateways = self.verification_gateways.lock().await;
@@ -112,11 +112,11 @@ impl ProviderStorage {
     }
     */
     pub async fn clone_nodes_list(&self) -> Vec<ComponentInfo> {
-        let mut nodes = self.nodes.lock().await;
+        let nodes = self.nodes.lock().await;
         nodes.clone()
     }
     pub async fn clone_gateways_list(&self) -> Vec<ComponentInfo> {
-        let mut gateways = self.gateways.lock().await;
+        let gateways = self.gateways.lock().await;
         gateways.clone()
     }
 

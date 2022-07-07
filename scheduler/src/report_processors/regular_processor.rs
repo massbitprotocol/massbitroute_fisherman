@@ -29,14 +29,14 @@ impl RegularReportProcessor {
 }
 #[async_trait]
 impl ReportProcessor for RegularReportProcessor {
-    fn can_apply(&self, report: &JobResult) -> bool {
+    fn can_apply(&self, _report: &JobResult) -> bool {
         true
     }
 
     async fn process_job(
         &self,
-        report: &JobResult,
-        db_connection: Arc<DatabaseConnection>,
+        _report: &JobResult,
+        _db_connection: Arc<DatabaseConnection>,
     ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
     }
@@ -44,7 +44,7 @@ impl ReportProcessor for RegularReportProcessor {
     async fn process_jobs(
         &self,
         reports: Vec<JobResult>,
-        db_connection: Arc<DatabaseConnection>,
+        _db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         log::info!("Regular report process jobs");
         let stored_results = Vec::<StoredJobResult>::new();
@@ -71,7 +71,7 @@ impl ReportProcessor for RegularReportProcessor {
         }
         for (key, results) in provider_task_results {
             match self.judgment.apply_for_regular(&key, &results).await {
-                Ok(res) => {}
+                Ok(_res) => {}
                 Err(err) => {
                     error!("{:?}", &err);
                 }

@@ -7,11 +7,11 @@ use crate::report_processors::regular_processor::RegularReportProcessor;
 use crate::report_processors::verification_processor::VerificationReportProcessor;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::MainJudgment;
-use common::job_manage::{JobResultDetail, JobRole};
+use common::job_manage::{JobRole};
 use common::jobs::JobResult;
-use diesel::PgArrayExpressionMethods;
+
 use sea_orm::DatabaseConnection;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -98,7 +98,7 @@ impl ProcessorState {
         &self,
         job_results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
-        let mut stored_results = HashMap::<String, StoredJobResult>::new();
+        let stored_results = HashMap::<String, StoredJobResult>::new();
         let connection = self.connection.clone();
         self.regular_processor
             .process_jobs(job_results, connection)
@@ -109,7 +109,7 @@ impl ProcessorState {
         &self,
         job_results: Vec<JobResult>,
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
-        let mut stored_results = HashMap::<String, StoredJobResult>::new();
+        let stored_results = HashMap::<String, StoredJobResult>::new();
         let connection = self.connection.clone();
         self.verification_processor
             .process_jobs(job_results, connection)

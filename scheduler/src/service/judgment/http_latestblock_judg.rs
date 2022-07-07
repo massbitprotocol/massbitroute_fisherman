@@ -69,8 +69,8 @@ impl LatestBlockResultCache {
             "Insert result value {:?} with time {:?} to cache",
             values, time
         );
-        let blockchain = key.blockchain.as_str();
-        let network = key.network.as_str();
+        let _blockchain = key.blockchain.as_str();
+        let _network = key.network.as_str();
         match map.get(&key) {
             None => {
                 map.insert(
@@ -160,7 +160,7 @@ impl LatestBlockResultCache {
         let mut values = self.values.lock().unwrap();
         //Compare current value with max value in cache;
         let mut missing_block = i64::MIN;
-        for (key, value) in values.iter() {
+        for (_key, value) in values.iter() {
             let diff = comparator.compare(&value.values, &result_value.values)?;
             if diff > missing_block {
                 missing_block = diff
@@ -270,7 +270,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
         return task.task_type.as_str() == "HttpRequest"
             && task.task_name.as_str() == "LatestBlock";
     }
-    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         //Todo: remove this function
         Ok(JudgmentsResult::Error)
         /*

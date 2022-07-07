@@ -149,7 +149,7 @@ impl JobResultDetail {
                 job.clone(),
                 JobRpcResponse::default(),
             )),
-            JobDetail::Command(rpc) => JobResultDetail::Command(JobCommandResult::new(
+            JobDetail::Command(_rpc) => JobResultDetail::Command(JobCommandResult::new(
                 job.clone(),
                 JobCommandResponse::default(),
             )),

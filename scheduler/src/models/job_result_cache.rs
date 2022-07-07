@@ -41,13 +41,13 @@ pub struct JobResultCache {
 }
 
 impl JobResultCache {
-    pub fn init_cache(&mut self, assignments: HashMap<ComponentId, JobAssignment>) {
+    pub fn init_cache(&mut self, _assignments: HashMap<ComponentId, JobAssignment>) {
         //Todo: Init cache
     }
     pub fn get_jobs_number(&self) -> usize {
         self.result_cache_map
             .iter()
-            .fold(0, |count, (key, map)| count + map.len())
+            .fold(0, |count, (_key, map)| count + map.len())
     }
     pub fn get_judg_result(
         &self,

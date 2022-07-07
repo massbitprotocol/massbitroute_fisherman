@@ -67,21 +67,21 @@ impl VerificationReportProcessor {
 }
 #[async_trait]
 impl ReportProcessor for VerificationReportProcessor {
-    fn can_apply(&self, report: &JobResult) -> bool {
+    fn can_apply(&self, _report: &JobResult) -> bool {
         true
     }
 
     async fn process_job(
         &self,
-        report: &JobResult,
-        db_connection: Arc<DatabaseConnection>,
+        _report: &JobResult,
+        _db_connection: Arc<DatabaseConnection>,
     ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
     }
     async fn process_jobs(
         &self,
         reports: Vec<JobResult>,
-        db_connection: Arc<DatabaseConnection>,
+        _db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         log::debug!("Verification process report jobs: {:?}", &reports);
         for adapter in self.report_adapters.iter() {
@@ -273,7 +273,7 @@ impl VerificationReportProcessor {
             .update_plan_results(plan, &plan_results, plan_jobs);
         //Handle plan result
         let mut final_result = JudgmentsResult::Pass;
-        for (job_id, plan_result) in plan_results {
+        for (_job_id, plan_result) in plan_results {
             if final_result == JudgmentsResult::Pass {
                 final_result = plan_result;
             }

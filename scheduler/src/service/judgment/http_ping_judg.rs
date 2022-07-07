@@ -224,7 +224,7 @@ impl ReportCheck for HttpPingJudgment {
                         Ok(JudgmentsResult::Failed)
                     }
                 }
-                Err(err) => Ok(JudgmentsResult::Failed),
+                Err(_err) => Ok(JudgmentsResult::Failed),
             }
         };
     }

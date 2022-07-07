@@ -1,38 +1,34 @@
 use crate::models::component::ProviderPlan;
-use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
+use crate::models::job_result_cache::JobResultCache;
 use crate::models::jobs::AssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::models::TaskDependency;
 use crate::persistence::services::{JobService, PlanService};
 use crate::persistence::PlanModel;
-use crate::service::judgment::http_latestblock_judg::CacheKey;
+
 use crate::service::judgment::JudgmentsResult;
-use crate::tasks::generator::{get_tasks, TaskApplicant};
-use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
-use anyhow::{anyhow, Error};
-use common::component::{ComponentInfo, Zone};
-use common::job_manage::{JobDetail, JobRole};
-use common::jobs::{Job, JobAssignment, JobResult};
-use common::models::plan_entity::PlanStatus;
-use common::models::PlanEntity;
+use crate::tasks::generator::TaskApplicant;
+
+use anyhow::anyhow;
+use common::component::ComponentInfo;
+use common::job_manage::JobRole;
+use common::jobs::Job;
+
 use common::tasks::LoadConfig;
 use common::util::get_current_time;
-use common::workers::{MatchedWorkers, Worker, WorkerInfo};
-use common::{task_spawn, ComponentId, Timestamp, WorkerId};
-use futures_util::future::join;
-use log::{debug, info, trace, warn};
-use sea_orm::sea_query::IndexType::Hash;
-use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
-use serde::{Deserialize, Serialize};
-use slog::log;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::mem::take;
+use common::workers::MatchedWorkers;
+use common::Timestamp;
+
+use log::{debug, warn};
+
+use sea_orm::{DatabaseConnection, TransactionTrait};
+
+use std::collections::HashSet;
+
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+
 use tokio::sync::Mutex;
-use tokio::task;
-use tokio::time::sleep;
 
 #[derive(Default)]
 pub struct VerificationJobGenerator {
@@ -168,8 +164,8 @@ impl VerificationJobGenerator {
     }
     async fn process_assignment_buffer(&self, assignment_buffer: AssignmentBuffer) {
         let AssignmentBuffer {
-            mut jobs,
-            mut list_assignments,
+            jobs,
+            list_assignments,
         } = assignment_buffer;
         if list_assignments.len() > 0 {
             self.job_service

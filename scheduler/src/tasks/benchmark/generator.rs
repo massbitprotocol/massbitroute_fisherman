@@ -61,7 +61,7 @@ impl TaskApplicant for BenchmarkGenerator {
             .map(|dep| dep.clone())
             .unwrap_or_default()
     }
-    fn can_apply(&self, component: &ComponentInfo) -> bool {
+    fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
     }
     fn apply(

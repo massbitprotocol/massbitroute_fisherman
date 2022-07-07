@@ -1,9 +1,9 @@
-use crate::models::providers::ProviderStorage;
-use crate::state::{ProcessorState, SchedulerState};
-use anyhow::Error;
+
+use crate::state::{SchedulerState};
+
 use common::component::ComponentInfo;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
-use log::log;
+
 use serde_json::json;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -31,7 +31,7 @@ impl WebService {
             Ok(result) => {
                 return Ok(warp::reply::json(&result));
             }
-            Err(err) => {
+            Err(_err) => {
                 let result = WorkerRegisterResult {
                     worker_id: "".to_string(),
                     report_callback: "".to_string(),
@@ -43,7 +43,7 @@ impl WebService {
     pub async fn pause_worker(
         &self,
         worker_info: WorkerInfo,
-        scheduler_state: Arc<Mutex<SchedulerState>>,
+        _scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
@@ -51,7 +51,7 @@ impl WebService {
     pub async fn resume_worker(
         &self,
         worker_info: WorkerInfo,
-        scheduler_state: Arc<Mutex<SchedulerState>>,
+        _scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
@@ -59,7 +59,7 @@ impl WebService {
     pub async fn stop_worker(
         &self,
         worker_info: WorkerInfo,
-        scheduler_state: Arc<Mutex<SchedulerState>>,
+        _scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
         return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));

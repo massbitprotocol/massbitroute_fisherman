@@ -11,7 +11,7 @@ use reqwest::Client;
 use serde_json::Value;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
-use tokio::time::sleep;
+
 
 #[derive(Clone, Debug, Default)]
 pub struct LatestBlockExecutor {
@@ -48,7 +48,7 @@ impl LatestBlockExecutor {
         }?;
 
         match &job.job_detail {
-            Some(JobDetail::LatestBlock(latest_block)) => {}
+            Some(JobDetail::LatestBlock(_latest_block)) => {}
             None => {}
             _ => {}
         }
