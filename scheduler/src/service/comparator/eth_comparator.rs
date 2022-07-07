@@ -3,8 +3,8 @@ use anyhow::{anyhow, Error};
 use common::tasks::http_request::HttpResponseValues;
 use common::util::from_str_radix16;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::HashMap;
+
+
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct LatestBlockEthComparator {}
@@ -46,7 +46,7 @@ mod test {
     use std::collections::HashMap;
 
     fn test_get_block_time() {
-        let comparator = LatestBlockEthComparator::default();
+        let _comparator = LatestBlockEthComparator::default();
         let mut map_values = HashMap::<String, Value>::new();
         map_values.insert("number".to_string(), Value::from("0xe5a50f"));
         map_values.insert(
