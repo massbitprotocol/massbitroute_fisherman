@@ -4,7 +4,7 @@ use crate::persistence::services::provider_service::ProviderService;
 use crate::{CONFIG, PORTAL_AUTHORIZATION};
 use anyhow::Error;
 use common::component::{ComponentInfo, ComponentType, Zone};
-use log::{debug, error};
+use log::{debug, error, trace};
 use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
@@ -69,7 +69,7 @@ impl ProviderScanner {
         {
             match nodes {
                 Ok(nodes) => {
-                    debug!("Found {} Nodes.", nodes.len());
+                    trace!("Found {} Nodes.", nodes.len());
                     self.providers
                         .update_components_list(ComponentType::Node, nodes)
                         .await;
@@ -81,7 +81,7 @@ impl ProviderScanner {
             }
             match gateways {
                 Ok(gateways) => {
-                    debug!("Found {} Gateways.", gateways.len());
+                    trace!("Found {} Gateways.", gateways.len());
                     self.providers
                         .update_components_list(ComponentType::Gateway, gateways)
                         .await;

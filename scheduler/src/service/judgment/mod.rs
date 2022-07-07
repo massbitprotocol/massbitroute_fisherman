@@ -20,8 +20,8 @@ use crate::service::judgment::http_latestblock_judg::HttpLatestBlockJudgment;
 use crate::service::judgment::http_ping_judg::HttpPingJudgment;
 use common::jobs::{Job, JobResult};
 
-
-use std::sync::{Arc};
+use common::job_manage::JobRole;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum JudgmentsResult {
@@ -67,6 +67,7 @@ pub trait ReportCheck: Sync + Send + Debug {
 pub fn get_report_judgments(
     config_dir: &str,
     result_service: Arc<JobResultService>,
+    phase: &JobRole,
 ) -> Vec<Arc<dyn ReportCheck>> {
     let mut result: Vec<Arc<dyn ReportCheck>> = Default::default();
     result.push(Arc::new(PingJudgment::new(
@@ -83,10 +84,12 @@ pub fn get_report_judgments(
     )));
     result.push(Arc::new(HttpPingJudgment::new(
         config_dir,
+        phase,
         result_service.clone(),
     )));
     result.push(Arc::new(HttpLatestBlockJudgment::new(
         config_dir,
+        phase,
         result_service.clone(),
     )));
     result

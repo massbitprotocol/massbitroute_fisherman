@@ -20,9 +20,9 @@ impl ProviderStorage {
         components: Vec<ComponentInfo>,
     ) {
         log::debug!(
-            "Update {:?} list for regular schedule: {:?}",
+            "Update {:?} list for regular schedule: with {:?} components",
             component_type,
-            components
+            components.len()
         );
         match component_type {
             ComponentType::Node => {

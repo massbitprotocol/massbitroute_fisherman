@@ -115,7 +115,7 @@ pub struct HttpPingJudgment {
 }
 
 impl HttpPingJudgment {
-    pub fn new(config_dir: &str, result_service: Arc<JobResultService>) -> Self {
+    pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
         let verification_config = PingConfig::load_config(
             format!("{}/ping.json", config_dir).as_str(),
             &JobRole::Verification,
@@ -125,7 +125,7 @@ impl HttpPingJudgment {
             &JobRole::Regular,
         );
         let path = format!("{}/http_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str());
+        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         HttpPingJudgment {
             verification_config,
             regular_config,

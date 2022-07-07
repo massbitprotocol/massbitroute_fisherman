@@ -29,29 +29,9 @@ impl HttpRequestGenerator {
     pub fn get_name() -> String {
         String::from("HttpRequest")
     }
-    pub fn new(config_dir: &str) -> Self {
+    pub fn new(config_dir: &str, phase: &JobRole) -> Self {
         let path = format!("{}/http_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str());
-        // let json_content = std::fs::read_to_string(path.as_str()).unwrap_or_default();
-        // let mut configs: Map<String, serde_json::Value> =
-        //     serde_json::from_str(&*json_content).unwrap_or_default();
-        // let mut task_configs = Vec::new();
-        // let default = configs["default"].as_object().unwrap();
-        // let mut tasks = configs["tasks"].as_array().unwrap();
-        // for config in tasks.iter() {
-        //     let mut map_config = serde_json::Map::from(default.clone());
-        //     let mut task_config = config.as_object().unwrap().clone();
-        //     map_config.append(&mut task_config);
-        //     let value = serde_json::Value::Object(map_config);
-        //     log::info!("{:?}", &value);
-        //     match serde_json::from_value(value) {
-        //         Ok(config) => task_configs.push(config),
-        //         Err(err) => {
-        //             log::error!("{:?}", &err);
-        //         }
-        //     }
-        // }
-        //log::info!("configs HttpRequestGenerator: {:?}", &configs);
+        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         HttpRequestGenerator {
             //root_config: configs,
             task_configs,
@@ -154,6 +134,7 @@ impl TaskApplicant for HttpRequestGenerator {
             config.match_phase(&phase)
                 && config.match_blockchain(&component.blockchain)
                 && config.match_network(&component.network)
+                && config.match_provider_type(&component.component_type.to_string())
         }) {
             if !config.can_apply(component, &phase) {
                 debug!("Can not apply config {:?} for {:?}", config, component);
@@ -186,9 +167,14 @@ impl TaskApplicant for HttpRequestGenerator {
             component,
             &context
         );
-        for config in self.task_configs.iter() {
+        for config in self.task_configs.iter().filter(|config| {
+            config.match_phase(&phase)
+                && config.match_blockchain(&component.blockchain)
+                && config.match_network(&component.network)
+                && config.match_provider_type(&component.component_type.to_string())
+        }) {
             if !config.can_apply(component, &phase) {
-                debug!("Can not apply config {:?} for {:?}", config, component);
+                trace!("Can not apply config {:?} for {:?}", config, component);
                 continue;
             }
             let latest_update_timestamp = latest_update
@@ -213,7 +199,7 @@ impl TaskApplicant for HttpRequestGenerator {
                 assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
             }
         }
-        log::debug!("Generated jobs {:?}", &assignment_buffer);
+        log::trace!("Generated jobs {:?}", &assignment_buffer);
         Ok(assignment_buffer)
     }
     fn assign_jobs(
