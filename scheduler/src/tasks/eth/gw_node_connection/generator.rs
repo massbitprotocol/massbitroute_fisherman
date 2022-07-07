@@ -30,16 +30,16 @@ impl TaskApplicant for TaskGWNodeConnection {
     fn get_name(&self) -> String {
         Self::get_name()
     }
-    fn can_apply(&self, component: &ComponentInfo) -> bool {
+    fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
     }
 
     fn apply(
         &self,
-        plan_id: &PlanId,
-        component: &ComponentInfo,
-        phase: JobRole,
-        workers: &MatchedWorkers,
+        _plan_id: &PlanId,
+        _component: &ComponentInfo,
+        _phase: JobRole,
+        _workers: &MatchedWorkers,
     ) -> Result<AssignmentBuffer, anyhow::Error> {
         Ok(AssignmentBuffer::default())
     }

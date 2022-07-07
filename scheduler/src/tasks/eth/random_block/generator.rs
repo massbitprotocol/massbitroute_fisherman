@@ -29,16 +29,16 @@ impl TaskApplicant for TaskRandomBlock {
     fn get_name(&self) -> String {
         String::from("RandomBlock")
     }
-    fn can_apply(&self, component: &ComponentInfo) -> bool {
+    fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
     }
 
     fn apply(
         &self,
-        plan_id: &PlanId,
-        node: &Node,
-        phase: JobRole,
-        workers: &MatchedWorkers,
+        _plan_id: &PlanId,
+        _node: &Node,
+        _phase: JobRole,
+        _workers: &MatchedWorkers,
     ) -> Result<AssignmentBuffer, Error> {
         Ok(AssignmentBuffer::default())
     }

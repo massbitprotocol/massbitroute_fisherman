@@ -90,13 +90,13 @@ impl TaskApplicant for LatestBlockGenerator {
      */
     fn assign_jobs(
         &self,
-        plan: &PlanModel,
-        provider_node: &ComponentInfo,
+        _plan: &PlanModel,
+        _provider_node: &ComponentInfo,
         jobs: &Vec<Job>,
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
         let mut assignments = Vec::default();
-        jobs.iter().enumerate().for_each(|(ind, job)| {
+        jobs.iter().enumerate().for_each(|(_ind, job)| {
             for worker in workers.measured_workers.iter() {
                 let job_assignment = JobAssignment::new(worker.clone(), job);
                 assignments.push(job_assignment);

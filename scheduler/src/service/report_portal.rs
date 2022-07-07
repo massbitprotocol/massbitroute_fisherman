@@ -1,6 +1,6 @@
-use crate::CONFIG;
+
 use anyhow::{anyhow, Error};
-use common::component::{ComponentInfo, ComponentType};
+use common::component::{ComponentType};
 use common::job_manage::JobRole;
 use common::{ComponentId, Deserialize, Serialize};
 use log::debug;

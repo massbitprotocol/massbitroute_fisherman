@@ -148,7 +148,7 @@ impl ReportCheck for BenchmarkJudgment {
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         return task.task_name.as_str() == "Benchmark";
     }
-    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         //Todo: unimplement
         Ok(JudgmentsResult::Unfinished)
         /*

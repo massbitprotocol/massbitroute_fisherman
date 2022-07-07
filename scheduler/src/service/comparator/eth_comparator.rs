@@ -3,6 +3,8 @@ use anyhow::{anyhow, Error};
 use common::tasks::http_request::HttpResponseValues;
 use common::util::from_str_radix16;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct LatestBlockEthComparator {}

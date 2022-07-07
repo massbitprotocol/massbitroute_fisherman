@@ -1,4 +1,4 @@
-use crate::models::job_result::ProviderTask;
+
 use crate::persistence::services::provider_service::ProviderService;
 use crate::persistence::ProviderMapModel;
 use crate::report_processors::adapters::Appender;

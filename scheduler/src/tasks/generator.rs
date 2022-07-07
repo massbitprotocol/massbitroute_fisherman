@@ -51,8 +51,8 @@ pub trait TaskApplicant: Sync + Send {
     }
     fn assign_jobs(
         &self,
-        plan: &PlanModel,
-        provider_node: &ComponentInfo,
+        _plan: &PlanModel,
+        _provider_node: &ComponentInfo,
         jobs: &Vec<Job>,
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {

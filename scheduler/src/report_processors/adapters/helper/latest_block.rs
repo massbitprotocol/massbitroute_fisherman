@@ -1,16 +1,15 @@
 use crate::LATEST_BLOCK_CACHING_DURATION;
 use common::component::ChainInfo;
-use common::job_manage::JobDetail::HttpRequest;
+
 use common::job_manage::JobResultDetail;
 use common::jobs::JobResult;
 use common::tasks::http_request::{HttpResponseValues, JobHttpResponseDetail, JobHttpResult};
 use common::util::get_current_time;
-use common::{BlockChainType, ComponentId};
+use common::ComponentId;
 pub use entity::seaorm::provider_latest_blocks::ActiveModel as ProviderLatestBlockActiveModel;
 pub use entity::seaorm::provider_latest_blocks::Model as ProviderLatestBlockModel;
 use sea_orm::ActiveValue::Set;
 use std::collections::HashMap;
-use warp::get;
 
 #[derive(Clone, Default)]
 pub struct LatestBlockEntity {
@@ -111,7 +110,7 @@ impl LatestBlockCache {
             chain_info,
             ..
         } = result;
-        if let (Some(chain_info), JobResultDetail::HttpRequest(JobHttpResult { job, response })) =
+        if let (Some(chain_info), JobResultDetail::HttpRequest(JobHttpResult { response, .. })) =
             (chain_info, result_detail)
         {
             if response.error_code == 0 {
@@ -138,7 +137,7 @@ impl LatestBlockCache {
                 .get(&block_id)
                 .map(|v| if *v < val { val } else { *v })
                 .unwrap_or(val);
-            self.max_block_timestamp.insert(block_id.clone(), val);
+            self.max_block_timestamp.insert(block_id.clone(), max);
         }
         if let Some(val) = latest_value.block_number {
             let max = self
@@ -146,9 +145,9 @@ impl LatestBlockCache {
                 .get(&block_id)
                 .map(|v| if *v < val { val } else { *v })
                 .unwrap_or(val);
-            self.max_block_number.insert(block_id.clone(), val);
+            self.max_block_number.insert(block_id.clone(), max);
         }
-        let mut map_latest_values = self
+        let map_latest_values = self
             .latest_values
             .entry(block_id.clone())
             .or_insert(HashMap::default());

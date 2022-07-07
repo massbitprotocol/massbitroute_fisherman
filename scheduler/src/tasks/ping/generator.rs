@@ -12,7 +12,7 @@ use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::mpsc::Sender;
+
 
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
@@ -54,7 +54,7 @@ impl TaskApplicant for PingGenerator {
     fn get_name(&self) -> String {
         String::from("Ping")
     }
-    fn can_apply(&self, component: &ComponentInfo) -> bool {
+    fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
     }
 
@@ -87,7 +87,7 @@ impl TaskApplicant for PingGenerator {
     fn assign_jobs(
         &self,
         plan: &PlanModel,
-        provider_node: &ComponentInfo,
+        _provider_node: &ComponentInfo,
         jobs: &Vec<Job>,
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
@@ -95,7 +95,7 @@ impl TaskApplicant for PingGenerator {
         let mut assignments = Vec::default();
         match phase {
             JobRole::Verification => {
-                jobs.iter().enumerate().for_each(|(ind, job)| {
+                jobs.iter().enumerate().for_each(|(_ind, job)| {
                     for worker in workers.measured_workers.iter() {
                         let job_assignment = JobAssignment::new(worker.clone(), job);
                         assignments.push(job_assignment);

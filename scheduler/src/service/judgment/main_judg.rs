@@ -1,24 +1,24 @@
-use crate::models::job_result;
+
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
-use crate::persistence::services::PlanService;
+
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::service::report_portal::StoreReport;
-use crate::{CONFIG, CONFIG_DIR, JUDGMENT_PERIOD, PORTAL_AUTHORIZATION};
+use crate::{CONFIG, CONFIG_DIR, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
-use common::models::plan_entity::PlanStatus;
+
 use common::models::PlanEntity;
-use common::{ComponentId, JobId, PlanId, DOMAIN};
-use log::{debug, error, info};
-use migration::IndexType::Hash;
-use sea_orm::DatabaseConnection;
+use common::{JobId, PlanId, DOMAIN};
+use log::{debug, info};
+
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::thread::sleep;
-use std::time::{Duration, Instant};
+
+
 
 #[derive(Default)]
 pub struct MainJudgment {

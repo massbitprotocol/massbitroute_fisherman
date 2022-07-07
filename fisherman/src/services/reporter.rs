@@ -52,7 +52,7 @@ impl JobResultReporter {
             .await;
         trace!("Send response: {:?}", result);
         match result {
-            Ok(res) => Ok(()),
+            Ok(_res) => Ok(()),
             Err(err) => Err(anyhow!(format!("{:?}", &err))),
         }
     }

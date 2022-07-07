@@ -80,7 +80,7 @@ impl JobGenerator {
             regular,
         }
     }
-    pub async fn run(mut self) {
+    pub async fn run(self) {
         let JobGenerator {
             mut verification,
             mut regular,

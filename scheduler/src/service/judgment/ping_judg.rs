@@ -4,16 +4,16 @@ use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use crate::tasks::ping::generator::PingConfig;
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{JobDetail, JobResultDetail, JobRole};
+use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
-use common::tasks::http_request::{JobHttpResponse, JobHttpResponseDetail, JobHttpResult};
+use common::tasks::http_request::{JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
-use histogram::Histogram;
-use log::log;
-use sea_orm::DatabaseConnection;
+
+
+
 use std::collections::HashMap;
-use std::str::FromStr;
+
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
@@ -81,7 +81,7 @@ impl ReportCheck for PingJudgment {
         return task.task_name.as_str() == "Ping";
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         Ok(JudgmentsResult::Unfinished)
         /*
         let config = match JobRole::from_str(&*plan.phase)? {
@@ -128,7 +128,7 @@ impl ReportCheck for PingJudgment {
         provider_task: &ProviderTask,
         result: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
-        let response_durations = self.result_cache.append_results(provider_task, result);
+        let _response_durations = self.result_cache.append_results(provider_task, result);
         Ok(JudgmentsResult::Error)
     }
 }

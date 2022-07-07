@@ -47,7 +47,7 @@ impl ProviderPlan {
     }
     //Create new plan from expired one
     pub fn renew(&self) -> Self {
-        let current_time = get_current_time();
+        let _current_time = get_current_time();
         self.clone()
     }
 }

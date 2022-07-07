@@ -1,4 +1,4 @@
-use crate::models::job_result::ProviderTask;
+
 use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
 use crate::report_processors::adapters::Appender;
 use async_trait::async_trait;
