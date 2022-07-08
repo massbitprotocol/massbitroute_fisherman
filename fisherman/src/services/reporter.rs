@@ -2,7 +2,6 @@ use crate::JOB_RESULT_REPORTER_PERIOD;
 use anyhow::anyhow;
 use common::jobs::JobResult;
 use log::{debug, info, trace};
-//use std::thread::sleep;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Receiver;
 use tokio::time::sleep;
