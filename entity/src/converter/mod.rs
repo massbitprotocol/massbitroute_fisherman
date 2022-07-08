@@ -58,7 +58,7 @@ impl From<&Job> for jobs::ActiveModel {
             },
         };
 
-        debug!("from job_detail: {:?}", job_detail);
+        //debug!("from job_detail: {:?}", job_detail);
 
         jobs::ActiveModel {
             job_id: Set(job.job_id.to_owned()),

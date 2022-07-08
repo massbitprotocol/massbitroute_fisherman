@@ -1,4 +1,3 @@
-
 use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
 use crate::report_processors::adapters::Appender;
 use async_trait::async_trait;
@@ -55,11 +54,7 @@ impl Appender for ResultCacheAppender {
                     task_result_cache.pop_front();
                 }
             }
-            log::debug!(
-                "{} result_cache: {:?}",
-                result_cache.result_cache_map.len(),
-                result_cache.result_cache_map
-            );
+            log::debug!("result_cache size {}", result_cache.result_cache_map.len());
         }
         Ok(())
     }

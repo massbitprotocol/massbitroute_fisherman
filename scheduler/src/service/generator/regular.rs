@@ -13,7 +13,7 @@ use common::jobs::Job;
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::Timestamp;
-use log::{info, trace, warn};
+use log::{debug, info, trace, warn};
 use sea_orm::{DatabaseConnection, TransactionTrait};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -60,14 +60,8 @@ impl RegularJobGenerator {
     }
     pub async fn generate_regular_jobs(&mut self) -> Result<(), Error> {
         let mut total_assignment_buffer = AssignmentBuffer::default();
-        let mut components;
-        {
-            components = self.providers.clone_nodes_list().await;
-            info!("There are {} node", components.len());
-            components.append(&mut self.providers.clone_gateways_list().await);
-            info!("There are {} component", components.len());
-        }
-
+        let components = self.providers.get_active_providers().await;
+        debug!("Found {} active providers", components.len());
         {
             let mut cache = self.result_cache.lock().await;
             for component in components.iter() {
@@ -75,9 +69,9 @@ impl RegularJobGenerator {
                     .result_cache_map
                     .entry(component.id.clone())
                     .or_insert(Default::default());
-                let provider_plan = Self::create_provider_plan(component);
+                //let provider_plan = Self::create_provider_plan(component);
                 if let Ok(assignment_buffer) = self
-                    .generate_regular_provider_jobs(provider_plan, provider_cache)
+                    .generate_regular_provider_jobs(component, provider_cache)
                     .await
                 {
                     total_assignment_buffer.append(assignment_buffer);
@@ -133,7 +127,7 @@ impl RegularJobGenerator {
 
     async fn generate_regular_provider_jobs(
         &self,
-        provider_plan: ProviderPlan,
+        provider: &ComponentInfo,
         provider_result_cache: &mut HashMap<TaskKey, TaskResultCache>,
     ) -> Result<AssignmentBuffer, anyhow::Error> {
         let mut assignment_buffer = AssignmentBuffer::default();
@@ -141,11 +135,11 @@ impl RegularJobGenerator {
             .worker_infos
             .lock()
             .await
-            .match_workers(&provider_plan.provider)
+            .match_workers(provider)
             .unwrap_or(MatchedWorkers::default());
 
         for task in self.tasks.iter() {
-            if !task.can_apply(&provider_plan.provider) {
+            if !task.can_apply(provider) {
                 continue;
             }
             // Check if there is task result
@@ -154,21 +148,34 @@ impl RegularJobGenerator {
                 .filter(|(key, _)| key.task_type.as_str() == task.get_name().as_str())
                 .map(|(key, value)| (key.task_name.clone(), value.get_latest_update_time()))
                 .collect::<HashMap<String, Timestamp>>();
-            trace!("latest_task_update: {:?}", latest_task_update);
-
+            debug!(
+                "latest_task_update for provider {} {}: {:?}",
+                &provider.component_type.to_string(),
+                &provider.ip,
+                latest_task_update
+            );
+            let plan_id = format!("{}-{}", JobRole::Regular.to_string(), provider.id);
             if let Ok(applied_jobs) = task.apply_with_cache(
-                &provider_plan.plan.plan_id,
-                &provider_plan.provider,
+                &plan_id,
+                &provider,
                 JobRole::Regular,
                 &matched_workers,
                 latest_task_update,
             ) {
+                if applied_jobs.jobs.len() > 0 {
+                    debug!(
+                        "Generated regular jobs for provider {}, {:?}, {:?}",
+                        &provider.component_type.to_string(),
+                        provider.ip,
+                        &applied_jobs
+                    );
+                }
                 assignment_buffer.append(applied_jobs);
             }
             //Update provider_result_cache
             for job in assignment_buffer.jobs.iter() {
                 let task_key = TaskKey {
-                    task_type: task.get_name().clone(),
+                    task_type: job.job_type.clone(),
                     task_name: job.job_name.clone(),
                 };
                 let cache = provider_result_cache
@@ -176,7 +183,6 @@ impl RegularJobGenerator {
                     .or_insert(TaskResultCache::default());
                 cache.update_time = get_current_time();
             }
-
             /*
             if applied_jobs.len() > 0 {
                 log::debug!(
