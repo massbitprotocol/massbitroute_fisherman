@@ -97,20 +97,18 @@ impl ProviderStorage {
         res.append(&mut gateways);
         res
     }
-    /*
-    pub async fn pop_nodes_for_verifications(&self) -> Vec<ProviderPlan> {
-        let mut res = Vec::new();
-        let mut nodes = self.verification_nodes.lock().await;
-        res.append(&mut nodes);
-        res
+    pub async fn get_active_providers(&self) -> Vec<ComponentInfo> {
+        let mut providers = Vec::new();
+        let nodes = self.nodes.lock().await;
+        for comp in nodes.iter() {
+            providers.push(comp.clone());
+        }
+        let gateways = self.gateways.lock().await;
+        for comp in gateways.iter() {
+            providers.push(comp.clone());
+        }
+        providers
     }
-    pub async fn pop_gateways_for_verifications(&self) -> Vec<ProviderPlan> {
-        let mut res = Vec::new();
-        let mut nodes = self.verification_gateways.lock().await;
-        res.append(&mut nodes);
-        res
-    }
-    */
     pub async fn clone_nodes_list(&self) -> Vec<ComponentInfo> {
         let nodes = self.nodes.lock().await;
         nodes.clone()
