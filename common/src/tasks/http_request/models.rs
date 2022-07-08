@@ -187,7 +187,7 @@ impl HttpRequestJobConfig {
             //log::debug!("Task config before append {:?}", &task_config);
             Self::append(&mut map_config, &mut task_config);
             let value = serde_json::Value::Object(map_config);
-            log::info!("Final task config {:?}", &value);
+            log::trace!("Final task config {:?}", &value);
             match serde_json::from_value::<HttpRequestJobConfig>(value) {
                 Ok(config) => {
                     if config.match_phase(phase) {

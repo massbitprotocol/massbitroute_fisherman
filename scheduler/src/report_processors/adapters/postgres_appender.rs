@@ -2,23 +2,23 @@ use crate::models::job_result::StoredJobResult;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::report_processors::adapters::helper::LatestBlockCache;
 use crate::report_processors::adapters::Appender;
-use anyhow::anyhow;
+
 use async_trait::async_trait;
 use common::job_manage::{JobBenchmarkResult, JobResultDetail};
 use common::jobs::JobResult;
 use common::tasks::eth::JobLatestBlockResult;
 
-use entity::seaorm::provider_latest_blocks::ActiveModel as ProviderLatestBlockActiveModel;
-use entity::seaorm::provider_latest_blocks::Entity as ProviderLatestBlockEntity;
-use futures_util::StreamExt;
+
+
+
 use log::debug;
 
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, EntityTrait, Statement,
+    ActiveModelTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement,
     Value,
 };
 
-use slog::log;
+
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

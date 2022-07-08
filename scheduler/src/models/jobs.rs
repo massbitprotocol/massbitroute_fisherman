@@ -79,8 +79,9 @@ impl AssignmentBuffer {
                 let job_assignment = JobAssignment::new(worker.clone(), &job);
                 self.list_assignments.push(job_assignment);
                 debug!(
-                    "Assign job {:?} to worker {:?}",
+                    "Assign job {:?} on provider {:?} to worker {:?}",
                     job.job_name,
+                    job.component_id,
                     worker.get_url("")
                 )
             }
@@ -119,8 +120,9 @@ impl AssignmentBuffer {
                         let ind = rng.gen_range(0..all_workers.len());
                         if let Some(worker) = all_workers.get(ind) {
                             debug!(
-                                "Assign job {:?} to worker {:?}",
+                                "Assign job {:?} on provider {:?} to worker {:?}",
                                 job.job_name,
+                                job.component_id,
                                 worker.get_url("")
                             );
                             let job_assignment = JobAssignment::new(worker.clone(), &job);
