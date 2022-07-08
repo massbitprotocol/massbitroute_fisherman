@@ -134,6 +134,12 @@ pub enum JobResultDetail {
     Compound(JobCompoundResult),
 }
 
+impl Default for JobResultDetail {
+    fn default() -> Self {
+        JobResultDetail::HttpRequest(JobHttpResult::default())
+    }
+}
+
 impl JobResultDetail {
     pub fn new(job: &Job) -> Self {
         let current_timestamp = SystemTime::now()

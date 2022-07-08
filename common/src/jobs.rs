@@ -126,7 +126,7 @@ pub struct AssignmentConfig {
     pub by_distance: Option<bool>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct JobResult {
     pub plan_id: PlanId,
     pub job_id: JobId,

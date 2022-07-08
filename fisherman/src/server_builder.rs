@@ -38,7 +38,7 @@ pub struct DeployParam {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SimpleResponse {
-    success: bool,
+    pub success: bool,
 }
 
 impl WorkerServer {
