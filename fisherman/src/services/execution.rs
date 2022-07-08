@@ -9,7 +9,6 @@ use common::tasks::executor::TaskExecutor;
 use log::{debug, trace};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-// use std::thread::sleep;
 use std::time::Duration;
 use tokio::runtime::{Builder, Runtime};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -92,19 +91,8 @@ impl JobExecution {
                     }
                 }
             }
-            //Jun 13 - Don't use this anymore
-            //Get new generated jobs
-            //self.get_jobs_from_executions().await;
             debug!("No Job for execution.");
             sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD)).await;
         }
     }
-    // pub async fn get_jobs_from_executions(&mut self) {
-    //     let mut jobs = Vec::new();
-    //     while let Ok(job) = self.job_receiver.try_recv() {
-    //         trace!("Received job: {:?} from executors", &job);
-    //         jobs.push(job);
-    //     }
-    //     self.job_buffers.lock().await.add_jobs(jobs);
-    // }
 }

@@ -127,7 +127,6 @@ impl HttpRequestExecutor {
         let body: Value = serde_json::from_str(&content).map_err(|e| {
             HttpRequestError::GetBodyError(format!("Err {} when parsing response", e))
         })?;
-
         let mut results = HttpResponseValues::default();
         for (key, paths) in values.iter() {
             let mut ind = 0_usize;
@@ -188,5 +187,252 @@ impl TaskExecutor for HttpRequestExecutor {
             Some(JobDetail::HttpRequest(_)) => true,
             _ => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tasks::HttpRequestExecutor;
+    use anyhow::Error;
+    use common::component::ComponentInfo;
+    use common::job_manage::{JobBenchmark, JobDetail};
+    use common::jobs::Job;
+    use common::tasks::executor::TaskExecutor;
+    use common::tasks::http_request::{HttpResponseValues, JobHttpRequest, JobHttpResponseDetail};
+    use common::Timestamp;
+    use http::response::Builder;
+    use httpmock::prelude::GET;
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
+    use reqwest::{Response, ResponseBuilderExt, Url};
+    use std::collections::HashMap;
+    use std::ops::Deref;
+    use std::time::Duration;
+
+    const MOCK_RTT_RESPONSE_TIME: Timestamp = 123000;
+
+    fn new_test_job(job_name: &str, component_url: &str) -> Job {
+        let component = ComponentInfo {
+            blockchain: "".to_string(),
+            network: "".to_string(),
+            id: "".to_string(),
+            user_id: "".to_string(),
+            ip: "".to_string(),
+            zone: Default::default(),
+            country_code: "".to_string(),
+            token: "".to_string(),
+            component_type: Default::default(),
+            endpoint: None,
+            status: "".to_string(),
+        };
+        let job_detail = r###"
+        {"url": "", "body": "", "method": "get", "headers": {}, "chain_info": {"chain": "eth", "network": "mainnet"}, "response_type": "text", "response_values": {}}
+        "###;
+        let mut job_http_request: JobHttpRequest = serde_json::from_str(job_detail).unwrap();
+        job_http_request.url = component_url.to_string();
+        let mut job = match job_name {
+            "benchmark" => Job::new(
+                "benchmark".to_string(),
+                "".to_string(),
+                "".to_string(),
+                &component,
+                JobDetail::Benchmark(JobBenchmark::default()),
+                Default::default(),
+            ),
+            "http" => Job::new(
+                "http".to_string(),
+                "HttpRequest".to_string(),
+                "".to_string(),
+                &component,
+                JobDetail::HttpRequest(job_http_request),
+                Default::default(),
+            ),
+            _ => Job::default(),
+        };
+        job.component_url = component_url.to_string();
+        job
+    }
+
+    fn new_mock_eth_block_response() -> Response {
+        let url = Url::parse("http://example.com").unwrap();
+        let body = r###"
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "baseFeePerGas": "0x919d4f7bb",
+        "difficulty": "0x32d4839f833850",
+        "extraData": "0x36",
+        "gasLimit": "0x1c8dea2",
+        "gasUsed": "0x183ea29",
+        "hash": "0x6a4012e041f5fa58855dde864b6371c03d4d31d17b993dc8d947d9fdac65b1d2",
+        "logsBloom": "0x6ffadefff1855efbd9dd3bf6afbeabe7556aee9df9773cf44346fe1bf7fead6375f29771fe2ffaea6ab779723fef1da47badf9d31fdffbf3b674acb7327ff7a6ddfcfbaf8eb89fecfccfecdba3a26a773eefae7f356796ddcaf1fe9591afb756ff8bfad80ebae7f7d37f07c3acb1febef5bf7fdcee5d8fc55b794fffcfcdeab2b5b5e79efdf4fb8fb1ae6609ed9e7ed79c37ffe1e5def7ddd9ad3bf5e39e55e63a7df33d3b2fbc15feadc7b65ff7e6f8feff6e3fcfe6bee78da9d6fe96afffebdf3ef6a2e3b3e1f55fb17dbb5f9bdd66da7db44fba7ce55daf8d7d6fe27ee4fbbebbf66affd76c998f0317fa7fa4eabcbe3367cdf7b0f5de9f5ffca2f3b87de2",
+        "miner": "0x4069e799da927c06b430e247b2ee16c03e8b837d",
+        "mixHash": "0x9bf528940b7de0c4cb765d8a714f4c5ed132dad25b68033a86ee3c7efbd47c9f",
+        "nonce": "0xf35487b463a7b3d7",
+        "number": "0xe2e63a",
+        "parentHash": "0x969fe278cbed922ebcc9b0046d12f389ab33fbd4edffb55901ade2c5b21118dc",
+        "receiptsRoot": "0x82c93301a2878062d2a3a9a862fd77967edbaa24e79597c5965dafa2b66350f4",
+        "sha3Uncles": "0x3dbbb28a8f929baf490fea113c5c0f9077c6b1b04b71eb9e1160b5c14167cfc5",
+        "size": "0x1732f",
+        "stateRoot": "0x2934c182c64080672c6df30f542afaca4cd6d2b03876d65d6b80d88b4576116b",
+        "timestamp": "0x62942e59",
+        "totalDifficulty": "0xaa8bfea8ded3c5c4219",
+        "transactions": [
+            "0x4e3a9d6d13b12752c5e0ef21a08565557f8a4f50d171375fca8fe8e260bf1ffe",
+            "0x00e02ace23596690cba908ef0d902db549da3ede0c32e54d251a16b55434983f"
+        ],
+        "transactionsRoot": "0x3d056a51333a14eef1b6a9fef543b3aa34f216c5c47d841e223d7cbf2af17293",
+        "uncles": [
+            "0xb5a53e43f77611120c9a2513e375fb47cff2eaaddf0364c65e27b7312654fdd0"
+        ]
+    }
+}
+        "###;
+        let response = Builder::new()
+            .status(200)
+            .url(url.clone())
+            .body(body)
+            .unwrap();
+        let response = Response::from(response);
+        response
+    }
+
+    fn run_mock_provider_server() -> MockServer {
+        // Start a lightweight mock server.
+        let server = MockServer::start();
+
+        // Create a mock on the server.
+        let hello_mock = server.mock(|when, then| {
+            when.method(GET).path("/_rtt");
+            then.status(200)
+                .header("content-type", "text/html; charset=UTF-8")
+                .body(format!("{}\n", MOCK_RTT_RESPONSE_TIME));
+        });
+        server
+    }
+
+    fn new_mock_rtt_response(rtt: i64) -> Response {
+        let url = Url::parse("http://example.com").unwrap();
+        let body = format!("{}\n", rtt);
+        let response = Builder::new()
+            .status(200)
+            .url(url.clone())
+            .body(body)
+            .unwrap();
+        let response = Response::from(response);
+        response
+    }
+
+    fn new_executor() -> HttpRequestExecutor {
+        HttpRequestExecutor::new("test_worker_id".to_string())
+    }
+
+    #[test]
+    fn test_can_apply() {
+        let executor = new_executor();
+        let job_benchmark = new_test_job("benchmark", "");
+        let job_http = new_test_job("http", "");
+
+        assert_eq!(executor.can_apply(&job_benchmark), false);
+        assert_eq!(executor.can_apply(&job_http), true);
+    }
+
+    #[tokio::test]
+    async fn test_parse_response_latest_block() -> Result<(), Error> {
+        let response = new_mock_eth_block_response();
+        let executor = new_executor();
+        let values = serde_json::from_value(serde_json::json!({
+          "hash": ["result", "hash"],
+          "number": ["result", "number"],
+          "timestamp": ["result", "timestamp"]
+        }))?;
+        let res = executor
+            .parse_response(response, &"json".to_string(), &values)
+            .await?;
+        let expect_res = HashMap::from([
+            (
+                "hash".to_string(),
+                serde_json::to_value(
+                    "0x6a4012e041f5fa58855dde864b6371c03d4d31d17b993dc8d947d9fdac65b1d2",
+                )
+                .unwrap(),
+            ),
+            (
+                "number".to_string(),
+                serde_json::to_value("0xe2e63a").unwrap(),
+            ),
+            (
+                "timestamp".to_string(),
+                serde_json::to_value("0x62942e59").unwrap(),
+            ),
+        ]);
+
+        if let JobHttpResponseDetail::Values(res) = res {
+            assert_eq!(res.deref(), &expect_res);
+        } else {
+            panic!("False parse_response");
+        }
+        let rtt = 123000i64;
+        let response = new_mock_rtt_response(rtt);
+        let res = executor
+            .parse_response(response, &"text".to_string(), &values)
+            .await?;
+
+        if let JobHttpResponseDetail::Body(res) = res {
+            assert_eq!(res.parse::<i64>().unwrap(), rtt);
+        } else {
+            panic!("False parse_response");
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_parse_response_rtt() -> Result<(), Error> {
+        let executor = new_executor();
+        let rtt = 123000i64;
+        let response = new_mock_rtt_response(rtt);
+        let res = executor
+            .parse_response(response, &"text".to_string(), &Default::default())
+            .await?;
+
+        if let JobHttpResponseDetail::Body(res) = res {
+            assert_eq!(res.parse::<i64>().unwrap(), rtt);
+        } else {
+            panic!("False parse_response");
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_call_http_request() -> Result<(), Error> {
+        let executor = new_executor();
+
+        // Create mock provider server
+        let mock_provider = run_mock_provider_server();
+        let url = format!("http://{}/_rtt", mock_provider.address());
+        println!("url: {}", url);
+
+        // Create Job that point to provider mock server
+        let job_http = new_test_job("http", url.as_str());
+        println!("job: {:?}", job_http);
+
+        let res = executor.call_http_request(&job_http).await;
+
+        // Check result
+        if let Ok(JobHttpResponse {
+            detail: JobHttpResponseDetail::Body(body),
+            ..
+        }) = res
+        {
+            assert_eq!(body.parse::<Timestamp>()?, MOCK_RTT_RESPONSE_TIME);
+        } else {
+            panic!("Wrong call_http_request res");
+        }
+
+        Ok(())
     }
 }

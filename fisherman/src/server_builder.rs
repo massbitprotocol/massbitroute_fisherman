@@ -148,31 +148,6 @@ impl WorkerServer {
             })
     }
 
-    /// Get status of component
-    /*
-    async fn create_get_status(
-        &self,
-        service: Arc<Scheduler>,
-        sender: Sender<ComponentInfo>,
-    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        let sender_clone = sender.clone();
-        warp::path!("get_status")
-            .and(SchedulerServer::log_headers())
-            .and(warp::post())
-            .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |body: Value| {
-                info!("#### Received request body ####");
-                info!("{}", body);
-                let component_info: ComponentInfo = serde_json::from_value(body).unwrap();
-                let sender_another_clone = sender_clone.clone();
-                async move {
-                    let res = sender_another_clone.send(component_info).await;
-                    Self::simple_response(true).await
-                }
-            })
-    }
-    */
-
     fn log_headers() -> impl Filter<Extract = (), Error = Infallible> + Copy {
         warp::header::headers_cloned()
             .map(|headers: HeaderMap| {
