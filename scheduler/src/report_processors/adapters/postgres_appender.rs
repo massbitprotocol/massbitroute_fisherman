@@ -10,9 +10,7 @@ use common::tasks::eth::JobLatestBlockResult;
 
 use log::debug;
 
-use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement, Value,
-};
+use sea_orm::{ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement, Value};
 
 use std::sync::Arc;
 use tokio::sync::Mutex;

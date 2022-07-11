@@ -15,7 +15,6 @@ use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::Job;
 
-use common::tasks::LoadConfig;
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::Timestamp;

@@ -2,13 +2,14 @@
   "default": {
     "name": "Websocket",
     "url_template": "",
+    "phases": ["*"],
     "provider_types": ["*"],
     "blockchains": ["*"],
     "networks": ["*"],
     "request_timeout": 3000,
     "headers": {},
     "repeat_number": 0,
-    "interval": 1000,
+    "interval": 120000,
     "body": "",
     "response" : {
       "response_type" : "text"
@@ -16,16 +17,31 @@
     "assignment": {
       "broadcast": false,
       "worker_number": 1,
-      "nearby_only": true,
+      "nearby_only": false,
       "by_distance": false
     },
     "thresholds": {
 
     }
   },
-  "verification": {
-  },
-  "regular": {
-
-  }
+  "tasks": [
+    {
+      "name": "EthWebsocket",
+      "blockchains": ["eth"],
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "eth_getBlockByNumber",
+        "params": ["latest",true],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "hash": ["result", "hash"],
+          "number": ["result", "number"],
+          "timestamp": ["result", "timestamp"]
+        }
+      }
+    }
+  ]
 }

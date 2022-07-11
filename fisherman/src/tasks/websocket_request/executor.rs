@@ -119,7 +119,13 @@ impl TaskExecutor for WebsocketRequestExecutor {
 
     fn can_apply(&self, job: &Job) -> bool {
         match &job.job_detail {
-            Some(JobDetail::HttpRequest(_)) => true,
+            Some(JobDetail::Websocket(request)) => {
+                if request.url.len() > 0 {
+                    return true;
+                }
+                log::warn!("Missing url for job {:?}", job);
+                return false;
+            }
             _ => false,
         }
     }

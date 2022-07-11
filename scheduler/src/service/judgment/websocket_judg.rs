@@ -1,31 +1,27 @@
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
-use anyhow::Error;
+use anyhow::anyhow;
 use async_trait::async_trait;
 use common::job_manage::JobRole;
-use common::job_manage::JobRole::Verification;
-use common::jobs::Job;
-use common::models::PlanEntity;
-use common::tasks::eth::LatestBlockConfig;
+use common::jobs::JobResult;
 use common::tasks::websocket_request::JobWebsocketConfig;
-use common::tasks::LoadConfig;
 use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct WebsocketJudgment {
-    job_config: JobWebsocketConfig,
+    job_configs: Vec<JobWebsocketConfig>,
     result_service: Arc<JobResultService>,
 }
 
 impl WebsocketJudgment {
     pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
-        let job_config = JobWebsocketConfig::load_config(
+        let job_configs = JobWebsocketConfig::read_config(
             format!("{}/websocket.json", config_dir).as_str(),
             phase,
         );
         WebsocketJudgment {
-            job_config,
+            job_configs,
             result_service,
         }
     }
@@ -37,11 +33,25 @@ impl ReportCheck for WebsocketJudgment {
         String::from("Websocket")
     }
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
-        return task.task_name.as_str() == "Websocket";
+        return task.task_type.as_str() == "Websocket";
     }
 
-    async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
-        //Todo: Unimplement
-        Ok(JudgmentsResult::Unfinished)
+    async fn apply_for_results(
+        &self,
+        _provider_task: &ProviderTask,
+        job_results: &Vec<JobResult>,
+    ) -> Result<JudgmentsResult, anyhow::Error> {
+        if job_results.is_empty() {
+            return Ok(JudgmentsResult::Unfinished);
+        }
+        // Get comparator for the fist item
+        let first_result = job_results.first().unwrap();
+        let chain_info = first_result
+            .chain_info
+            .as_ref()
+            .ok_or(anyhow!("Missing chain_info"))?
+            .clone();
+        log::debug!("{:?}", &first_result);
+        Ok(JudgmentsResult::Error)
     }
 }

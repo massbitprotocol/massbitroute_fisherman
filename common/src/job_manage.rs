@@ -4,16 +4,14 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::str::FromStr;
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::component::ComponentType;
 use crate::jobs::Job;
-use crate::tasks::command::{JobCommand, JobCommandResponse, JobCommandResult};
+use crate::tasks::command::{JobCommand, JobCommandResult};
 use crate::tasks::compound::JobCompound;
 use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult};
-use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
+use crate::tasks::http_request::{JobHttpRequest, JobHttpResult};
 use crate::tasks::ping::JobPingResult;
-use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
+use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResult};
 use crate::tasks::websocket_request::{JobWebsocket, JobWebsocketResult};
 use crate::{BlockChainType, JobId, Timestamp, WorkerId};
 use serde::{Deserialize, Serialize};
