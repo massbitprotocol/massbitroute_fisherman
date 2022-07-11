@@ -1,4 +1,3 @@
-
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::plan_service::PlanService;
@@ -9,8 +8,6 @@ use common::job_manage::JobRole;
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
-
-
 
 use sea_orm::DatabaseConnection;
 
@@ -64,7 +61,7 @@ impl SchedulerState {
             })
         } else {
             let worker_id = worker_info.worker_id.clone();
-            self.worker_service.clone().store_worker(&worker_info).await;
+            let _res = self.worker_service.clone().store_worker(&worker_info).await;
             self.worker_pool.lock().await.add_worker(worker_info);
             Ok(WorkerRegisterResult {
                 worker_id,

@@ -10,7 +10,7 @@ use anyhow::{anyhow, Error};
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::Job;
-use common::util::get_current_time;
+use common::util::{get_current_time, warning_if_error};
 use common::workers::MatchedWorkers;
 use common::Timestamp;
 use log::{debug, info, trace, warn};
@@ -43,10 +43,13 @@ impl RegularJobGenerator {
             gen_plans
         );
         let tnx = self.db_conn.begin().await?;
-        self.job_service.save_jobs(&jobs).await;
-        self.plan_service
+        let res = self.job_service.save_jobs(&jobs).await;
+        warning_if_error("save_jobs return error", res);
+        let res = self
+            .plan_service
             .update_plans_as_generated(Vec::from_iter(gen_plans))
             .await;
+        warning_if_error("update_plans_as_generated return error", res);
         match tnx.commit().await {
             Ok(_) => {
                 log::debug!("Transaction commited successful");
@@ -92,9 +95,11 @@ impl RegularJobGenerator {
         );
 
         if list_assignments.len() > 0 {
-            self.job_service
+            let res = self
+                .job_service
                 .save_job_assignments(&list_assignments)
                 .await;
+            warning_if_error("save_job_assignments return error", res);
             self.assignments
                 .lock()
                 .await
@@ -103,7 +108,8 @@ impl RegularJobGenerator {
         }
         if jobs.len() > 0 {
             //Store jobs to db
-            self.store_jobs(jobs).await;
+            let res = self.store_jobs(jobs).await;
+            warning_if_error("store_jobs return error", res);
         }
         Ok(())
     }

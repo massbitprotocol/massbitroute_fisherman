@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error};
+use anyhow::Error;
 use common::jobs::JobResult;
 use common::logger::init_logger;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
@@ -13,7 +13,7 @@ use fisherman::{
     WORKER_SERVICE_ENDPOINT, ZONE,
 };
 use futures_util::future::join3;
-use log::{debug, info};
+use log::{debug, info, warn};
 use reqwest::StatusCode;
 use std::sync::Arc;
 use std::time::Duration;
@@ -56,7 +56,8 @@ async fn main() {
         let task_reporter = task::spawn(async move { reporter.run().await });
         info!("Start fisherman service ");
         let task_serve = server.serve();
-        join3(task_serve, task_execution, task_reporter).await;
+        let _res = join3(task_serve, task_execution, task_reporter).await;
+        warn!("Never end tasks.");
     }
 }
 
@@ -106,7 +107,6 @@ async fn try_register() -> Result<WorkerRegisterResult, Error> {
         }
         sleep(Duration::from_millis(2000)).await;
     }
-    Err(anyhow!("Cannot register worker"))
 }
 
 #[cfg(test)]
