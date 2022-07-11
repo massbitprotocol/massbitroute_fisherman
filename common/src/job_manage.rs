@@ -14,9 +14,9 @@ use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult
 use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
 use crate::tasks::ping::JobPingResult;
 use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
+use crate::tasks::websocket_request::JobWebsocket;
 use crate::{BlockChainType, JobId, Timestamp, WorkerId};
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
 pub enum JobType {
     // perform ping check
@@ -97,7 +97,8 @@ pub enum JobDetail {
     HttpRequest(JobHttpRequest),
     RpcRequest(JobRpcRequest),
     Command(JobCommand),
-    // Perform some request to node/gateway
+    Websocket(JobWebsocket),
+    // Perform some request to node/gaJobteway
     Compound(JobCompound),
     // perform ping check
     Ping(JobPing),
@@ -112,6 +113,7 @@ impl JobDetail {
             JobDetail::HttpRequest(_) => "HttpRequest".to_string(),
             JobDetail::RpcRequest(_) => "RpcRequest".to_string(),
             JobDetail::Command(_) => "Command".to_string(),
+            JobDetail::Websocket(_) => "Websocket".to_string(),
             JobDetail::Compound(_) => "Compound".to_string(),
             JobDetail::Ping(_) => "Ping".to_string(),
             JobDetail::LatestBlock(_) => "LatestBlock".to_string(),
@@ -135,6 +137,7 @@ pub enum JobResultDetail {
 }
 
 impl JobResultDetail {
+    /*
     pub fn new(job: &Job) -> Self {
         let current_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -152,6 +155,10 @@ impl JobResultDetail {
             JobDetail::Command(_rpc) => JobResultDetail::Command(JobCommandResult::new(
                 job.clone(),
                 JobCommandResponse::default(),
+            )),
+            JobDetail::Websocket(_rpc) => JobResultDetail::Websocket(JobWebsocketResult::new(
+                job.clone(),
+                JobWebsocketResponse::default(),
             )),
             JobDetail::Ping(_) => JobResultDetail::Ping(JobPingResult {
                 job: job.clone(),
@@ -175,6 +182,7 @@ impl JobResultDetail {
             }),
         }
     }
+     */
     pub async fn send(&self) -> Result<String, Error> {
         //http://192.168.1.30:3031/report
         let url = "http://192.168.1.30:3031/report";
@@ -232,6 +240,7 @@ impl JobResultDetail {
         }
     }
 }
+
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     pub check_interval_ms: u64,

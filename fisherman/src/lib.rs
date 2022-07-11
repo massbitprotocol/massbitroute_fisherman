@@ -12,7 +12,7 @@ use std::env;
 use uuid::Uuid;
 //pub const CONFIG_FILE: &str = "config_check_component.json";
 pub const JOB_EXECUTOR_PERIOD: u64 = 1000; //In milliseconds
-pub const JOB_RESULT_REPORTER_PERIOD: u64 = 2000; //In milliseconds
+                                           //pub const JOB_RESULT_REPORTER_PERIOD: u64 = 2000; //In milliseconds
 
 lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String = env::var("SCHEDULER_ENDPOINT")
@@ -31,10 +31,11 @@ lazy_static! {
         env::var("WORKER_SERVICE_ENDPOINT").unwrap_or(String::from("127.0.0.1:4040"));
     pub static ref WORKER_IP: String =
         env::var("WORKER_IP").unwrap_or(String::from("127.0.0.1"));
-    pub static ref MAX_THREAD_COUNTER: usize = env::var("MAX_THREAD_COUNTER").map_or(4, |val|{ val.parse::<usize>().unwrap_or(4)});
+    pub static ref MAX_THREAD_COUNTER: usize = env::var("MAX_THREAD_COUNTER").ok().and_then(|val|{ val.parse::<usize>().ok()}).unwrap_or(4);
     //Waiting time period for parallelable threads in milliseconds
-    pub static ref WAITING_TIME_FOR_EXECUTING_THREAD: u64 = env::var("WAITING_TIME_FOR_EXECUTING_THREAD").map_or(100, |val|{ val.parse::<u64>().unwrap_or(100)});
+    pub static ref WAITING_TIME_FOR_EXECUTING_THREAD: u64 = env::var("WAITING_TIME_FOR_EXECUTING_THREAD").ok().and_then(|val|{ val.parse::<u64>().ok()}).unwrap_or(100);
         //.unwrap_or(Strin"4").parse::<usize>().unwrap();
+    pub static ref JOB_RESULT_REPORTER_PERIOD: u64 = env::var("JOB_RESULT_REPORTER_PERIOD").ok().and_then(|val|{ val.parse::<u64>().ok()}).unwrap_or(2000);
     pub static ref LOCAL_IP: String = local_ip_address::local_ip().unwrap().to_string();
     pub static ref HASH_TEST_20K: String = "95c5679435a0a714918dc92b546dc0ba".to_string();
     //pub(crate) static ref CONFIG: Config = get_config();

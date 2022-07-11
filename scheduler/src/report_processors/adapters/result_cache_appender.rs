@@ -39,6 +39,13 @@ impl Appender for ResultCacheAppender {
                     task_type: result.result_detail.get_name(),
                     task_name: result.job_name.clone(),
                 };
+                log::debug!(
+                    "push result to component {:?}.{:?} {:?} {:?}",
+                    &result.provider_type,
+                    &result.provider_id,
+                    &task_key,
+                    &result
+                );
                 // Create new entry if need
                 let result_by_task = result_cache
                     .result_cache_map
