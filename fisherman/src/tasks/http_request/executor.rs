@@ -15,16 +15,16 @@ use std::collections::HashMap;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Default)]
 pub struct HttpRequestExecutor {
-    worker_id: WorkerId,
+    _worker_id: WorkerId,
     client: Client,
 }
 
 impl HttpRequestExecutor {
     pub fn new(worker_id: WorkerId) -> Self {
         HttpRequestExecutor {
-            worker_id,
+            _worker_id: worker_id,
             client: reqwest::Client::builder()
                 .danger_accept_invalid_certs(true)
                 .build()

@@ -86,24 +86,23 @@ impl ProcessorState {
             }
         }
         if regular_results.len() > 0 {
-            self.process_regular_results(regular_results).await;
+            let _res = self.process_regular_results(regular_results).await;
         }
         //Result of single plan
         if verification_result.len() > 0 {
-            self.process_verification_results(verification_result).await;
+            let _res = self.process_verification_results(verification_result).await;
         }
         Ok(())
     }
     pub async fn process_regular_results(
         &self,
         job_results: Vec<JobResult>,
-    ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
-        let stored_results = HashMap::<String, StoredJobResult>::new();
+    ) -> Result<(), anyhow::Error> {
         let connection = self.connection.clone();
         self.regular_processor
             .process_jobs(job_results, connection)
-            .await;
-        Ok(stored_results)
+            .await?;
+        Ok(())
     }
     pub async fn process_verification_results(
         &self,
@@ -111,7 +110,8 @@ impl ProcessorState {
     ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
         let stored_results = HashMap::<String, StoredJobResult>::new();
         let connection = self.connection.clone();
-        self.verification_processor
+        let _res = self
+            .verification_processor
             .process_jobs(job_results, connection)
             .await;
         Ok(stored_results)

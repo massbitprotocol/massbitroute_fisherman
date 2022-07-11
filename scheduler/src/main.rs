@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate diesel_migrations;
-
 use clap::{Arg, Command};
 use common::logger::init_logger;
 //use diesel::r2d2::ConnectionManager;
@@ -132,13 +129,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
     let task_serve = server.serve();
-    join4(
+    let _res = join4(
         task_provider_scanner,
         task_job_generator,
         task_job_delivery,
         task_serve,
     )
     .await;
+
     Ok(())
 }
 

@@ -8,6 +8,7 @@ use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::JobResult;
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
+use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;
 use log::debug;
@@ -203,7 +204,10 @@ impl ReportCheck for HttpPingJudgment {
             let mut histogram = Histogram::new();
             for val in response_durations.iter() {
                 if val.success {
-                    histogram.increment(val.response_duration as u64);
+                    let res = histogram
+                        .increment(val.response_duration as u64)
+                        .map_err(|e| anyhow!("Error: {}", e));
+                    warning_if_error("histogram.increment return error", res);
                 }
             }
 
