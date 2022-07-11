@@ -142,14 +142,16 @@ impl RegularJobGenerator {
             if !task.can_apply(provider) {
                 continue;
             }
+            let task_name = task.get_name();
             // Check if there is task result
             let latest_task_update = provider_result_cache
                 .iter()
-                .filter(|(key, _)| key.task_type.as_str() == task.get_name().as_str())
+                .filter(|(key, _)| key.task_type.as_str() == task_name.as_str())
                 .map(|(key, value)| (key.task_name.clone(), value.get_latest_update_time()))
                 .collect::<HashMap<String, Timestamp>>();
             debug!(
-                "latest_task_update for provider {} {}: {:?}",
+                "latest_task_update of task {} for provider {} {}: {:?}",
+                &task_name,
                 &provider.component_type.to_string(),
                 &provider.ip,
                 latest_task_update
@@ -164,25 +166,31 @@ impl RegularJobGenerator {
             ) {
                 if applied_jobs.jobs.len() > 0 {
                     debug!(
-                        "Generated regular jobs for provider {}, {:?}, {:?}",
+                        "Generated {} regular jobs for provider {}, {:?}",
+                        &applied_jobs.jobs.len(),
                         &provider.component_type.to_string(),
-                        provider.ip,
-                        &applied_jobs
+                        &provider.ip
                     );
+                    //Update provider_result_cache
+                    for job in applied_jobs.jobs.iter() {
+                        let task_key = TaskKey {
+                            task_type: job.job_type.clone(),
+                            task_name: job.job_name.clone(),
+                        };
+                        let current_time = get_current_time();
+                        debug!(
+                            "Set update time of task {:?} for provider {} to {}",
+                            &task_key, &provider.ip, current_time
+                        );
+                        provider_result_cache
+                            .entry(task_key)
+                            .or_insert(TaskResultCache::default())
+                            .update_time = current_time;
+                    }
                 }
                 assignment_buffer.append(applied_jobs);
             }
-            //Update provider_result_cache
-            for job in assignment_buffer.jobs.iter() {
-                let task_key = TaskKey {
-                    task_type: job.job_type.clone(),
-                    task_name: job.job_name.clone(),
-                };
-                let cache = provider_result_cache
-                    .entry(task_key)
-                    .or_insert(TaskResultCache::default());
-                cache.update_time = get_current_time();
-            }
+
             /*
             if applied_jobs.len() > 0 {
                 log::debug!(

@@ -182,15 +182,19 @@ impl TaskApplicant for HttpRequestGenerator {
                 .map(|val| val.clone())
                 .unwrap_or_default();
             //Check time_to_timeout > 0: timeout; <=0 not yet.
-            let time_pass_timeout = (get_current_time() - latest_update_timestamp)
-                - (CONFIG.generate_new_regular_timeout * 1000);
+            let time_pass_timeout = get_current_time()
+                - latest_update_timestamp
+                - config.interval
+                - CONFIG.generate_new_regular_timeout * 1000;
             if time_pass_timeout < 0 {
                 //Job for current config is already generated or received result recently
                 continue;
             }
-            trace!(
-                "time_to_timeout: {}. Generate task for {} with config {}",
+            debug!(
+                "time_to_timeout: {}. Generate task {}.{} for {} with config {}",
                 time_pass_timeout,
+                self.get_name(),
+                &config.name,
                 component,
                 config
             );
