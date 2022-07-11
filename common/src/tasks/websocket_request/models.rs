@@ -1,7 +1,8 @@
 use crate::component::ChainInfo;
 use crate::job_manage::JobRole;
 use crate::jobs::{AssignmentConfig, Job};
-use crate::models::ResponseValues;
+use crate::models::{ResponseConfig, ResponseValues};
+use crate::tasks::LoadConfig;
 use crate::{ComponentInfo, Timestamp};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
@@ -16,7 +17,6 @@ use thiserror::Error;
 pub struct JobWebsocket {
     pub url: String,
     pub chain_info: Option<ChainInfo>,
-    pub method: String,
     pub headers: HashMap<String, String>,
     pub body: Option<Value>,
     pub response_type: String,
@@ -29,7 +29,6 @@ pub struct JobWebsocketResponse {
     pub request_timestamp: Timestamp, //Time to call request in second
     pub response_duration: Timestamp, //Time to receipt response;
     pub detail: JobWebsocketResponseDetail,
-    pub http_code: u16,
     pub error_code: u32,
     pub message: String,
 }
@@ -51,25 +50,13 @@ impl JobWebsocketResponse {
             request_timestamp: request_time,
             response_duration: request_time,
             detail: JobWebsocketResponseDetail::default(),
-            http_code: 0,
             error_code,
             message: message.to_string(),
         }
     }
 }
-/*
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
-pub struct JobHttpResult {
-    pub job: Job,
-    pub response: JobHttpResponse,
-}
+pub type JobWebsocketResult = JobWebsocketResponse;
 
-impl JobHttpResult {
-    pub fn new(job: Job, response: JobHttpResponse) -> Self {
-        JobHttpResult { job, response }
-    }
-}
-*/
 #[derive(Error, Debug, Clone)]
 pub enum HttpRequestError {
     #[error("build error")]
@@ -110,8 +97,6 @@ pub struct JobWebsocketConfig {
     #[serde(default)]
     pub request_type: String,
     #[serde(default)]
-    pub http_method: String,
-    #[serde(default)]
     pub phases: Vec<String>,
     #[serde(default)]
     pub url_template: String,
@@ -126,7 +111,7 @@ pub struct JobWebsocketConfig {
     pub networks: Vec<String>,
     pub headers: serde_json::Map<String, serde_json::Value>,
     pub body: serde_json::Value,
-    pub response: HttpResponseConfig,
+    pub response: ResponseConfig,
     pub assignment: AssignmentConfig,
     pub interval: Timestamp,
     #[serde(default)]
@@ -142,48 +127,10 @@ impl fmt::Display for JobWebsocketConfig {
         )
     }
 }
+impl LoadConfig<JobWebsocketConfig> for JobWebsocketConfig {}
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
-pub struct HttpResponseConfig {
-    #[serde(default)]
-    pub response_type: String, //Response type: json or text
-    #[serde(default)]
-    pub values: HashMap<String, Vec<Value>>, //Path to values
-}
 impl JobWebsocketConfig {
-    pub fn read_config(path: &str, phase: &JobRole) -> Vec<JobWebsocketConfig> {
-        let json_content = std::fs::read_to_string(path).unwrap_or_default();
-        let configs: Map<String, serde_json::Value> =
-            serde_json::from_str(&*json_content).unwrap_or_default();
-        let mut task_configs: Vec<JobWebsocketConfig> = Vec::new();
-        let default = configs["default"].as_object().unwrap();
-        let tasks = configs["tasks"].as_array().unwrap();
-        for config in tasks.iter() {
-            let mut map_config = serde_json::Map::from(default.clone());
-            let mut task_config = config.as_object().unwrap().clone();
-            //log::debug!("Task config before append {:?}", &task_config);
-            Self::append(&mut map_config, &mut task_config);
-            let value = serde_json::Value::Object(map_config);
-            log::trace!("Final task config {:?}", &value);
-            match serde_json::from_value::<JobWebsocketConfig>(value) {
-                Ok(config) => {
-                    if config.match_phase(phase) {
-                        task_configs.push(config)
-                    }
-                }
-                Err(err) => {
-                    log::error!("{:?}", &err);
-                }
-            }
-        }
-        task_configs
-    }
-    //Todo: Implement Deep append
-    pub fn append(target: &mut Map<String, Value>, source: &mut Map<String, Value>) {
-        target.append(source);
-    }
-}
-impl JobWebsocketConfig {
+    /*
     pub fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
@@ -263,6 +210,7 @@ impl JobWebsocketConfig {
         }
         true
     }
+    */
     pub fn generate_header(
         &self,
         handlebars: &Handlebars,

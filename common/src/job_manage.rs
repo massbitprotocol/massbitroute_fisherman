@@ -14,7 +14,7 @@ use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult
 use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
 use crate::tasks::ping::JobPingResult;
 use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
-use crate::tasks::websocket_request::JobWebsocket;
+use crate::tasks::websocket_request::{JobWebsocket, JobWebsocketResult};
 use crate::{BlockChainType, JobId, Timestamp, WorkerId};
 use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
@@ -125,6 +125,7 @@ impl JobDetail {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum JobResultDetail {
     HttpRequest(JobHttpResult),
+    Websocket(JobWebsocketResult),
     RpcRequest(JobRpcResult),
     Command(JobCommandResult),
     // perform ping check
@@ -203,10 +204,12 @@ impl JobResultDetail {
 
         Ok(sender)
     }
+    /*
     pub fn get_job(&self) -> &Job {
         match self {
             JobResultDetail::HttpRequest(job_result) => &job_result.job,
             JobResultDetail::RpcRequest(job_result) => &job_result.job,
+            JobResultDetail::Websocket(job_result) => &job_result.job,
             JobResultDetail::Command(job_result) => &job_result.job,
             JobResultDetail::Ping(job_result) => &job_result.job,
             JobResultDetail::LatestBlock(job_result) => &job_result.job,
@@ -214,6 +217,7 @@ impl JobResultDetail {
             JobResultDetail::Compound(job_result) => &job_result.job,
         }
     }
+     */
 }
 
 impl JobResultDetail {
@@ -226,8 +230,10 @@ impl JobResultDetail {
             JobResultDetail::LatestBlock(_) => "LatestBlock".to_string(),
             JobResultDetail::Benchmark(_) => "Benchmark".to_string(),
             JobResultDetail::Compound(_) => "Compound".to_string(),
+            JobResultDetail::Websocket(_) => "Websocket".to_string(),
         }
     }
+    /*
     pub fn get_plan_id(&self) -> String {
         match self {
             JobResultDetail::HttpRequest(detail) => detail.job.plan_id.clone(),
@@ -237,8 +243,10 @@ impl JobResultDetail {
             JobResultDetail::LatestBlock(detail) => detail.job.plan_id.clone(),
             JobResultDetail::Benchmark(detail) => detail.job.plan_id.clone(),
             JobResultDetail::Compound(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::Websocket(detail) => detail.job.plan_id.clone(),
         }
     }
+     */
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]

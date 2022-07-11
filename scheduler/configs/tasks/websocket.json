@@ -1,18 +1,31 @@
 {
   "default": {
-    "header":{"content-type":"application/json"},
-    "latest_block_request_body": "{ \"jsonrpc\": \"2.0\",  \"method\": \"eth_getBlockByNumber\", \"params\": [\"latest\",  false],\"id\": 1}",
-    "latest_block_timeout_ms": 5000,
-    "late_duration_threshold_ms":  1200000,
+    "name": "Websocket",
+    "url_template": "",
+    "provider_types": ["*"],
+    "blockchains": ["*"],
+    "networks": ["*"],
+    "request_timeout": 3000,
+    "headers": {},
     "repeat_number": 0,
-    "interval": 0
+    "interval": 1000,
+    "body": "",
+    "response" : {
+      "response_type" : "text"
+    },
+    "assignment": {
+      "broadcast": false,
+      "worker_number": 1,
+      "nearby_only": true,
+      "by_distance": false
+    },
+    "thresholds": {
+
+    }
   },
   "verification": {
-    "header":{"content-type":"application/json"},
-    "latest_block_request_body": "{ \"jsonrpc\": \"2.0\",  \"method\": \"eth_getBlockByNumber\", \"params\": [\"latest\",  false],\"id\": 1}",
-    "latest_block_timeout_ms": 5000,
-    "late_duration_threshold_ms":  1200000,
-    "repeat_number": 1000000000,
-    "interval": 30000
+  },
+  "regular": {
+
   }
 }

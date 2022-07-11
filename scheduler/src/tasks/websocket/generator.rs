@@ -6,7 +6,8 @@ use anyhow::{anyhow, Error};
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
-use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
+use common::tasks::websocket_request::{JobWebsocket, JobWebsocketConfig};
+use common::tasks::LoadConfig;
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
@@ -21,7 +22,7 @@ use std::collections::HashMap;
 #[derive(Clone, Debug, Default)]
 pub struct WebsocketGenerator {
     //root_config: serde_json::Map<String, serde_json::Value>,
-    task_configs: Vec<HttpRequestJobConfig>,
+    task_config: JobWebsocketConfig,
     handlebars: Handlebars<'static>,
 }
 
@@ -31,16 +32,16 @@ impl WebsocketGenerator {
     }
     pub fn new(config_dir: &str, phase: &JobRole) -> Self {
         let path = format!("{}/websocket_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
+        let task_config = JobWebsocketConfig::load_config(path.as_str(), phase);
         WebsocketGenerator {
             //root_config: configs,
-            task_configs,
+            task_config,
             handlebars: Handlebars::new(),
         }
     }
     pub fn get_url(
         &self,
-        config: &HttpRequestJobConfig,
+        config: &JobWebsocketConfig,
         context: &Value,
     ) -> Result<String, anyhow::Error> {
         // render without register
@@ -66,7 +67,7 @@ impl WebsocketGenerator {
         plan_id: &PlanId,
         component: &ComponentInfo,
         phase: JobRole,
-        config: &HttpRequestJobConfig,
+        config: &JobWebsocketConfig,
         context: &Value,
     ) -> Result<Job, anyhow::Error> {
         self.get_url(config, context).map(|url| {
@@ -83,10 +84,9 @@ impl WebsocketGenerator {
             );
             let headers = config.generate_header(&self.handlebars, &context);
             let body = config.generate_body(&self.handlebars, &context).ok();
-            let detail = JobHttpRequest {
+            let detail = JobWebsocket {
                 url: url.clone(),
                 chain_info: Some(chain_info.clone()),
-                method: config.http_method.clone(),
                 headers,
                 body,
                 response_type: config.response.response_type.clone(),
@@ -97,7 +97,7 @@ impl WebsocketGenerator {
                 Self::get_name(),
                 config.name.clone(),
                 component,
-                JobDetail::HttpRequest(detail),
+                JobDetail::Websocket(detail),
                 phase,
             );
             job.parallelable = true;
@@ -111,7 +111,7 @@ impl WebsocketGenerator {
 }
 impl TaskApplicant for WebsocketGenerator {
     fn get_name(&self) -> String {
-        String::from("HttpRequest")
+        String::from("Websocket")
     }
     fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
@@ -130,21 +130,16 @@ impl TaskApplicant for WebsocketGenerator {
             component,
             &context
         );
-        for config in self.task_configs.iter().filter(|config| {
-            config.match_phase(&phase)
-                && config.match_blockchain(&component.blockchain)
-                && config.match_network(&component.network)
-                && config.match_provider_type(&component.component_type.to_string())
-        }) {
-            if !config.can_apply(component, &phase) {
-                debug!("Can not apply config {:?} for {:?}", config, component);
-                continue;
-            }
-            if let Ok(job) = self.generate_job(plan_id, component, phase.clone(), config, &context)
-            {
-                assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
-            }
+        if let Ok(job) = self.generate_job(
+            plan_id,
+            component,
+            phase.clone(),
+            &self.task_config,
+            &context,
+        ) {
+            assignment_buffer.assign_job(job, workers, &Some(self.task_config.assignment.clone()));
         }
+
         log::debug!(
             "Generated {:?} jobs and {:?} assignments.",
             &assignment_buffer.jobs.len(),
@@ -167,36 +162,36 @@ impl TaskApplicant for WebsocketGenerator {
             component,
             &context
         );
-        for config in self.task_configs.iter().filter(|config| {
-            config.match_phase(&phase)
-                && config.match_blockchain(&component.blockchain)
-                && config.match_network(&component.network)
-                && config.match_provider_type(&component.component_type.to_string())
-        }) {
-            if !config.can_apply(component, &phase) {
-                trace!("Can not apply config {:?} for {:?}", config, component);
-                continue;
-            }
-            let latest_update_timestamp = latest_update
-                .get(&config.name)
-                .map(|val| val.clone())
-                .unwrap_or_default();
-            //Check time_to_timeout > 0: timeout; <=0 not yet.
-            let time_pass_timeout = (get_current_time() - latest_update_timestamp)
-                - (CONFIG.generate_new_regular_timeout * 1000);
-            if time_pass_timeout < 0 {
-                //Job for current config is already generated or received result recently
-                continue;
-            }
+        let latest_update_timestamp = latest_update
+            .get(&self.get_name())
+            .map(|val| val.clone())
+            .unwrap_or_default();
+        //Check time_to_timeout > 0: timeout; <=0 not yet.
+        let current_time = get_current_time();
+        let timeout = current_time
+            - (latest_update_timestamp
+                + self.task_config.interval
+                + CONFIG.generate_new_regular_timeout * 1000);
+        if timeout > 0 {
+            //Job for current config is already generated or received result recently
             trace!(
                 "time_to_timeout: {}. Generate task for {} with config {}",
-                time_pass_timeout,
+                timeout,
                 component,
-                config
+                &self.task_config
             );
-            if let Ok(job) = self.generate_job(plan_id, component, phase.clone(), config, &context)
-            {
-                assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
+            if let Ok(job) = self.generate_job(
+                plan_id,
+                component,
+                phase.clone(),
+                &self.task_config,
+                &context,
+            ) {
+                assignment_buffer.assign_job(
+                    job,
+                    workers,
+                    &Some(self.task_config.assignment.clone()),
+                );
             }
         }
         log::trace!("Generated jobs {:?}", &assignment_buffer);
