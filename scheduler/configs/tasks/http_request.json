@@ -69,7 +69,6 @@
       "provider_types": ["node"],
       "request_timeout": 5000,
       "headers": {
-        "content-type":"application/json",
         "X-Api-Key": "{{provider.appKey}}",
         "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
       },
