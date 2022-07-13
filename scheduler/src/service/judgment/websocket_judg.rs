@@ -3,7 +3,7 @@ use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use anyhow::anyhow;
 use async_trait::async_trait;
-use common::job_manage::JobRole;
+use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::JobResult;
 use common::tasks::websocket_request::JobWebsocketConfig;
 use std::sync::Arc;
@@ -46,12 +46,12 @@ impl ReportCheck for WebsocketJudgment {
         }
         // Get comparator for the fist item
         let first_result = job_results.first().unwrap();
-        let chain_info = first_result
-            .chain_info
-            .as_ref()
-            .ok_or(anyhow!("Missing chain_info"))?
-            .clone();
         log::debug!("{:?}", &first_result);
-        Ok(JudgmentsResult::Error)
+        //For websocket only check if worker can connect to provider and get data
+        if let JobResultDetail::Websocket(web_socket_result) = &first_result.result_detail {
+            Ok(JudgmentsResult::Pass)
+        } else {
+            Ok(JudgmentsResult::Failed)
+        }
     }
 }
