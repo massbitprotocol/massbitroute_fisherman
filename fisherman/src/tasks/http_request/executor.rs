@@ -204,7 +204,7 @@ mod tests {
     use reqwest::{Response, ResponseBuilderExt, Url};
     use std::collections::HashMap;
     use std::ops::Deref;
-    use test_util::helper::{new_test_job, JobName};
+    use test_util::helper::{mock_job, JobName};
 
     const MOCK_RTT_RESPONSE_TIME: Timestamp = 123000;
 
@@ -328,8 +328,8 @@ mod tests {
     #[test]
     fn test_can_apply() {
         let executor = new_executor();
-        let job_benchmark = new_test_job(&JobName::Benchmark, "");
-        let job_http = new_test_job(&JobName::RoundTripTime, "");
+        let job_benchmark = mock_job(&JobName::Benchmark, "");
+        let job_http = mock_job(&JobName::RoundTripTime, "");
 
         assert_eq!(executor.can_apply(&job_benchmark), false);
         assert_eq!(executor.can_apply(&job_http), true);
@@ -413,7 +413,7 @@ mod tests {
         println!("url: {}", url);
 
         // Create Job that point to provider mock server
-        let job_http = new_test_job(&JobName::RoundTripTime, url.as_str());
+        let job_http = mock_job(&JobName::RoundTripTime, url.as_str());
         println!("job: {:?}", job_http);
 
         let res = executor.call_http_request(&job_http).await;
