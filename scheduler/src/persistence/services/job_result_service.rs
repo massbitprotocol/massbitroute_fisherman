@@ -363,7 +363,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use sea_orm::{DatabaseBackend, MockDatabase, MockExecResult};
     use std::env;
-    use test_util::helper::{load_schedule_env, new_test_job, JobName};
+    use test_util::helper::{load_schedule_env, mock_job, JobName};
 
     #[tokio::test]
     async fn test_save_result_http_requests() -> Result<(), Error> {
@@ -396,7 +396,7 @@ mod tests {
         let service = JobResultService {
             db: Arc::new(db_conn),
         };
-        let job1 = new_test_job(&JobName::RoundTripTime, "job1");
+        let job1 = mock_job(&JobName::RoundTripTime, "job1");
         let result1 = JobResult::new(JobResultDetail::new(&job1), None, &job1);
 
         let res = service.save_result_http_requests(&vec![result1]).await;
@@ -421,7 +421,7 @@ mod tests {
 
         let last_index = 12;
         let mut result1 = JobBenchmarkResult::default();
-        result1.job = new_test_job(&JobName::Benchmark, "job1");
+        result1.job = mock_job(&JobName::Benchmark, "job1");
         let model = job_result_benchmarks::Model {
             id: last_index,
             job_id: "".to_string(),
