@@ -30,7 +30,7 @@ impl JobService {
             .await
         {
             Ok(res) => {
-                log::debug!("Insert many records {:?}", length);
+                log::debug!("Insert {} records", length);
                 Ok(res.last_insert_id)
             }
             Err(err) => {
@@ -55,7 +55,7 @@ impl JobService {
                 .await
             {
                 Ok(res) => {
-                    log::debug!("Insert many records {:?}", length);
+                    log::debug!("Insert {} records", length);
                     return Ok(res.last_insert_id);
                 }
                 Err(err) => {

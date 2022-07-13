@@ -68,7 +68,7 @@ pub struct JobCompoundResult {
     values: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, PartialEq)]
 pub struct JobBenchmarkResult {
     pub job: Job,
     pub worker_id: WorkerId,
@@ -76,7 +76,7 @@ pub struct JobBenchmarkResult {
     pub response: BenchmarkResponse,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, PartialEq)]
 pub struct BenchmarkResponse {
     pub request_rate: f32,
     pub transfer_rate: f32,   //KB

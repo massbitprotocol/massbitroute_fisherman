@@ -195,64 +195,60 @@ mod tests {
     use super::*;
     use crate::tasks::HttpRequestExecutor;
     use anyhow::Error;
-    use common::component::ComponentInfo;
-    use common::job_manage::{JobBenchmark, JobDetail};
-    use common::jobs::Job;
     use common::tasks::executor::TaskExecutor;
-    use common::tasks::http_request::{HttpResponseValues, JobHttpRequest, JobHttpResponseDetail};
+    use common::tasks::http_request::JobHttpResponseDetail;
     use common::Timestamp;
     use http::response::Builder;
     use httpmock::prelude::GET;
-    use httpmock::Method::POST;
     use httpmock::MockServer;
     use reqwest::{Response, ResponseBuilderExt, Url};
     use std::collections::HashMap;
     use std::ops::Deref;
-    use std::time::Duration;
+    use test_util::helper::{new_test_job, JobName};
 
     const MOCK_RTT_RESPONSE_TIME: Timestamp = 123000;
 
-    fn new_test_job(job_name: &str, component_url: &str) -> Job {
-        let component = ComponentInfo {
-            blockchain: "".to_string(),
-            network: "".to_string(),
-            id: "".to_string(),
-            user_id: "".to_string(),
-            ip: "".to_string(),
-            zone: Default::default(),
-            country_code: "".to_string(),
-            token: "".to_string(),
-            component_type: Default::default(),
-            endpoint: None,
-            status: "".to_string(),
-        };
-        let job_detail = r###"
-        {"url": "", "body": "", "method": "get", "headers": {}, "chain_info": {"chain": "eth", "network": "mainnet"}, "response_type": "text", "response_values": {}}
-        "###;
-        let mut job_http_request: JobHttpRequest = serde_json::from_str(job_detail).unwrap();
-        job_http_request.url = component_url.to_string();
-        let mut job = match job_name {
-            "benchmark" => Job::new(
-                "benchmark".to_string(),
-                "".to_string(),
-                "".to_string(),
-                &component,
-                JobDetail::Benchmark(JobBenchmark::default()),
-                Default::default(),
-            ),
-            "http" => Job::new(
-                "http".to_string(),
-                "HttpRequest".to_string(),
-                "".to_string(),
-                &component,
-                JobDetail::HttpRequest(job_http_request),
-                Default::default(),
-            ),
-            _ => Job::default(),
-        };
-        job.component_url = component_url.to_string();
-        job
-    }
+    // fn new_test_job(job_name: &str, component_url: &str) -> Job {
+    //     let component = ComponentInfo {
+    //         blockchain: "".to_string(),
+    //         network: "".to_string(),
+    //         id: "".to_string(),
+    //         user_id: "".to_string(),
+    //         ip: "".to_string(),
+    //         zone: Default::default(),
+    //         country_code: "".to_string(),
+    //         token: "".to_string(),
+    //         component_type: Default::default(),
+    //         endpoint: None,
+    //         status: "".to_string(),
+    //     };
+    //     let job_detail = r###"
+    //     {"url": "", "body": "", "method": "get", "headers": {}, "chain_info": {"chain": "eth", "network": "mainnet"}, "response_type": "text", "response_values": {}}
+    //     "###;
+    //     let mut job_http_request: JobHttpRequest = serde_json::from_str(job_detail).unwrap();
+    //     job_http_request.url = component_url.to_string();
+    //     let mut job = match job_name {
+    //         "benchmark" => Job::new(
+    //             "benchmark".to_string(),
+    //             "".to_string(),
+    //             "".to_string(),
+    //             &component,
+    //             JobDetail::Benchmark(JobBenchmark::default()),
+    //             Default::default(),
+    //         ),
+    //         "http" => Job::new(
+    //             "http".to_string(),
+    //             "HttpRequest".to_string(),
+    //             "".to_string(),
+    //             &component,
+    //             JobDetail::HttpRequest(job_http_request),
+    //             Default::default(),
+    //         ),
+    //         _ => Job::default(),
+    //     };
+    //     job.component_url = component_url.to_string();
+    //     job
+    // }
 
     fn new_mock_eth_block_response() -> Response {
         let url = Url::parse("http://example.com").unwrap();
@@ -332,8 +328,8 @@ mod tests {
     #[test]
     fn test_can_apply() {
         let executor = new_executor();
-        let job_benchmark = new_test_job("benchmark", "");
-        let job_http = new_test_job("http", "");
+        let job_benchmark = new_test_job(&JobName::Benchmark, "");
+        let job_http = new_test_job(&JobName::RoundTripTime, "");
 
         assert_eq!(executor.can_apply(&job_benchmark), false);
         assert_eq!(executor.can_apply(&job_http), true);
@@ -417,7 +413,7 @@ mod tests {
         println!("url: {}", url);
 
         // Create Job that point to provider mock server
-        let job_http = new_test_job("http", url.as_str());
+        let job_http = new_test_job(&JobName::RoundTripTime, url.as_str());
         println!("job: {:?}", job_http);
 
         let res = executor.call_http_request(&job_http).await;
