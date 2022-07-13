@@ -29,9 +29,10 @@ local-ip-address = "0.4"
 dotenv = "0.15"
 async-trait = "0.1"
 uuid = "1.1.1"
-websocket = "0.26.4"
-
+websocket = {version = "0.26.4", features = ["sync"] }
+hyper = "0.10.16"
+http = "0.2.7"
+unicase = "1.4.2"
 [dev-dependencies]
-http = "0.2"
 httpmock = "0.6"
 

@@ -1,7 +1,7 @@
 {
   "default": {
     "name": "Websocket",
-    "url_template": "",
+    "url_template": "wss://{{provider.ip}}/",
     "phases": ["*"],
     "provider_types": ["*"],
     "blockchains": ["*"],
@@ -10,6 +10,10 @@
     "headers": {},
     "repeat_number": 0,
     "interval": 120000,
+    "headers": {
+      "X-Api-Key": "{{provider.appKey}}",
+      "Host": "ws-{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+    },
     "body": "",
     "response" : {
       "response_type" : "text"
@@ -28,6 +32,7 @@
     {
       "name": "EthWebsocket",
       "blockchains": ["eth"],
+      "provider_types": ["*"],
       "body": {
         "jsonrpc": "2.0",
         "method": "eth_getBlockByNumber",
@@ -40,6 +45,24 @@
           "hash": ["result", "hash"],
           "number": ["result", "number"],
           "timestamp": ["result", "timestamp"]
+        }
+      }
+    },
+    {
+      "name": "DotWebsocket",
+      "blockchains": ["dot"],
+      "provider_types": ["*"],
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "chain_getBlock",
+        "params": [],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "parent_hash": ["result", "block","header","parentHash"],
+          "number": ["result", "block","header","number"]
         }
       }
     }

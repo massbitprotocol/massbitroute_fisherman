@@ -4,6 +4,7 @@ use crate::{
     BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
     WORKER_ID,
 };
+use anyhow::Error;
 use common::jobs::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
 use log::{debug, trace};
@@ -87,7 +88,12 @@ impl JobExecution {
                         let result_sender = self.result_sender.clone();
                         let _job_sender = self.job_sender.clone();
                         trace!("Execute job on main execution thread");
-                        executor.execute(&next_job, result_sender).await;
+                        match executor.execute(&next_job, result_sender).await {
+                            Ok(_) => {}
+                            Err(err) => {
+                                debug!("{:?}", &err)
+                            }
+                        }
                     }
                 }
             }
