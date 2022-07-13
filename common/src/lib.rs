@@ -10,7 +10,7 @@ pub mod types;
 pub mod util;
 pub mod workers;
 
-use crate::component::ComponentInfo;
+pub use crate::component::ComponentInfo;
 use lazy_static::lazy_static;
 pub use types::*;
 const DEFAULT_JOB_INTERVAL: Timestamp = 1000;

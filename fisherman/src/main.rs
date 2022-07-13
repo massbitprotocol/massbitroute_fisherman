@@ -158,23 +158,23 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    #[should_panic(expected = "Cannot register case")]
-    async fn test_try_register_fail() {
-        println!("Cannot register case");
-        let _res = init_logger(&String::from("Fisherman-worker"));
-        env::set_var("SCHEDULER_ENDPOINT", "");
-        env::set_var("WORKER_ID", MOCK_WORKER_ID);
-        env::set_var("WORKER_ENDPOINT", "WORKER_ENDPOINT");
-        env::set_var("WORKER_IP", "WORKER_IP");
-        env::set_var("ZONE", "AS");
-        let ft_try_register = try_register();
-        println!("Cannot register case");
-        pin_mut!(ft_try_register);
-        if let Err(_) =
-            tokio::time::timeout(std::time::Duration::from_secs(3), &mut ft_try_register).await
-        {
-            panic!("Cannot register case");
-        }
-    }
+    // #[tokio::test]
+    // #[should_panic(expected = "Cannot register case")]
+    // async fn test_try_register_fail() {
+    //     println!("Cannot register case");
+    //     //let _res = init_logger(&String::from("Fisherman-worker"));
+    //     env::set_var("SCHEDULER_ENDPOINT", "");
+    //     env::set_var("WORKER_ID", MOCK_WORKER_ID);
+    //     env::set_var("WORKER_ENDPOINT", "WORKER_ENDPOINT");
+    //     env::set_var("WORKER_IP", "WORKER_IP");
+    //     env::set_var("ZONE", "AS");
+    //     let ft_try_register = try_register();
+    //     println!("Cannot register case");
+    //     pin_mut!(ft_try_register);
+    //     if let Err(_) =
+    //         tokio::time::timeout(std::time::Duration::from_secs(1), &mut ft_try_register).await
+    //     {
+    //         panic!("Cannot register case");
+    //     }
+    // }
 }

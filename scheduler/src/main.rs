@@ -1,4 +1,3 @@
-use clap::{Arg, Command};
 use common::logger::init_logger;
 //use diesel::r2d2::ConnectionManager;
 //use diesel::{r2d2, PgConnection};
@@ -35,7 +34,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // Init logger
     let _res = init_logger(&String::from("Fisherman Scheduler"));
 
-    let _matches = create_scheduler_app().get_matches();
+    // let _matches = create_scheduler_app().get_matches();
     // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
     // let connection_pool = r2d2::Pool::builder()
     //     .max_size(*CONNECTION_POOL_SIZE)
@@ -140,87 +139,87 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn create_scheduler_app() -> Command<'static> {
-    Command::new("check-kind")
-        .version("0.1")
-        .about("fisherman-scheduler")
-        .arg(
-            Arg::new("list-node-id-file")
-                .short('n')
-                .long("list-node-id-file")
-                .value_name("list-node-id-file")
-                .help("Input list-node-id file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("list-gateway-id-file")
-                .short('g')
-                .long("list-gateway-id-file")
-                .value_name("list-gateway-id-file")
-                .help("Input list-gateway-id file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("list-dapi-id-file")
-                .short('d')
-                .long("list-dapi-id-file")
-                .value_name("list-dapi-id-file")
-                .help("Input list-dapi-id file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("list-user-file")
-                .short('u')
-                .long("list-user-file")
-                .value_name("list-user-file")
-                .help("Input list-user file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("check-flow")
-                .short('c')
-                .long("check-flow")
-                .value_name("check-flow")
-                .help("Input check-flow file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("base-endpoint")
-                .short('b')
-                .long("base-endpoint")
-                .value_name("base-endpoint")
-                .help("Input base-endpoint file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("massbit-chain-endpoint")
-                .short('m')
-                .long("massbit-chain-endpoint")
-                .value_name("massbit-chain-endpoint")
-                .help("Input massbit-chain-endpoint")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("signer-phrase")
-                .short('s')
-                .long("signer-phrase")
-                .value_name("signer-phrase")
-                .help("Input signer-phrase")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("output")
-                .short('o')
-                .long("output")
-                .value_name("output")
-                .help("Output file")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::new("domain")
-                .long("domain")
-                .value_name("domain")
-                .help("domain name")
-                .takes_value(true),
-        )
-}
+// fn create_scheduler_app() -> Command<'static> {
+//     Command::new("check-kind")
+//         .version("0.1")
+//         .about("fisherman-scheduler")
+//         .arg(
+//             Arg::new("list-node-id-file")
+//                 .short('n')
+//                 .long("list-node-id-file")
+//                 .value_name("list-node-id-file")
+//                 .help("Input list-node-id file")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("list-gateway-id-file")
+//                 .short('g')
+//                 .long("list-gateway-id-file")
+//                 .value_name("list-gateway-id-file")
+//                 .help("Input list-gateway-id file")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("list-dapi-id-file")
+//                 .short('d')
+//                 .long("list-dapi-id-file")
+//                 .value_name("list-dapi-id-file")
+//                 .help("Input list-dapi-id file")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("list-user-file")
+//                 .short('u')
+//                 .long("list-user-file")
+//                 .value_name("list-user-file")
+//                 .help("Input list-user file")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("check-flow")
+//                 .short('c')
+//                 .long("check-flow")
+//                 .value_name("check-flow")
+//                 .help("Input check-flow file")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("base-endpoint")
+//                 .short('b')
+//                 .long("base-endpoint")
+//                 .value_name("base-endpoint")
+//                 .help("Input base-endpoint file")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("massbit-chain-endpoint")
+//                 .short('m')
+//                 .long("massbit-chain-endpoint")
+//                 .value_name("massbit-chain-endpoint")
+//                 .help("Input massbit-chain-endpoint")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("signer-phrase")
+//                 .short('s')
+//                 .long("signer-phrase")
+//                 .value_name("signer-phrase")
+//                 .help("Input signer-phrase")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("output")
+//                 .short('o')
+//                 .long("output")
+//                 .value_name("output")
+//                 .help("Output file")
+//                 .takes_value(true),
+//         )
+//         .arg(
+//             Arg::new("domain")
+//                 .long("domain")
+//                 .value_name("domain")
+//                 .help("domain name")
+//                 .takes_value(true),
+//         )
+// }

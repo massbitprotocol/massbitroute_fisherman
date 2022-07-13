@@ -33,3 +33,4 @@ uuid = "1.1.1"
 [dev-dependencies]
 http = "0.2"
 httpmock = "0.6"
+test_util = {path = "../test_util"}

@@ -1,0 +1,36 @@
+[package]
+name = "test_util"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+common = {path = "../common"}
+entity = {path = "../entity"}
+migration = {path = "../migration"}
+#diesel_migrations   = "1.4.0"
+serde_json = "1.0"
+anyhow = "1.0"
+async-trait = "0.1.56"
+serde = { version = "1.0", features = ["derive"] }
+#clap = "3.0"
+#reqwest =  { version = "0.11" , features = ["multipart","native-tls"] }
+#tokio = { version = "1.16" , features = ["full"] }
+#futures-util = "0.3"
+#timer = "0.2"
+#chrono = "0.4"
+#futures = "0.3"
+#log = { version = "0.4", features = ["std"] }
+#handlebars = "4.3"
+#warp = "0.3"
+#slog = "2.7"
+#lazy_static = "1.4"
+#strum_macros = "0.24"
+#strum = "0.24"
+#local-ip-address = "0.4"
+#dotenv = "0.15"
+#uuid = "1.1.0"
+#sea-orm = {version = "0.8.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros", "mock" ]}
+#histogram = "0.6.9"
+#rand = "0.8.5"
+dotenv = "0.15"
