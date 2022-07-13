@@ -2,7 +2,7 @@ use crate::persistence::ProviderMapModel;
 
 use entity::worker_provider_maps;
 use log::debug;
-use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait, Value};
+use sea_orm::{ConnectionTrait, EntityTrait, Value};
 use sea_orm::{DatabaseBackend, DatabaseConnection, Statement};
 use std::collections::HashMap;
 

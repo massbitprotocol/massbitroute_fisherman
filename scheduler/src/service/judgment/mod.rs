@@ -4,6 +4,7 @@ pub mod http_ping_judg;
 pub mod latestblock_judg;
 pub mod main_judg;
 pub mod ping_judg;
+pub mod websocket_judg;
 
 use crate::persistence::services::job_result_service::JobResultService;
 use async_trait::async_trait;
@@ -12,6 +13,8 @@ use common::models::PlanEntity;
 pub use latestblock_judg::LatestBlockJudgment;
 pub use main_judg::MainJudgment;
 pub use ping_judg::PingJudgment;
+pub use websocket_judg::WebsocketJudgment;
+
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -88,6 +91,11 @@ pub fn get_report_judgments(
         result_service.clone(),
     )));
     result.push(Arc::new(HttpLatestBlockJudgment::new(
+        config_dir,
+        phase,
+        result_service.clone(),
+    )));
+    result.push(Arc::new(WebsocketJudgment::new(
         config_dir,
         phase,
         result_service.clone(),

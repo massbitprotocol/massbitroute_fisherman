@@ -13,7 +13,7 @@ use common::jobs::Job;
 use common::util::{get_current_time, warning_if_error};
 use common::workers::MatchedWorkers;
 use common::Timestamp;
-use log::{debug, info, trace, warn};
+use log::{debug, info, warn};
 use sea_orm::{DatabaseConnection, TransactionTrait};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;

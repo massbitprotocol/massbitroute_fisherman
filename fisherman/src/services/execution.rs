@@ -4,7 +4,8 @@ use crate::{
     BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
     WORKER_ID,
 };
-use common::jobs::JobResult;
+use anyhow::Error;
+use common::jobs::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
 use common::util::warning_if_error;
 use log::{debug, trace, warn};
@@ -82,11 +83,12 @@ impl JobExecution {
                         }
                         let result_sender = self.result_sender.clone();
                         trace!("Execute job on main execution thread");
-                        let res = executor.execute(&next_job, result_sender).await;
-                        if res.is_err() {
-                            warn!("executor.execute return error: {:?}", res);
+                        match executor.execute(&next_job, result_sender).await {
+                            Ok(_) => {}
+                            Err(err) => {
+                                debug!("{:?}", &err)
+                            }
                         }
-                        // Todo: handle execute error case.
                     }
                 }
             }

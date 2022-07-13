@@ -21,9 +21,6 @@ impl ResultCacheAppender {
 
 #[async_trait]
 impl Appender for ResultCacheAppender {
-    fn get_name(&self) -> String {
-        "ResultCacheAppender".to_string()
-    }
     async fn append_job_results(&self, results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
         //log::info!("ResultCacheAppender append results");
         if results.is_empty() {
@@ -39,6 +36,13 @@ impl Appender for ResultCacheAppender {
                     task_type: result.result_detail.get_name(),
                     task_name: result.job_name.clone(),
                 };
+                log::debug!(
+                    "push result to component {:?}.{:?} {:?} {:?}",
+                    &result.provider_type,
+                    &result.provider_id,
+                    &task_key,
+                    &result
+                );
                 // Create new entry if need
                 let result_by_task = result_cache
                     .result_cache_map
@@ -57,6 +61,9 @@ impl Appender for ResultCacheAppender {
             log::debug!("result_cache size {}", result_cache.result_cache_map.len());
         }
         Ok(())
+    }
+    fn get_name(&self) -> String {
+        "ResultCacheAppender".to_string()
     }
     /*
     async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {

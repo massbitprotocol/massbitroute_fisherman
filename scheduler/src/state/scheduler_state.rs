@@ -78,7 +78,7 @@ impl SchedulerState {
         log::debug!("Push node {:?} to verification queue", &node_info);
         //Create a scheduler in db
         let current_time = get_current_time();
-        let expiry_time = current_time + CONFIG.plan_expiry_time;
+        let expiry_time = current_time + CONFIG.plan_expiry_time * 1000;
         let plan = PlanEntity::new(
             node_info.id.clone(),
             current_time,

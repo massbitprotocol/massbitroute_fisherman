@@ -6,6 +6,7 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::models::TaskDependency;
 use crate::persistence::PlanModel;
 use crate::tasks::benchmark::generator::BenchmarkGenerator;
+use crate::tasks::websocket::generator::WebsocketGenerator;
 use crate::tasks::*;
 use crate::CONFIG;
 use common::component::ComponentInfo;
@@ -83,7 +84,9 @@ pub fn get_tasks(
     if task_types.contains(&HttpRequestGenerator::get_name()) {
         result.push(Arc::new(HttpRequestGenerator::new(config_dir, &role)));
     }
-
+    if task_types.contains(&WebsocketGenerator::get_name()) {
+        result.push(Arc::new(WebsocketGenerator::new(config_dir, &role)));
+    }
     if task_types.contains(&BenchmarkGenerator::get_name()) {
         result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
     }

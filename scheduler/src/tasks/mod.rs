@@ -5,7 +5,7 @@ pub mod generator;
 pub mod http_request;
 pub mod ping;
 pub mod rpc_request;
-
+pub mod websocket;
 pub use eth::*;
 pub use http_request::generator::HttpRequestGenerator;
 pub use ping::generator::PingGenerator;

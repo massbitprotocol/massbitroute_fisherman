@@ -4,19 +4,17 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::str::FromStr;
 
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::component::ComponentType;
 use crate::jobs::Job;
-use crate::tasks::command::{JobCommand, JobCommandResponse, JobCommandResult};
+use crate::tasks::command::{JobCommand, JobCommandResult};
 use crate::tasks::compound::JobCompound;
 use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult};
-use crate::tasks::http_request::{JobHttpRequest, JobHttpResponse, JobHttpResult};
+use crate::tasks::http_request::{JobHttpRequest, JobHttpResult};
 use crate::tasks::ping::JobPingResult;
-use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResponse, JobRpcResult};
+use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResult};
+use crate::tasks::websocket_request::{JobWebsocket, JobWebsocketResult};
 use crate::{BlockChainType, JobId, Timestamp, WorkerId};
 use serde::{Deserialize, Serialize};
-
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
 pub enum JobType {
     // perform ping check
@@ -97,7 +95,8 @@ pub enum JobDetail {
     HttpRequest(JobHttpRequest),
     RpcRequest(JobRpcRequest),
     Command(JobCommand),
-    // Perform some request to node/gateway
+    Websocket(JobWebsocket),
+    // Perform some request to node/gaJobteway
     Compound(JobCompound),
     // perform ping check
     Ping(JobPing),
@@ -112,6 +111,7 @@ impl JobDetail {
             JobDetail::HttpRequest(_) => "HttpRequest".to_string(),
             JobDetail::RpcRequest(_) => "RpcRequest".to_string(),
             JobDetail::Command(_) => "Command".to_string(),
+            JobDetail::Websocket(_) => "Websocket".to_string(),
             JobDetail::Compound(_) => "Compound".to_string(),
             JobDetail::Ping(_) => "Ping".to_string(),
             JobDetail::LatestBlock(_) => "LatestBlock".to_string(),
@@ -123,6 +123,7 @@ impl JobDetail {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum JobResultDetail {
     HttpRequest(JobHttpResult),
+    Websocket(JobWebsocketResult),
     RpcRequest(JobRpcResult),
     Command(JobCommandResult),
     // perform ping check
@@ -135,6 +136,7 @@ pub enum JobResultDetail {
 }
 
 impl JobResultDetail {
+    /*
     pub fn new(job: &Job) -> Self {
         let current_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -152,6 +154,10 @@ impl JobResultDetail {
             JobDetail::Command(_rpc) => JobResultDetail::Command(JobCommandResult::new(
                 job.clone(),
                 JobCommandResponse::default(),
+            )),
+            JobDetail::Websocket(_rpc) => JobResultDetail::Websocket(JobWebsocketResult::new(
+                job.clone(),
+                JobWebsocketResponse::default(),
             )),
             JobDetail::Ping(_) => JobResultDetail::Ping(JobPingResult {
                 job: job.clone(),
@@ -175,6 +181,7 @@ impl JobResultDetail {
             }),
         }
     }
+     */
     pub async fn send(&self) -> Result<String, Error> {
         //http://192.168.1.30:3031/report
         let url = "http://192.168.1.30:3031/report";
@@ -195,10 +202,12 @@ impl JobResultDetail {
 
         Ok(sender)
     }
+    /*
     pub fn get_job(&self) -> &Job {
         match self {
             JobResultDetail::HttpRequest(job_result) => &job_result.job,
             JobResultDetail::RpcRequest(job_result) => &job_result.job,
+            JobResultDetail::Websocket(job_result) => &job_result.job,
             JobResultDetail::Command(job_result) => &job_result.job,
             JobResultDetail::Ping(job_result) => &job_result.job,
             JobResultDetail::LatestBlock(job_result) => &job_result.job,
@@ -206,6 +215,7 @@ impl JobResultDetail {
             JobResultDetail::Compound(job_result) => &job_result.job,
         }
     }
+     */
 }
 
 impl JobResultDetail {
@@ -218,8 +228,10 @@ impl JobResultDetail {
             JobResultDetail::LatestBlock(_) => "LatestBlock".to_string(),
             JobResultDetail::Benchmark(_) => "Benchmark".to_string(),
             JobResultDetail::Compound(_) => "Compound".to_string(),
+            JobResultDetail::Websocket(_) => "Websocket".to_string(),
         }
     }
+    /*
     pub fn get_plan_id(&self) -> String {
         match self {
             JobResultDetail::HttpRequest(detail) => detail.job.plan_id.clone(),
@@ -229,9 +241,12 @@ impl JobResultDetail {
             JobResultDetail::LatestBlock(detail) => detail.job.plan_id.clone(),
             JobResultDetail::Benchmark(detail) => detail.job.plan_id.clone(),
             JobResultDetail::Compound(detail) => detail.job.plan_id.clone(),
+            JobResultDetail::Websocket(detail) => detail.job.plan_id.clone(),
         }
     }
+     */
 }
+
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     pub check_interval_ms: u64,

@@ -11,7 +11,6 @@ use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
-use futures_util::FutureExt;
 use log::{debug, info};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};

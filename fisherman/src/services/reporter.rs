@@ -36,7 +36,7 @@ impl JobResultReporter {
                 );
             } else {
                 debug!("No job result for report.");
-                sleep(Duration::from_millis(JOB_RESULT_REPORTER_PERIOD)).await;
+                sleep(Duration::from_millis(*JOB_RESULT_REPORTER_PERIOD)).await;
             }
         }
     }

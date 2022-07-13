@@ -189,7 +189,7 @@ impl PostgresAppender {
                 place_holders.join(","),
                 CONFLICT_PROVIDER_LATEST_BLOCK
             );
-            debug!("{}", query.as_str());
+            debug!("Flush latest block query: {}", query.as_str());
             match self
                 .connection
                 .as_ref()
@@ -210,6 +210,7 @@ impl PostgresAppender {
                 }
             }
         } else {
+            debug!("No data to flush to latest blocks table");
             Ok(0)
         }
     }
