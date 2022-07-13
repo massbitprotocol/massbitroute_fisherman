@@ -1,4 +1,3 @@
-
 use crate::persistence::services::provider_service::ProviderService;
 use crate::persistence::ProviderMapModel;
 use crate::report_processors::adapters::Appender;
@@ -8,7 +7,7 @@ use common::job_manage::JobResultDetail;
 use common::jobs::JobResult;
 use common::tasks::http_request::{JobHttpResponseDetail, JobHttpResult};
 use common::tasks::ping::JobPingResult;
-use common::util::{get_current_time, remove_break_line};
+use common::util::{get_current_time, remove_break_line, warning_if_error};
 use log::debug;
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
@@ -71,9 +70,11 @@ impl Appender for ProvidersMapAdapter {
             })
             .collect::<Vec<ProviderMapModel>>();
         if provider_maps.len() > 0 {
-            self.provider_service
+            let res = self
+                .provider_service
                 .store_provider_maps(&provider_maps)
                 .await;
+            warning_if_error("store_provider_maps return error", res);
         }
         Ok(())
     }
@@ -95,9 +96,11 @@ impl Appender for ProvidersMapAdapter {
                 last_check: Some(current_time),
             })
             .collect::<Vec<ProviderMapModel>>();
-        self.provider_service
+        let res = self
+            .provider_service
             .store_provider_maps(&provider_maps)
             .await;
+        warning_if_error("store_provider_maps return error", res);
         Ok(())
     }
 }

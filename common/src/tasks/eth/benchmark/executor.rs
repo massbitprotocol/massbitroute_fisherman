@@ -26,11 +26,10 @@ pub struct BenchmarkExecutor {
     benchmark_wrk_path: String,
 }
 
-#[derive(Debug)]
 pub struct DetailedPercentileSpectrum {
     latency: f32,
     percent: f32,
-    count: u64,
+    _count: u64,
 }
 
 impl BenchmarkResponse {
@@ -203,7 +202,7 @@ impl BenchmarkExecutor {
                     Some(DetailedPercentileSpectrum {
                         latency: arr[0].parse::<f32>().unwrap_or(f32::MAX),
                         percent: arr[1].parse::<f32>().unwrap_or(f32::MAX),
-                        count: arr[2].parse::<u64>().unwrap_or(u64::MAX),
+                        _count: arr[2].parse::<u64>().unwrap_or(u64::MAX),
                     })
                 } else {
                     None

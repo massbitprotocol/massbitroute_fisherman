@@ -10,8 +10,11 @@ use common::tasks::eth::JobLatestBlockResult;
 
 use log::debug;
 
-use sea_orm::{ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement, Value};
+use sea_orm::{
+    ActiveModelTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement, Value,
+};
 
+use common::util::warning_if_error;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -76,22 +79,25 @@ impl Appender for PostgresAppender {
         //update provider map base on ping result
         // Todo: Add response time for each Job result
         if ping_results.len() > 0 {
-            self.job_result_service
+            let _res = self
+                .job_result_service
                 .save_result_pings(&ping_results)
                 .await;
         }
         if latest_block_results.len() > 0 {
-            self.job_result_service
+            let _res = self
+                .job_result_service
                 .save_result_latest_blocks(&latest_block_results)
                 .await;
         }
         if benchmark_results.len() > 0 {
-            self.job_result_service
+            let _res = self
+                .job_result_service
                 .save_result_benchmarks(&benchmark_results)
                 .await;
         }
         if http_request_results.len() > 0 {
-            self.append_http_request_results(http_request_results).await;
+            let _res = self.append_http_request_results(http_request_results).await;
         }
         Ok(())
     }
@@ -141,11 +147,13 @@ impl PostgresAppender {
                 }
             }
         }
-        self.check_flush_latest_block_cache().await;
+        let _res = self.check_flush_latest_block_cache().await;
         if generals.len() > 0 {
-            self.job_result_service
+            let res = self
+                .job_result_service
                 .save_result_http_requests(&generals)
                 .await;
+            warning_if_error("save_result_http_requests return error", res);
         }
         Ok(())
     }

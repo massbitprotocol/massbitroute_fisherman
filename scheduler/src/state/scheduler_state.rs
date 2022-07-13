@@ -61,7 +61,7 @@ impl SchedulerState {
             })
         } else {
             let worker_id = worker_info.worker_id.clone();
-            self.worker_service.clone().store_worker(&worker_info).await;
+            let _res = self.worker_service.clone().store_worker(&worker_info).await;
             self.worker_pool.lock().await.add_worker(worker_info);
             Ok(WorkerRegisterResult {
                 worker_id,
