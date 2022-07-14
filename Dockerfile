@@ -24,9 +24,12 @@ COPY migration /usr/src/migration
 # Now copy in the rest of the sources
 COPY scheduler /usr/src/fisherman-scheduler/
 
-RUN ls -la /usr/src/fisherman-scheduler/
+# This is the actual application build.
+RUN cargo build  --release
 
-
+# Now copy in the rest of the sources
+COPY fisherman /usr/src/fisherman/
+WORKDIR /usr/src/fisherman
 # This is the actual application build.
 RUN cargo build  --release
 
@@ -36,9 +39,11 @@ FROM debian AS runtime
 WORKDIR /usr/local/bin
 
 COPY scheduler/configs /usr/local/bin/configs
+COPY scheduler/benchmark /usr/local/bin/benchmark
 # Copy application binary from builder image
 COPY --from=builder /usr/src/fisherman-scheduler/target/release/scheduler /usr/local/bin
-
+COPY --from=builder /usr/src/fisherman/target/release/fisherman /usr/local/bin
+RUN apt update && apt install supervisor -y
 EXPOSE 80
 
 # Run the application

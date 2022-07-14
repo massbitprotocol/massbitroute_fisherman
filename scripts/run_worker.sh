@@ -1,7 +1,6 @@
 #!/bin/bash
 
 export ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
-
 export DOMAIN=massbitroute.net
 export RUST_LOG=info
 export SCHEDULER_ENDPOINT=https://scheduler.fisherman.$DOMAIN
