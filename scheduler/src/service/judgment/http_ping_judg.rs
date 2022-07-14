@@ -2,13 +2,13 @@ use crate::models::job_result::ProviderTask;
 use crate::persistence::services::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use crate::tasks::ping::generator::PingConfig;
-use anyhow::{anyhow, Error};
+use anyhow::anyhow;
 use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
-use common::jobs::{Job, JobResult};
-use common::models::PlanEntity;
+use common::jobs::JobResult;
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
+use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;
 use log::debug;
@@ -116,7 +116,7 @@ pub struct HttpPingJudgment {
 }
 
 impl HttpPingJudgment {
-    pub fn new(config_dir: &str, result_service: Arc<JobResultService>) -> Self {
+    pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
         let verification_config = PingConfig::load_config(
             format!("{}/ping.json", config_dir).as_str(),
             &JobRole::Verification,
@@ -126,7 +126,7 @@ impl HttpPingJudgment {
             &JobRole::Regular,
         );
         let path = format!("{}/http_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str());
+        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         HttpPingJudgment {
             verification_config,
             regular_config,
@@ -204,7 +204,10 @@ impl ReportCheck for HttpPingJudgment {
             let mut histogram = Histogram::new();
             for val in response_durations.iter() {
                 if val.success {
-                    histogram.increment(val.response_duration as u64);
+                    let res = histogram
+                        .increment(val.response_duration as u64)
+                        .map_err(|e| anyhow!("Error: {}", e));
+                    warning_if_error("histogram.increment return error", res);
                 }
             }
 
@@ -225,7 +228,7 @@ impl ReportCheck for HttpPingJudgment {
                         Ok(JudgmentsResult::Failed)
                     }
                 }
-                Err(err) => Ok(JudgmentsResult::Failed),
+                Err(_err) => Ok(JudgmentsResult::Failed),
             }
         };
     }

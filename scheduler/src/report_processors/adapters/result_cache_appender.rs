@@ -1,4 +1,3 @@
-use crate::models::job_result::ProviderTask;
 use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
 use crate::report_processors::adapters::Appender;
 use async_trait::async_trait;
@@ -22,11 +21,7 @@ impl ResultCacheAppender {
 
 #[async_trait]
 impl Appender for ResultCacheAppender {
-    async fn append_job_results(
-        &self,
-        key: &ProviderTask,
-        results: &Vec<JobResult>,
-    ) -> Result<(), anyhow::Error> {
+    async fn append_job_results(&self, results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
         //log::info!("ResultCacheAppender append results");
         if results.is_empty() {
             return Ok(());
@@ -35,12 +30,19 @@ impl Appender for ResultCacheAppender {
         {
             let mut result_cache = self.result_cache.lock().await;
             for result in results {
-                let component_id = &key.provider_id;
+                let component_id = &result.provider_id;
 
                 let task_key = TaskKey {
-                    task_type: key.task_type.clone(),
-                    task_name: key.task_name.clone(),
+                    task_type: result.result_detail.get_name(),
+                    task_name: result.job_name.clone(),
                 };
+                log::debug!(
+                    "push result to component {:?}.{:?} {:?} {:?}",
+                    &result.provider_type,
+                    &result.provider_id,
+                    &task_key,
+                    &result
+                );
                 // Create new entry if need
                 let result_by_task = result_cache
                     .result_cache_map
@@ -56,13 +58,12 @@ impl Appender for ResultCacheAppender {
                     task_result_cache.pop_front();
                 }
             }
-            log::debug!(
-                "{} result_cache: {:?}",
-                result_cache.result_cache_map.len(),
-                result_cache.result_cache_map
-            );
+            log::debug!("result_cache size {}", result_cache.result_cache_map.len());
         }
         Ok(())
+    }
+    fn get_name(&self) -> String {
+        "ResultCacheAppender".to_string()
     }
     /*
     async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {

@@ -5,6 +5,7 @@ members = [
     "scheduler",
     "wrap_wrk",
     "migration",
-    "entity"
+    "entity",
+    "test_util"
 
 ]

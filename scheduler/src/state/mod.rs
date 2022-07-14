@@ -1,4 +1,4 @@
 pub mod processor;
-pub mod scheduler;
+pub mod scheduler_state;
 pub use processor::*;
-pub use scheduler::*;
+pub use scheduler_state::*;

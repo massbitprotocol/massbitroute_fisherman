@@ -6,12 +6,11 @@ use crate::util::get_current_time;
 use crate::{Timestamp, WorkerId};
 use anyhow::Error;
 use async_trait::async_trait;
-use log::{debug, info};
+use log::{debug, info, trace};
 use reqwest::Client;
 use serde_json::Value;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Sender;
-use tokio::time::sleep;
 
 #[derive(Clone, Debug, Default)]
 pub struct LatestBlockExecutor {
@@ -48,7 +47,7 @@ impl LatestBlockExecutor {
         }?;
 
         match &job.job_detail {
-            Some(JobDetail::LatestBlock(latest_block)) => {}
+            Some(JobDetail::LatestBlock(_latest_block)) => {}
             None => {}
             _ => {}
         }
@@ -202,9 +201,10 @@ impl TaskExecutor for LatestBlockExecutor {
             Some(JobDetail::LatestBlock(_)) => true,
             _ => false,
         };
-        debug!(
+        trace!(
             "Matched LatestBlockExecutor {} for job: {:?}",
-            appliable, job.job_detail
+            appliable,
+            job.job_detail
         );
         appliable
     }

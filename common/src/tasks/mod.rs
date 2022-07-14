@@ -6,9 +6,8 @@ pub mod executor;
 pub mod http_request;
 pub mod ping;
 pub mod rpc_request;
-
+pub mod websocket_request;
 use crate::job_manage::JobRole;
-use log::info;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 use std::fmt::Debug;

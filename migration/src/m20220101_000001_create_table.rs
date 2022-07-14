@@ -1,6 +1,3 @@
-use entity::jobs;
-use entity::providers;
-use entity::*;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::sea_orm::{ConnectionTrait, Statement};
 
@@ -555,7 +552,7 @@ create table if not exists job_result_http_requests
         Ok(())
     }
 
-    async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+    async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
         todo!()
     }
 }

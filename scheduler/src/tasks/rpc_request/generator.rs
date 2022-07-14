@@ -1,5 +1,5 @@
 use anyhow::Error;
-use async_trait::async_trait;
+
 use common::tasks::LoadConfig;
 
 use crate::models::jobs::AssignmentBuffer;
@@ -7,14 +7,14 @@ use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job};
-use common::models::PlanEntity;
+
 use common::tasks::rpc_request::JobRpcRequest;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use std::vec;
-use tokio::sync::mpsc::Sender;
+
+
+
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
  */
@@ -61,7 +61,7 @@ impl TaskApplicant for RpcRequestGenerator {
         String::from("RpcRequest")
     }
 
-    fn can_apply(&self, component: &ComponentInfo) -> bool {
+    fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
     }
 

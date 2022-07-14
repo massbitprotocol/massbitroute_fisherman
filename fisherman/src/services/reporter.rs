@@ -2,7 +2,6 @@ use crate::JOB_RESULT_REPORTER_PERIOD;
 use anyhow::anyhow;
 use common::jobs::JobResult;
 use log::{debug, info, trace};
-//use std::thread::sleep;
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Receiver;
 use tokio::time::sleep;
@@ -29,11 +28,15 @@ impl JobResultReporter {
             if !results.is_empty() {
                 let now = Instant::now();
                 info!("Sending {} results.", results.len());
-                self.send_results(results).await;
-                info!("Finished sending results in {:.2?}.", now.elapsed());
+                let res = self.send_results(results).await;
+                info!(
+                    "Finished sending results in {:.2?} with res: {:?}",
+                    now.elapsed(),
+                    res
+                );
             } else {
                 debug!("No job result for report.");
-                sleep(Duration::from_millis(JOB_RESULT_REPORTER_PERIOD)).await;
+                sleep(Duration::from_millis(*JOB_RESULT_REPORTER_PERIOD)).await;
             }
         }
     }
@@ -43,6 +46,7 @@ impl JobResultReporter {
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         let body = serde_json::to_string(&results)?;
+        info!("Body content: {}", body);
         info!("sending body len: {}", body.len());
         let result = client
             .post(call_back)
@@ -52,7 +56,7 @@ impl JobResultReporter {
             .await;
         trace!("Send response: {:?}", result);
         match result {
-            Ok(res) => Ok(()),
+            Ok(_res) => Ok(()),
             Err(err) => Err(anyhow!(format!("{:?}", &err))),
         }
     }

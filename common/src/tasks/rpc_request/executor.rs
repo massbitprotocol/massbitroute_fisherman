@@ -73,7 +73,7 @@ impl TaskExecutor for RpcRequestExecutor {
         Ok(())
     }
 
-    fn can_apply(&self, job: &Job) -> bool {
+    fn can_apply(&self, _job: &Job) -> bool {
         true
     }
 }

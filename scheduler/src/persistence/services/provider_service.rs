@@ -1,16 +1,11 @@
 use crate::persistence::ProviderMapModel;
-use anyhow::anyhow;
-use common::component::Zone;
-use common::workers::WorkerInfo;
+
 use entity::worker_provider_maps;
-use log::{debug, error, log};
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Value,
-};
-use sea_orm::{DatabaseBackend, DatabaseConnection, ExecResult, Statement};
+use log::debug;
+use sea_orm::{ConnectionTrait, EntityTrait, Value};
+use sea_orm::{DatabaseBackend, DatabaseConnection, Statement};
 use std::collections::HashMap;
-use std::fmt::Error;
-use std::str::FromStr;
+
 use std::sync::Arc;
 
 //const TABLE_NAME: &str = "worker_provider_maps";

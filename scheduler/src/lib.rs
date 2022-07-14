@@ -45,6 +45,11 @@ lazy_static! {
     pub static ref URL_GATEWAYS_LIST: String =
         env::var("URL_GATEWAYS_LIST").expect("There is no env var URL_GATEWAYS_LIST");
     pub static ref CONFIG: Config = Config::load(SCHEDULER_CONFIG.as_str());
+    pub static ref SQLX_LOGGING: bool =
+        env::var("SQLX_LOGGING").ok().and_then(|val|val.parse::<bool>().ok()).unwrap_or(false);
+    //time between 2 database flush in ms
+     pub static ref LATEST_BLOCK_CACHING_DURATION: i64 =
+        env::var("LATEST_BLOCK_CACHING_DURATION").ok().and_then(|val|val.parse::<i64>().ok()).unwrap_or(10000);
     //Worker configurations
     pub static ref WORKER_PATH_JOBS_HANDLE: String =
         env::var("WORKER_PATH_JOBS_HANDLE").unwrap_or(String::from("jobs_handle"));

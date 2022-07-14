@@ -8,7 +8,7 @@ use entity::seaorm::job_result_pings::Model as ResultPingModel;
 use entity::seaorm::{
     job_result_benchmarks, job_result_http_requests, job_result_latest_blocks, job_result_pings,
 };
-use log::{debug, error, log};
+use log::debug;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use sea_orm::{Condition, DatabaseConnection};
@@ -37,7 +37,7 @@ impl JobResultService {
         let res_results = self
             .get_result_ping_by_job_ids(&job_ids)
             .await
-            .unwrap_or(Vec::new());
+            .unwrap_or_default();
         let mut map_results = HashMap::<String, ResultPingModel>::new();
         for res in res_results.into_iter() {
             map_results.insert(res.job_id.clone(), res);
@@ -78,7 +78,7 @@ impl JobResultService {
         //New records
         let active_models = new_records
             .into_iter()
-            .map(|(key, val)| job_result_pings::ActiveModel::from_model(&val))
+            .map(|(_key, val)| job_result_pings::ActiveModel::from_model(&val))
             .collect::<Vec<job_result_pings::ActiveModel>>();
         debug!(
             "Create new {:?} records for job_result_pings",
@@ -100,7 +100,7 @@ impl JobResultService {
                 }
             }
         }
-        if active_models.len() > 0 {
+        if !active_models.is_empty() {
             log::debug!(
                 "Insert job_ping_result {:?} records: {:?}",
                 len,
@@ -110,8 +110,8 @@ impl JobResultService {
                 .exec(self.db.as_ref())
                 .await
             {
-                Ok(res) => {
-                    log::debug!("Insert many records {:?}", len);
+                Ok(_res) => {
+                    log::debug!("Insert {} records", len);
                 }
                 Err(err) => {
                     log::debug!("Error {:?}", &err);
@@ -146,7 +146,7 @@ impl JobResultService {
             .await
         {
             Ok(res) => {
-                log::debug!("Insert many records {:?}", length);
+                log::debug!("Insert {} records", length);
                 Ok(res.last_insert_id as usize)
             }
             Err(err) => {
@@ -185,30 +185,7 @@ impl JobResultService {
     /*
      * map by worker_id and vector of response times
      */
-    pub async fn get_result_pings(&self, job_id: &str) -> Result<(Vec<i64>, i64), anyhow::Error> {
-        match job_result_pings::Entity::find()
-            .filter(job_result_pings::Column::JobId.eq(job_id.to_owned()))
-            .all(self.db.as_ref())
-            .await
-        {
-            Ok(results) => results
-                .get(0)
-                .and_then(|model| {
-                    let response_durations: serde_json::Value = model.response_durations.clone();
-                    let values = response_durations
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .map(|val| val.as_i64().unwrap())
-                        .collect::<Vec<i64>>();
-                    Some((values, model.error_number))
-                })
-                .ok_or(anyhow!("Result not found for job {:?}", job_id)),
-            Err(err) => Err(anyhow!("{:?}", &err)),
-        }
-    }
-
-    // pub async fn get_result_http_requests(&self, job_id: &str) -> Result<(Vec<i64>, i64), anyhow::Error> {
+    // pub async fn get_result_pings(&self, job_id: &str) -> Result<(Vec<i64>, i64), anyhow::Error> {
     //     match job_result_pings::Entity::find()
     //         .filter(job_result_pings::Column::JobId.eq(job_id.to_owned()))
     //         .all(self.db.as_ref())
@@ -247,7 +224,7 @@ impl JobResultService {
             .await
         {
             Ok(res) => {
-                log::debug!("Insert many records {:?}", length);
+                log::debug!("Insert {} records", length);
                 Ok(res.last_insert_id)
             }
             Err(err) => {
@@ -272,7 +249,7 @@ impl JobResultService {
             .await
         {
             Ok(res) => {
-                log::debug!("Insert many records {:?}", length);
+                log::debug!("Insert {} records", length);
                 Ok(res.last_insert_id)
             }
             Err(err) => {
@@ -286,6 +263,7 @@ impl JobResultService {
         job: &Job,
     ) -> Result<Vec<JobBenchmarkResult>, anyhow::Error> {
         let plan_id = &job.plan_id;
+        println!("job.plan_id: {}", plan_id);
         match job_result_benchmarks::Entity::find()
             .filter(job_result_benchmarks::Column::PlanId.eq(plan_id.to_owned()))
             .all(self.db.as_ref())
@@ -301,26 +279,26 @@ impl JobResultService {
             Err(err) => Err(anyhow!("{:?}", &err)),
         }
     }
-    pub async fn get_result_latest_blocks(
-        &self,
-        job: &Job,
-    ) -> Result<Vec<JobLatestBlockResult>, anyhow::Error> {
-        let plan_id = &job.plan_id;
-        match job_result_latest_blocks::Entity::find()
-            .filter(job_result_latest_blocks::Column::PlanId.eq(plan_id.to_owned()))
-            .all(self.db.as_ref())
-            .await
-        {
-            Ok(results) => {
-                let mut res = Vec::new();
-                for model in results.iter() {
-                    res.push(JobLatestBlockResult::from_db(model, job))
-                }
-                Ok(res)
-            }
-            Err(err) => Err(anyhow!("{:?}", &err)),
-        }
-    }
+    // pub async fn get_result_latest_blocks(
+    //     &self,
+    //     job: &Job,
+    // ) -> Result<Vec<JobLatestBlockResult>, anyhow::Error> {
+    //     let plan_id = &job.plan_id;
+    //     match job_result_latest_blocks::Entity::find()
+    //         .filter(job_result_latest_blocks::Column::PlanId.eq(plan_id.to_owned()))
+    //         .all(self.db.as_ref())
+    //         .await
+    //     {
+    //         Ok(results) => {
+    //             let mut res = Vec::new();
+    //             for model in results.iter() {
+    //                 res.push(JobLatestBlockResult::from_db(model, job))
+    //             }
+    //             Ok(res)
+    //         }
+    //         Err(err) => Err(anyhow!("{:?}", &err)),
+    //     }
+    // }
 }
 
 trait FromDb<T> {
@@ -370,5 +348,126 @@ impl FromDb<job_result_benchmarks::Model> for JobBenchmarkResult {
             response_timestamp: 0,
             response: res,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Error;
+    use common::job_manage::JobResultDetail;
+    use common::logger::init_logger;
+    use entity::job_result_benchmarks::Model;
+    use entity::*;
+    use log::info;
+    use pretty_assertions::assert_eq;
+    use sea_orm::{DatabaseBackend, MockDatabase, MockExecResult};
+    use std::env;
+    use test_util::helper::{load_schedule_env, mock_job, JobName};
+
+    #[tokio::test]
+    async fn test_save_result_http_requests() -> Result<(), Error> {
+        load_schedule_env();
+        env::set_var("RUST_LOG", "debug");
+        //let _res = init_logger(&String::from("Fisherman Scheduler"));
+        let last_index = 12;
+        let db_conn = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results(vec![vec![job_result_http_requests::Model {
+                id: last_index,
+                job_id: "".to_string(),
+                job_name: "".to_string(),
+                worker_id: "".to_string(),
+                provider_id: "".to_string(),
+                provider_type: "".to_string(),
+                execution_timestamp: 0,
+                chain_id: "".to_string(),
+                plan_id: "".to_string(),
+                http_code: 0,
+                error_code: 0,
+                message: "".to_string(),
+                values: Default::default(),
+                response_duration: 0,
+            }]])
+            .append_exec_results(vec![MockExecResult {
+                last_insert_id: last_index as u64,
+                rows_affected: 2,
+            }])
+            .into_connection();
+        let service = JobResultService {
+            db: Arc::new(db_conn),
+        };
+        let job1 = mock_job(&JobName::RoundTripTime, "job1");
+        let result1 = JobResult::new(JobResultDetail::new(&job1), None, &job1);
+
+        let res = service.save_result_http_requests(&vec![result1]).await;
+        println!("res: {:?}", res);
+
+        assert_eq!(res.is_ok(), true, "res error: {:?}", res);
+        let n = res.unwrap();
+        assert_eq!(
+            n, last_index as usize,
+            "last insert index is {}, expected: {}",
+            n, last_index
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_save_and_get_result_benchmarks() -> Result<(), Error> {
+        load_schedule_env();
+        env::set_var("RUST_LOG", "debug");
+        //let _res = init_logger(&String::from("Fisherman Scheduler"));
+
+        let last_index = 12;
+        let mut result1 = JobBenchmarkResult::default();
+        result1.job = mock_job(&JobName::Benchmark, "job1");
+        let model = job_result_benchmarks::Model {
+            id: last_index,
+            job_id: "".to_string(),
+            worker_id: "".to_string(),
+            provider_id: "".to_string(),
+            provider_type: "".to_string(),
+            execution_timestamp: 0,
+            recorded_timestamp: 0,
+            request_rate: 0.0,
+            transfer_rate: 0.0,
+            average_latency: 0.0,
+            histogram90: 0.0,
+            histogram95: 0.0,
+            plan_id: "benchmark".to_string(),
+            error_code: 0,
+            message: "".to_string(),
+            response_duration: 0,
+            histogram99: 0.0,
+        };
+
+        let db_conn = MockDatabase::new(DatabaseBackend::Postgres)
+            .append_query_results(vec![vec![model.clone()]])
+            .append_query_results(vec![vec![model.clone(), model.clone()]])
+            .append_exec_results(vec![MockExecResult {
+                last_insert_id: last_index as u64,
+                rows_affected: 2,
+            }])
+            .into_connection();
+        let service = JobResultService {
+            db: Arc::new(db_conn),
+        };
+
+        let res = service.save_result_benchmarks(&vec![result1.clone()]).await;
+
+        assert_eq!(res.is_ok(), true, "res error: {:?}", res);
+        let n = res.unwrap();
+        assert_eq!(
+            n, last_index,
+            "last insert index is {}, expected: {}",
+            n, last_index
+        );
+
+        let res = service.get_result_benchmarks(&result1.job).await;
+        println!("res: {:?}", res);
+
+        assert_eq!(res.unwrap().len(), 2);
+        Ok(())
     }
 }

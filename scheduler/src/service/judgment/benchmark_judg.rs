@@ -4,17 +4,13 @@ use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use crate::tasks::benchmark::generator::BenchmarkConfig;
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{
-    BenchmarkResponse, JobBenchmarkResult, JobDetail, JobResultDetail, JobRole,
-};
+use common::job_manage::{BenchmarkResponse, JobBenchmarkResult, JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::tasks::LoadConfig;
-use common::{Timestamp, WorkerId};
-use log::{debug, info};
-use sea_orm::DatabaseConnection;
+use common::WorkerId;
+use log::debug;
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
@@ -108,12 +104,14 @@ impl BenchmarkResultCache {
                 benchmark_results.push(benchmark_result.clone());
             }
         }
-        let mut povider_benchmark_result = self.benchmarks.lock().unwrap();
+        let mut provider_benchmark_result = self.benchmarks.lock().unwrap();
 
-        povider_benchmark_result
+        let res = provider_benchmark_result
             .entry(provider_task.clone())
             .or_insert(ProviderBenchmarkResult::default())
-            .add_results(benchmark_results, histogram_percentile)
+            .add_results(benchmark_results, histogram_percentile);
+        println!("append_results res:{:?}", res);
+        res
     }
 }
 #[derive(Debug)]
@@ -152,7 +150,7 @@ impl ReportCheck for BenchmarkJudgment {
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         return task.task_name.as_str() == "Benchmark";
     }
-    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         //Todo: unimplement
         Ok(JudgmentsResult::Unfinished)
         /*
@@ -238,5 +236,73 @@ impl ReportCheck for BenchmarkJudgment {
         }
 
         Ok(JudgmentsResult::Unfinished)
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::CONFIG_DIR;
+    use common::component::ComponentType;
+    use log::info;
+    use sea_orm::{DatabaseBackend, MockDatabase};
+
+    use test_util::helper::JobName::Benchmark;
+    use test_util::helper::{
+        init_logging, load_schedule_env, mock_db_connection, mock_job_result, ChainTypeForTest,
+        JobName,
+    };
+
+    #[tokio::test]
+    async fn test_benchmark_judgment() -> Result<(), Error> {
+        load_schedule_env();
+        // init_logging();
+        let db_conn = mock_db_connection();
+        //let db_conn = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let result_service = JobResultService::new(Arc::new(db_conn));
+        let judge = BenchmarkJudgment::new(CONFIG_DIR.as_str(), Arc::new(result_service));
+
+        let task_benchmark = ProviderTask::new(
+            "provider_id".to_string(),
+            ComponentType::Node,
+            "Benchmark".to_string(),
+            "Benchmark".to_string(),
+        );
+        let task_rtt = ProviderTask::new(
+            "provider_id".to_string(),
+            ComponentType::Node,
+            "HttpRequest".to_string(),
+            "RoundTripTime".to_string(),
+        );
+
+        // Test can_apply_for_result
+        assert!(judge.can_apply_for_result(&task_benchmark));
+        assert!(!judge.can_apply_for_result(&task_rtt));
+
+        // Test apply_for_results
+        assert_eq!(
+            judge.apply_for_results(&task_benchmark, &vec![]).await?,
+            JudgmentsResult::Unfinished
+        );
+
+        // For eth
+        let job_result = mock_job_result(&JobName::Benchmark, ChainTypeForTest::Eth);
+        info!("job_result: {:?}", job_result);
+        let res = judge
+            .apply_for_results(&task_benchmark, &vec![job_result])
+            .await?;
+        println!("Judge Eth res: {:?}", res);
+        assert_eq!(res, JudgmentsResult::Pass);
+
+        // For dot
+        let job_result = mock_job_result(&JobName::Benchmark, ChainTypeForTest::Dot);
+        info!("job_result: {:?}", job_result);
+        let res = judge
+            .apply_for_results(&task_benchmark, &vec![job_result])
+            .await?;
+        println!("Judge Dot res: {:?}", res);
+        assert_eq!(res, JudgmentsResult::Pass);
+
+        Ok(())
     }
 }

@@ -6,17 +6,15 @@ use crate::models::jobs::AssignmentBuffer;
 use crate::models::TaskDependency;
 use crate::persistence::PlanModel;
 use crate::tasks::benchmark::generator::BenchmarkGenerator;
+use crate::tasks::websocket::generator::WebsocketGenerator;
 use crate::tasks::*;
 use crate::CONFIG;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
-use common::models::PlanEntity;
-use common::tasks::eth::*;
 use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
-use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -54,8 +52,8 @@ pub trait TaskApplicant: Sync + Send {
     }
     fn assign_jobs(
         &self,
-        plan: &PlanModel,
-        provider_node: &ComponentInfo,
+        _plan: &PlanModel,
+        _provider_node: &ComponentInfo,
         jobs: &Vec<Job>,
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
@@ -79,24 +77,26 @@ pub trait TaskApplicant: Sync + Send {
 pub fn get_tasks(
     config_dir: &str,
     role: JobRole,
-    task_names: &Vec<String>,
+    task_types: &Vec<String>,
 ) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
     //Generic http request task
-    if task_names.contains(&HttpRequestGenerator::get_name()) {
-        result.push(Arc::new(HttpRequestGenerator::new(config_dir)));
+    if task_types.contains(&HttpRequestGenerator::get_name()) {
+        result.push(Arc::new(HttpRequestGenerator::new(config_dir, &role)));
     }
-
-    if task_names.contains(&BenchmarkGenerator::get_name()) {
+    if task_types.contains(&WebsocketGenerator::get_name()) {
+        result.push(Arc::new(WebsocketGenerator::new(config_dir, &role)));
+    }
+    if task_types.contains(&BenchmarkGenerator::get_name()) {
         result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
     }
-    if task_names.contains(&PingGenerator::get_name()) {
+    if task_types.contains(&PingGenerator::get_name()) {
         result.push(Arc::new(PingGenerator::new(config_dir, &role)));
     }
-    if task_names.contains(&LatestBlockGenerator::get_name()) {
+    if task_types.contains(&LatestBlockGenerator::get_name()) {
         result.push(Arc::new(LatestBlockGenerator::new(config_dir, &role)));
     }
-    if task_names.contains(&TaskGWNodeConnection::get_name()) {
+    if task_types.contains(&TaskGWNodeConnection::get_name()) {
         result.push(Arc::new(TaskGWNodeConnection::new()));
     }
     result
