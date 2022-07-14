@@ -1,6 +1,7 @@
 {
   "default": {
     "name": "Websocket",
+    "active": true,
     "url_template": "wss://{{provider.ip}}/",
     "phases": ["*"],
     "provider_types": ["*"],

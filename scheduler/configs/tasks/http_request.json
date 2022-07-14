@@ -1,6 +1,7 @@
 {
   "default": {
     "name": "http_request",
+    "active": true,
     "phases": ["verification", "regular"],
     "url_template": "",
     "http_method": "get",
@@ -99,6 +100,7 @@
     },
     {
       "name": "LatestBlock",
+      "active": true,
       "phases": ["regular"],
       "blockchains": ["eth"],
       "repeat_number": 1000000000,
@@ -178,6 +180,7 @@
     },
     {
       "name": "LatestBlock",
+      "active": true,
       "phases": ["regular"],
       "blockchains": ["dot"],
       "repeat_number": 1000000000,
