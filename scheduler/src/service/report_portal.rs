@@ -1,6 +1,6 @@
-
+use crate::URL_PORTAL_PROVIDER_REPORT;
 use anyhow::{anyhow, Error};
-use common::component::{ComponentType};
+use common::component::ComponentType;
 use common::job_manage::JobRole;
 use common::{ComponentId, Deserialize, Serialize};
 use log::debug;
@@ -97,10 +97,7 @@ impl StoreReport {
     //     }
     // }
     fn get_url(&self) -> String {
-        format!(
-            "https://portal.{}/mbr/benchmark/{}",
-            self.domain, self.provider_id
-        )
+        format!("{}/{}", URL_PORTAL_PROVIDER_REPORT, self.provider_id)
     }
 
     pub async fn send_data(&self) -> Result<Response, Error> {
