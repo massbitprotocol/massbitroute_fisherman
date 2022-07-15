@@ -44,6 +44,8 @@ lazy_static! {
         env::var("URL_NODES_LIST").expect("There is no env var URL_NODES_LIST");
     pub static ref URL_GATEWAYS_LIST: String =
         env::var("URL_GATEWAYS_LIST").expect("There is no env var URL_GATEWAYS_LIST");
+    pub static ref URL_PORTAL_PROVIDER_REPORT: String =
+        env::var("URL_PORTAL_PROVIDER_REPORT").expect("There is no env var URL_PORTAL_PROVIDER_REPORT");
     pub static ref CONFIG: Config = Config::load(SCHEDULER_CONFIG.as_str());
     pub static ref SQLX_LOGGING: bool =
         env::var("SQLX_LOGGING").ok().and_then(|val|val.parse::<bool>().ok()).unwrap_or(false);
