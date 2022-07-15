@@ -9,4 +9,4 @@ export URL_GATEWAYS_LIST=https://portal.$DOMAIN/mbr/gateway/list/verify
 export URL_NODES_LIST=https://portal.$DOMAIN/mbr/node/list/verify
 export REPORT_CALLBACK=https://scheduler.fisherman.$DOMAIN/report
 
-/usr/local/bin/scheduler
+/opt/fisherman/scheduler
