@@ -97,7 +97,11 @@ impl StoreReport {
     //     }
     // }
     fn get_url(&self) -> String {
-        format!("{}/{}", URL_PORTAL_PROVIDER_REPORT, self.provider_id)
+        format!(
+            "{}/{}",
+            URL_PORTAL_PROVIDER_REPORT.as_str(),
+            self.provider_id
+        )
     }
 
     pub async fn send_data(&self) -> Result<Response, Error> {
