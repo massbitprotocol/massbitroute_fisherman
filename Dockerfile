@@ -41,6 +41,7 @@ WORKDIR /usr/local/bin
 COPY scheduler/configs /usr/local/bin/configs
 COPY scheduler/benchmark /usr/local/bin/benchmark
 COPY script/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
+COPY test_util /usr/local/bin/test_util
 RUN  supervisorctl reread && supervisorctl update
 
 # Copy application binary from builder image
