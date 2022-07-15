@@ -40,6 +40,9 @@ WORKDIR /usr/local/bin
 
 COPY scheduler/configs /usr/local/bin/configs
 COPY scheduler/benchmark /usr/local/bin/benchmark
+COPY script/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
+RUN  supervisorctl reread && supervisorctl update
+
 # Copy application binary from builder image
 COPY --from=builder /usr/src/fisherman-scheduler/target/release/scheduler /usr/local/bin
 COPY --from=builder /usr/src/fisherman/target/release/fisherman /usr/local/bin
@@ -47,4 +50,4 @@ RUN apt update && apt install supervisor -y
 EXPOSE 80
 
 # Run the application
-CMD ["/usr/local/bin/scheduler"]
+CMD ["supervisord", "-n"]
