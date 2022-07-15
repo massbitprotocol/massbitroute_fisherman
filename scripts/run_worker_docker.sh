@@ -11,4 +11,4 @@ export WORKER_ENDPOINT=https://$WORKER_IP/__worker
 export WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
 export BENCHMARK_WRK_PATH=benchmark
 
-./fisherman
+/usr/local/bin/fisherman
