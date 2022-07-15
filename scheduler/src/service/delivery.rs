@@ -1,4 +1,4 @@
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::workers::WorkerInfoStorage;
 use crate::JOB_DELIVERY_PERIOD;
 use common::jobs::{Job, JobAssignment};
@@ -13,7 +13,7 @@ use tokio::time::sleep;
 
 #[derive(Default)]
 pub struct JobDelivery {
-    assignment_buffer: Arc<Mutex<AssignmentBuffer>>,
+    assignment_buffer: Arc<Mutex<JobAssignmentBuffer>>,
     worker_infos: Arc<Mutex<WorkerInfoStorage>>,
     worker_pool: HashMap<WorkerId, Arc<Worker>>,
 }
@@ -21,7 +21,7 @@ pub struct JobDelivery {
 impl JobDelivery {
     pub fn new(
         worker_infos: Arc<Mutex<WorkerInfoStorage>>,
-        assignment_buffer: Arc<Mutex<AssignmentBuffer>>,
+        assignment_buffer: Arc<Mutex<JobAssignmentBuffer>>,
     ) -> Self {
         JobDelivery {
             worker_infos,

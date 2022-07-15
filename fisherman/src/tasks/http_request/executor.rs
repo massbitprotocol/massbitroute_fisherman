@@ -329,8 +329,8 @@ mod tests {
     #[test]
     fn test_can_apply() {
         let executor = new_executor();
-        let job_benchmark = mock_job(&JobName::Benchmark, "");
-        let job_http = mock_job(&JobName::RoundTripTime, "");
+        let job_benchmark = mock_job(&JobName::Benchmark, "", "", &Default::default());
+        let job_http = mock_job(&JobName::RoundTripTime, "", "", &Default::default());
 
         assert_eq!(executor.can_apply(&job_benchmark), false);
         assert_eq!(executor.can_apply(&job_http), true);
@@ -414,7 +414,12 @@ mod tests {
         println!("url: {}", url);
 
         // Create Job that point to provider mock server
-        let job_http = mock_job(&JobName::RoundTripTime, url.as_str());
+        let job_http = mock_job(
+            &JobName::RoundTripTime,
+            url.as_str(),
+            "",
+            &Default::default(),
+        );
         println!("job: {:?}", job_http);
 
         let res = executor.call_http_request(&job_http).await;

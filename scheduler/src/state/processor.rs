@@ -23,7 +23,6 @@ pub struct ProcessorState {
     result_service: Arc<JobResultService>,
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
-    judgment: MainJudgment,
 }
 
 impl ProcessorState {
@@ -48,7 +47,6 @@ impl ProcessorState {
         //For regular processor
         let judgment = MainJudgment::new(result_service.clone(), &JobRole::Regular);
         let regular_processor = RegularReportProcessor::new(report_adapters.clone(), judgment);
-        let judgment = MainJudgment::new(result_service.clone(), &JobRole::Regular);
         ProcessorState {
             connection,
             regular_processor: Arc::new(regular_processor),
@@ -56,7 +54,6 @@ impl ProcessorState {
             result_service,
             plan_service,
             job_service,
-            judgment,
         }
     }
 }
@@ -69,7 +66,6 @@ impl Default for ProcessorState {
             result_service: Arc::new(Default::default()),
             plan_service: Arc::new(Default::default()),
             job_service: Arc::new(Default::default()),
-            judgment: Default::default(),
         }
     }
 }
@@ -85,11 +81,11 @@ impl ProcessorState {
                 JobRole::Verification => verification_result.push(result),
             }
         }
-        if regular_results.len() > 0 {
+        if !regular_results.is_empty() {
             let _res = self.process_regular_results(regular_results).await;
         }
         //Result of single plan
-        if verification_result.len() > 0 {
+        if !verification_result.is_empty() {
             let _res = self.process_verification_results(verification_result).await;
         }
         Ok(())

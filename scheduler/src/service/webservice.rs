@@ -27,15 +27,13 @@ impl WebService {
             .register_worker(worker_info)
             .await
         {
-            Ok(result) => {
-                return Ok(warp::reply::json(&result));
-            }
+            Ok(result) => Ok(warp::reply::json(&result)),
             Err(_err) => {
                 let result = WorkerRegisterResult {
                     worker_id: "".to_string(),
                     report_callback: "".to_string(),
                 };
-                return Ok(warp::reply::json(&result));
+                Ok(warp::reply::json(&result))
             }
         }
     }
@@ -45,7 +43,7 @@ impl WebService {
         _scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
+        Ok(warp::reply::json(&json!({ "error": "Not implemented" })))
     }
     pub async fn resume_worker(
         &self,
@@ -53,7 +51,7 @@ impl WebService {
         _scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
+        Ok(warp::reply::json(&json!({ "error": "Not implemented" })))
     }
     pub async fn stop_worker(
         &self,
@@ -61,7 +59,7 @@ impl WebService {
         _scheduler_state: Arc<Mutex<SchedulerState>>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
+        Ok(warp::reply::json(&json!({ "error": "Not implemented" })))
     }
     pub async fn node_verify(
         &self,
@@ -70,9 +68,7 @@ impl WebService {
     ) -> Result<impl Reply, Rejection> {
         log::info!("Handle node verify request from {:?}", &node_info);
         scheduler_state.lock().await.verify_node(node_info).await;
-        return Ok(warp::reply::json(
-            &json!({ "success": "Provider added to verifying queue" }),
-        ));
+        Ok(warp::reply::json(&json!({ "success": true })))
     }
 }
 pub struct SchedulerServiceBuilder {

@@ -1,4 +1,4 @@
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
@@ -121,8 +121,8 @@ impl TaskApplicant for WebsocketGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, Error> {
-        let mut assignment_buffer = AssignmentBuffer::new();
+    ) -> Result<JobAssignmentBuffer, Error> {
+        let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
         log::debug!(
             "Websocket apply for component {:?} with context {:?}",
@@ -158,8 +158,8 @@ impl TaskApplicant for WebsocketGenerator {
         phase: JobRole,
         workers: &MatchedWorkers,
         latest_update: HashMap<String, Timestamp>,
-    ) -> Result<AssignmentBuffer, Error> {
-        let mut assignment_buffer = AssignmentBuffer::new();
+    ) -> Result<JobAssignmentBuffer, Error> {
+        let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
         log::debug!(
             "Websocket apply for component {:?} with context {:?}",

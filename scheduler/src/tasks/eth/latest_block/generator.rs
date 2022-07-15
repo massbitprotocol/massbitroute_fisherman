@@ -1,4 +1,4 @@
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
@@ -53,7 +53,7 @@ impl TaskApplicant for LatestBlockGenerator {
         node: &Node,
         phase: JobRole,
         workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, Error> {
+    ) -> Result<JobAssignmentBuffer, Error> {
         let job = JobLatestBlock {
             assigned_at: get_current_time(),
             request_body: self.config.latest_block_request_body.clone(),
@@ -81,7 +81,7 @@ impl TaskApplicant for LatestBlockGenerator {
         job.interval = self.config.interval;
         job.repeat_number = self.config.repeat_number as i32;
         debug!("job header: {:?}", job.header);
-        let mut assignment_buffer = AssignmentBuffer::default();
+        let mut assignment_buffer = JobAssignmentBuffer::default();
         assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
     }
