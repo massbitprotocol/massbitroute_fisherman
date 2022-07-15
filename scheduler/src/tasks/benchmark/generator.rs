@@ -5,18 +5,22 @@
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::TaskDependency;
 use crate::tasks::generator::TaskApplicant;
-use common::component::ComponentInfo;
+use anyhow::anyhow;
+use common::component::{ComponentInfo, ComponentType};
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job};
 use common::tasks::LoadConfig;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
+use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct BenchmarkGenerator {
     config: BenchmarkConfig,
+    handlebars: Handlebars<'static>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
@@ -27,7 +31,7 @@ pub struct BenchmarkConfig {
     benchmark_rate: u32,
     script: String,
     histograms: Vec<u32>,
-    url_path: String,
+    url_template: String,
     pub judge_histogram_percentile: u32,
     pub response_threshold: Timestamp,
     pub assignment: Option<AssignmentConfig>,
@@ -44,10 +48,26 @@ impl BenchmarkGenerator {
         let config: BenchmarkConfig =
             BenchmarkConfig::load_config(format!("{}/benchmark.json", config_dir).as_str(), role);
         log::debug!("Benchmark config {:?}", &config);
-        BenchmarkGenerator { config }
+        BenchmarkGenerator {
+            config,
+            handlebars: Handlebars::new(),
+        }
     }
-    pub fn get_url(&self, component: &ComponentInfo) -> String {
-        format!("https://{}", component.ip)
+    fn create_context(component: &ComponentInfo) -> Value {
+        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
+        if let Some(obj) = context["provider"].as_object_mut() {
+            match component.component_type {
+                ComponentType::Node => obj.insert(String::from("type"), Value::from("node")),
+                ComponentType::Gateway => obj.insert(String::from("type"), Value::from("gw")),
+            };
+        };
+        context
+    }
+    pub fn get_url(&self, component: &ComponentInfo) -> Result<String, anyhow::Error> {
+        let context = Self::create_context(component);
+        self.handlebars
+            .render_template(self.config.url_template.as_str(), &context)
+            .map_err(|err| anyhow!("{}", err))
     }
 }
 impl TaskApplicant for BenchmarkGenerator {
@@ -84,6 +104,7 @@ impl TaskApplicant for BenchmarkGenerator {
             histograms: self.config.histograms.clone(),
             url_path: self.config.url_path.clone(),
         };
+        let context = Self::create_context(component);
         let job_detail = JobDetail::Benchmark(job_benchmark);
         let mut job = Job::new(
             plan_id.clone(),
@@ -93,7 +114,7 @@ impl TaskApplicant for BenchmarkGenerator {
             job_detail,
             phase,
         );
-        job.component_url = self.get_url(component);
+        job.component_url = self.get_url(component)?;
         job.header.insert(
             "host".to_lowercase().to_string(),
             component.get_host_header(&*DOMAIN),
