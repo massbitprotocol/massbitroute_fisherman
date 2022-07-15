@@ -27,12 +27,12 @@ COPY scheduler /usr/src/fisherman-scheduler/
 # This is the actual application build.
 RUN cargo build  --release
 
-# Now copy in the rest of the sources
-COPY fisherman /usr/src/fisherman/
-COPY test_util /usr/src/test_util/
-WORKDIR /usr/src/fisherman
-# This is the actual application build.
-RUN cargo build  --release
+# # Now copy in the rest of the sources
+# COPY fisherman /usr/src/fisherman/
+# COPY test_util /usr/src/test_util/
+# WORKDIR /usr/src/fisherman
+# # This is the actual application build.
+# RUN cargo build  --release
 
 ################
 # ##### Runtime
