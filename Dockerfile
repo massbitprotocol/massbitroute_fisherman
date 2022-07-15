@@ -42,6 +42,7 @@ WORKDIR /usr/local/bin
 COPY scheduler/configs /usr/local/bin/configs
 COPY scripts/benchmark /usr/local/bin/benchmark
 COPY scripts/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
+COPY scripts/run_scheduler_docker.sh scripts/run_fisherman_docker.sh /usr/local/bin
 
 # Copy application binary from builder image
 COPY --from=builder /usr/src/fisherman-scheduler/target/release/scheduler /usr/local/bin
