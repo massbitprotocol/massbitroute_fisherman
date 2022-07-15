@@ -1,10 +1,11 @@
 use crate::models::component::ProviderPlan;
 use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
 use crate::persistence::PlanModel;
+
 use crate::tasks::generator::TaskApplicant;
 use anyhow::{anyhow, Error};
 use common::component::ComponentInfo;
@@ -27,7 +28,7 @@ pub struct RegularJobGenerator {
     pub worker_infos: Arc<Mutex<WorkerInfoStorage>>,
     pub tasks: Vec<Arc<dyn TaskApplicant>>,
     pub job_service: Arc<JobService>,
-    pub assignments: Arc<Mutex<AssignmentBuffer>>,
+    pub assignments: Arc<Mutex<JobAssignmentBuffer>>,
     pub result_cache: Arc<Mutex<JobResultCache>>,
 }
 
@@ -62,8 +63,12 @@ impl RegularJobGenerator {
         }
     }
     pub async fn generate_regular_jobs(&mut self) -> Result<(), Error> {
-        let mut total_assignment_buffer = AssignmentBuffer::default();
+        let mut total_assignment_buffer = JobAssignmentBuffer::default();
         let components = self.providers.get_active_providers().await;
+        if components.is_empty() {
+            warn!("There are no active component");
+            return Ok(());
+        }
         debug!("Found {} active providers", components.len());
         {
             let mut cache = self.result_cache.lock().await;
@@ -82,7 +87,7 @@ impl RegularJobGenerator {
             }
             info!("There is {} jobs in cache.", cache.get_jobs_number(),);
         }
-        let AssignmentBuffer {
+        let JobAssignmentBuffer {
             jobs,
             list_assignments,
         } = total_assignment_buffer;
@@ -135,8 +140,8 @@ impl RegularJobGenerator {
         &self,
         provider: &ComponentInfo,
         provider_result_cache: &mut HashMap<TaskKey, TaskResultCache>,
-    ) -> Result<AssignmentBuffer, anyhow::Error> {
-        let mut assignment_buffer = AssignmentBuffer::default();
+    ) -> Result<JobAssignmentBuffer, anyhow::Error> {
+        let mut assignment_buffer = JobAssignmentBuffer::default();
         let matched_workers = self
             .worker_infos
             .lock()
@@ -196,45 +201,6 @@ impl RegularJobGenerator {
                 }
                 assignment_buffer.append(applied_jobs);
             }
-
-            /*
-            if applied_jobs.len() > 0 {
-                log::debug!(
-                    "Create {} regular jobs for {:?} {:?}",
-                    applied_jobs.len(),
-                    &provider_plan.provider.component_type,
-                    &provider_plan.provider.id
-                );
-                //Update latest timestamp in cache
-                for job in applied_jobs.iter() {
-                    let key = TaskKey {
-                        task_type: job
-                            .job_detail
-                            .as_ref()
-                            .map(|detail| detail.get_job_name())
-                            .unwrap_or(job.job_name.clone()),
-                        task_name: job.job_name.clone(),
-                    };
-                    let cache = provider_result_cache
-                        .entry(key)
-                        .or_insert(TaskResultCache::new(get_current_time()));
-                    cache.reset_timestamp(get_current_time());
-                }
-                if let Ok(mut assignments) = task.assign_jobs(
-                    &provider_plan.plan,
-                    &provider_plan.provider,
-                    &applied_jobs,
-                    &matched_workers,
-                ) {
-                    job_assignments.append(&mut assignments);
-                }
-                gen_jobs
-                    .entry(provider_plan.provider.zone.clone())
-                    .or_insert(Vec::new())
-                    .append(&mut applied_jobs);
-            }
-            */
-            //task_result.create_time = get_current_time();
         }
         Ok(assignment_buffer)
     }

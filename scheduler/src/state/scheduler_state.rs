@@ -89,11 +89,6 @@ impl SchedulerState {
         if let Ok(model) = store_res {
             //Generate verification job base on stored plan
             self.providers.add_verify_node(model, node_info).await;
-            /*
-             self.job_generator
-                 .generate_verification_job(plan.plan_id.clone(), &node_info)
-                 .await;
-            */
         }
 
         Ok(plan)

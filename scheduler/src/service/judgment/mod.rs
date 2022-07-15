@@ -72,33 +72,25 @@ pub fn get_report_judgments(
     result_service: Arc<JobResultService>,
     phase: &JobRole,
 ) -> Vec<Arc<dyn ReportCheck>> {
-    let mut result: Vec<Arc<dyn ReportCheck>> = Default::default();
-    result.push(Arc::new(PingJudgment::new(
-        config_dir,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(LatestBlockJudgment::new(
-        config_dir,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(BenchmarkJudgment::new(
-        config_dir,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(HttpPingJudgment::new(
-        config_dir,
-        phase,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(HttpLatestBlockJudgment::new(
-        config_dir,
-        phase,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(WebsocketJudgment::new(
-        config_dir,
-        phase,
-        result_service.clone(),
-    )));
+    let result: Vec<Arc<dyn ReportCheck>> = vec![
+        Arc::new(PingJudgment::new(config_dir, result_service.clone())),
+        Arc::new(LatestBlockJudgment::new(config_dir, result_service.clone())),
+        Arc::new(BenchmarkJudgment::new(config_dir, result_service.clone())),
+        Arc::new(HttpPingJudgment::new(
+            config_dir,
+            phase,
+            result_service.clone(),
+        )),
+        Arc::new(HttpLatestBlockJudgment::new(
+            config_dir,
+            phase,
+            result_service.clone(),
+        )),
+        Arc::new(WebsocketJudgment::new(
+            config_dir,
+            phase,
+            result_service.clone(),
+        )),
+    ];
     result
 }

@@ -4,7 +4,7 @@ use common::logger::init_logger;
 //use diesel_migrations::embed_migrations;
 use futures_util::future::join4;
 use log::info;
-use scheduler::models::jobs::AssignmentBuffer;
+use scheduler::models::jobs::JobAssignmentBuffer;
 use scheduler::models::providers::ProviderStorage;
 use scheduler::models::workers::WorkerInfoStorage;
 use scheduler::provider::scanner::ProviderScanner;
@@ -65,10 +65,11 @@ async fn main() -> Result<(), anyhow::Error> {
     let all_workers = worker_service.clone().get_active().await;
 
     let socket_addr = SCHEDULER_ENDPOINT.as_str();
+    // Keep the list of node and gateway that need use for generate verify and regular Job
     let provider_storage = Arc::new(ProviderStorage::default());
     log::debug!("Init with {:?} workers", all_workers.len());
     let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
-    let assigment_buffer = Arc::new(Mutex::new(AssignmentBuffer::default()));
+    let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
 
     let scheduler_service = SchedulerServiceBuilder::default().build();
     let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
@@ -105,11 +106,8 @@ async fn main() -> Result<(), anyhow::Error> {
         worker_infos.clone(),
         provider_storage.clone(),
     );
-    //let mut judgment = Judgment::new(plan_service.clone(), arc_conn.clone());
     let mut job_delivery = JobDelivery::new(worker_infos.clone(), assigment_buffer.clone());
-    //let task_judgment = task::spawn(async move { judgment.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
-
     let task_job_generator = task::spawn(async move { job_generator.run().await });
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
 
