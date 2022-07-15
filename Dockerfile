@@ -47,7 +47,6 @@ COPY scripts/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
 COPY --from=builder /usr/src/fisherman-scheduler/target/release/scheduler /usr/local/bin
 COPY --from=builder /usr/src/fisherman/target/release/fisherman /usr/local/bin
 RUN apt update && apt install supervisor -y
-RUN  supervisorctl reread && supervisorctl update
 EXPOSE 80
 
 # Run the application
