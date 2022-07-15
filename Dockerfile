@@ -46,7 +46,7 @@ COPY scripts/run_scheduler_docker.sh scripts/run_worker_docker.sh /usr/local/bin
 
 # Copy application binary from builder image
 COPY --from=builder /usr/src/fisherman-scheduler/target/release/scheduler /usr/local/bin
-COPY --from=builder /usr/src/fisherman/target/release/fisherman /usr/local/bin
+COPY --from=builder /usr/src/fisherman/target/release/fisherman /usr/local/bin/
 RUN apt update && apt install supervisor -y
 EXPOSE 80
 
