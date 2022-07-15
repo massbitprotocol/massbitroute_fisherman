@@ -131,6 +131,8 @@ pub struct HttpRequestJobConfig {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
+    pub active: bool,
+    #[serde(default)]
     pub request_type: String,
     #[serde(default)]
     pub http_method: String,
@@ -250,11 +252,24 @@ impl HttpRequestJobConfig {
         true
     }
     pub fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
+        if !self.active {
+            return false;
+        }
         // Check phase
         if !self.match_phase(phase) {
             return false;
         }
+        if !self.match_provider_type(&provider.component_type.to_string()) {
+            return false;
+        }
+        if !self.match_blockchain(&provider.blockchain) {
+            return false;
+        }
+        if !self.match_network(&provider.network) {
+            return false;
+        }
 
+        /*
         let any = String::from("*");
         let comp_type = provider.component_type.to_string().to_lowercase();
         if !self.provider_types.contains(&any) && !self.provider_types.contains(&comp_type) {
@@ -284,6 +299,7 @@ impl HttpRequestJobConfig {
             );
             return false;
         }
+         */
         true
     }
     pub fn generate_header(

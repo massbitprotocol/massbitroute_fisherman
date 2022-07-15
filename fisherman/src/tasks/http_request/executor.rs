@@ -8,7 +8,7 @@ use common::tasks::http_request::{
 };
 use common::util::{get_current_time, remove_break_line};
 use common::WorkerId;
-use log::{error, trace};
+use log::{debug, error, trace};
 use reqwest::{Client, Response};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -142,6 +142,7 @@ impl HttpRequestExecutor {
             }
             results.insert(key.clone(), tmp_value.clone());
         }
+        debug!("Extracted result values {:?}", &results);
         Ok(JobHttpResponseDetail::Values(results))
     }
 }

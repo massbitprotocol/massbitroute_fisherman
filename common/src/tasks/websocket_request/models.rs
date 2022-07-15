@@ -93,6 +93,8 @@ pub struct JobWebsocketConfig {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
+    pub active: bool,
+    #[serde(default)]
     pub request_type: String,
     #[serde(default)]
     pub phases: Vec<String>,
@@ -203,38 +205,20 @@ impl JobWebsocketConfig {
         true
     }
     pub fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
+        if !self.active {
+            return false;
+        }
         // Check phase
         if !self.match_phase(phase) {
             return false;
         }
-
-        let any = String::from("*");
-        let comp_type = provider.component_type.to_string().to_lowercase();
-        if !self.provider_types.contains(&any) && !self.provider_types.contains(&comp_type) {
-            log::debug!(
-                "Component type {:?} not match with {:?}",
-                &comp_type,
-                &self.provider_types
-            );
+        if !self.match_provider_type(&provider.component_type.to_string()) {
             return false;
         }
-        let blockchain = provider.blockchain.to_lowercase();
-        if !self.blockchains.contains(&any) && !self.blockchains.contains(&blockchain) {
-            log::debug!(
-                "Blockchain {:?} not match with {:?}",
-                &provider.blockchain.to_lowercase(),
-                &self.blockchains
-            );
+        if !self.match_blockchain(&provider.blockchain) {
             return false;
         }
-        if !self.networks.contains(&any)
-            && !self.networks.contains(&provider.network.to_lowercase())
-        {
-            log::debug!(
-                "Network {:?} not match with {:?}",
-                &provider.network.to_lowercase(),
-                &self.networks
-            );
+        if !self.match_network(&provider.network) {
             return false;
         }
         true

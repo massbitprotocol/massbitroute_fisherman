@@ -1,6 +1,7 @@
 {
   "default": {
     "name": "http_request",
+    "active": true,
     "phases": ["verification", "regular"],
     "url_template": "",
     "http_method": "get",
@@ -69,6 +70,7 @@
       "provider_types": ["node"],
       "request_timeout": 5000,
       "headers": {
+        "content-type":"application/json",
         "X-Api-Key": "{{provider.appKey}}",
         "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
       },
@@ -98,6 +100,7 @@
     },
     {
       "name": "LatestBlock",
+      "active": true,
       "phases": ["regular"],
       "blockchains": ["eth"],
       "repeat_number": 1000000000,
@@ -177,6 +180,7 @@
     },
     {
       "name": "LatestBlock",
+      "active": true,
       "phases": ["regular"],
       "blockchains": ["dot"],
       "repeat_number": 1000000000,

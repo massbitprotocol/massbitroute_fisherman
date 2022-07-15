@@ -1,3 +1,4 @@
+use crate::URL_PORTAL_PROVIDER_REPORT;
 use anyhow::{anyhow, Error};
 use common::component::ComponentType;
 use common::job_manage::JobRole;
@@ -81,8 +82,9 @@ impl StoreReport {
 
     fn get_url(&self) -> String {
         format!(
-            "https://portal.{}/mbr/benchmark/{}",
-            self.domain, self.provider_id
+            "{}/{}",
+            URL_PORTAL_PROVIDER_REPORT.as_str(),
+            self.provider_id
         )
     }
 
