@@ -8,12 +8,67 @@ pub mod ping;
 pub mod rpc_request;
 pub mod websocket_request;
 use crate::job_manage::JobRole;
+use log::error;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 use std::fmt::Debug;
+use std::fs::metadata;
 
 const DEFAULT_KEY: &str = "default";
+/*
+ * Load config from a directory of a single file
+ */
+pub trait LoadConfigs<T: DeserializeOwned + Default + Debug> {
+    fn read_configs(config_path: &str, phase: &JobRole) -> Vec<T> {
+        let md = metadata(config_path).unwrap_or_else(|err| {
+            panic!("Error {:?}. Path not found {}", err, config_path);
+        });
+        if md.is_dir() {
+            Self::read_config_dir(config_path, phase)
+        } else {
+            Self::read_config_file(config_path, phase)
+        }
+    }
+    /*
+    fn read_config_dir(config_path: &str, phase: &JobRole) -> Vec<T> {
 
+    }
+    fn read_config_file(path: &str, phase: &JobRole) -> Vec<T> {
+        let json_content = std::fs::read_to_string(path).unwrap_or_default();
+        let config_value = serde_json::from_str(json_content.as_str()).;
+        let configs: Map<String, serde_json::Value> =
+            serde_json::from_str(&*json_content).unwrap_or_default();
+        let mut task_configs: Vec<T> = Vec::new();
+        let default = configs["default"].as_object().unwrap_or_default();
+        match configs.get("tasks") {
+            None => {
+
+            }
+            Some(tasks) => {}
+        }
+        let tasks = configs["tasks"].as_array().unwrap();
+        for config in tasks.iter() {
+            let mut map_config = serde_json::Map::from(default.clone());
+            let mut task_config = config.as_object().unwrap().clone();
+            //log::debug!("Task config before append {:?}", &task_config);
+            Self::append(&mut map_config, &mut task_config);
+            let value = serde_json::Value::Object(map_config);
+            log::trace!("Final task config {:?}", &value);
+            match serde_json::from_value::<HttpRequestJobConfig>(value) {
+                Ok(config) => {
+                    if config.match_phase(phase) {
+                        task_configs.push(config)
+                    }
+                }
+                Err(err) => {
+                    log::error!("{:?}", &err);
+                }
+            }
+        }
+        task_configs
+    }
+     */
+}
 pub trait LoadConfig<T: DeserializeOwned + Default + Debug> {
     fn load_config(path: &str, role: &JobRole) -> T {
         let json = std::fs::read_to_string(path).unwrap_or_else(|err| {
