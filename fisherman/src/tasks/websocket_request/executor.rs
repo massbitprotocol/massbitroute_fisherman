@@ -324,12 +324,6 @@ mod tests {
                 provider_type: "node".to_string(),
             },
             ProviderInfo {
-                url: "wss://20.213.239.121/".to_string(),
-                id: "253eb13e-78d2-45a1-83b9-8175543858f9".to_string(),
-                api_key: "UUWHlJlbU7cPNDnNxRkX5Q".to_string(),
-                provider_type: "node".to_string(),
-            },
-            ProviderInfo {
                 url: "ws://34.130.199.16/".to_string(),
                 id: "22643ec7-f104-455b-a09c-d98ca91c9939".to_string(),
                 api_key: "Z160PQek6mArXXGHcM7gVQ".to_string(),

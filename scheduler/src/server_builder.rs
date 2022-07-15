@@ -345,10 +345,12 @@ mod tests {
 
     use serde_json::json;
     use std::time::Duration;
+    use test_util::helper::load_env;
     use tokio::time::sleep;
 
     #[tokio::test]
-    async fn test_api_ping() -> Result<(), Error> {
+    async fn test_api_ping_scheduler() -> Result<(), Error> {
+        load_env();
         let _res = init_logger(&String::from("Testing-Scheduler"));
         let local_port: &str = "3032";
         let socket_addr = format!("0.0.0.0:{}", local_port);
@@ -454,7 +456,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_api_report() -> Result<(), Error> {
+    async fn test_api_report_and_verification() -> Result<(), Error> {
         dotenv::from_filename(".env_test").ok();
         //let _res = init_logger(&String::from("Testing-Scheduler"));
         let local_port: &str = "3034";
@@ -491,6 +493,7 @@ mod tests {
             server.serve().await;
         });
 
+        // Test report
         sleep(Duration::from_secs(1)).await;
         let body = r###"
 [
@@ -501,6 +504,31 @@ mod tests {
 
         let client = Client::new();
         let url = format!("http://localhost:{}/report", local_port);
+        let resp = client.post(url).body(body).send().await?.text().await?;
+        info!("res: {:#?}", resp);
+
+        let resp: SimpleResponse = serde_json::from_str(&resp)?;
+
+        assert_eq!(resp, SimpleResponse { success: true });
+
+        // Test verification
+        let body = r###"
+{
+    "appKey":"lSP1lFN9I_izEzRi_jBapA",
+    "blockchain":"eth",
+    "componentType":"Node",
+    "countryCode":"US",
+    "id":"058a6e94-8b65-46ad-ab52-240a7cb2c36a",
+    "ip":"34.101.146.31",
+    "name":"node-net-highcpu2-asia-southeast2-a-04",
+    "network":"mainnet",
+    "userId":"b363ddf4-42cf-4ccf-89c2-8c42c531ac99",
+    "zone":"AS"
+}
+        "###;
+
+        let client = Client::new();
+        let url = format!("http://localhost:{}/node/verify", local_port);
         let resp = client.post(url).body(body).send().await?.text().await?;
         info!("res: {:#?}", resp);
 

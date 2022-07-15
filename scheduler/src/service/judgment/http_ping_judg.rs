@@ -11,7 +11,7 @@ use common::tasks::LoadConfig;
 use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;
-use log::debug;
+use log::{debug, trace};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::default::Default;
@@ -34,7 +34,7 @@ impl JudRoundTripTimeDatas {
         JudRoundTripTimeDatas { inner: vec![] }
     }
     fn get_success_percent(&self) -> f64 {
-        let success_count = self.iter().filter(|&n| n.success == true).count() as f64;
+        let success_count = self.iter().filter(|&data| data.success).count() as f64;
         success_count * 100.0 / (self.len() as f64)
     }
 }
@@ -80,13 +80,14 @@ impl HttpPingResultCache {
             if let JobResultDetail::HttpRequest(JobHttpResult { response, .. }) = &res.result_detail
             {
                 let mut data = JudRoundTripTimeData::new_false(res.receive_timestamp);
+                trace!("append_results response: {:?}", response);
                 if let JobHttpResponseDetail::Body(val) = &response.detail {
                     if let Ok(response_duration) = val.parse::<Timestamp>() {
                         // Change unit of RTT response from us -> ms
                         let response_duration = response_duration / 1000;
 
                         data = JudRoundTripTimeData {
-                            response_duration: response_duration,
+                            response_duration,
                             receive_timestamp: res.receive_timestamp,
                             success: true,
                         };
@@ -136,6 +137,10 @@ impl HttpPingJudgment {
         }
     }
     pub fn get_judgment_thresholds(&self, phase: &JobRole) -> Map<String, Value> {
+        trace!(
+            "get_judgment_thresholds task_configs: {:#?}",
+            self.task_configs
+        );
         self.task_configs
             .iter()
             .filter(|config| {
@@ -186,6 +191,11 @@ impl ReportCheck for HttpPingJudgment {
 
         // Get threshold from config
         let thresholds = self.get_judgment_thresholds(&phase);
+        trace!(
+            "apply_for_results thresholds phase {}: {:?}",
+            phase.to_string(),
+            thresholds
+        );
         let number_for_decide =
             Self::get_threshold_value(&thresholds, &String::from("number_for_decide"))?;
         let success_percent =
@@ -199,7 +209,7 @@ impl ReportCheck for HttpPingJudgment {
         return if response_durations.len() < number_for_decide as usize {
             Ok(JudgmentsResult::Unfinished)
         } else if response_durations.get_success_percent() < success_percent as f64 {
-            Ok(JudgmentsResult::Error)
+            Ok(JudgmentsResult::Failed)
         } else {
             let mut histogram = Histogram::new();
             for val in response_durations.iter() {

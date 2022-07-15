@@ -2,7 +2,7 @@
  * Check from any gateway can connection to any node
  */
 
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
@@ -40,7 +40,7 @@ impl TaskApplicant for TaskGWNodeConnection {
         _component: &ComponentInfo,
         _phase: JobRole,
         _workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, anyhow::Error> {
-        Ok(AssignmentBuffer::default())
+    ) -> Result<JobAssignmentBuffer, anyhow::Error> {
+        Ok(JobAssignmentBuffer::default())
     }
 }

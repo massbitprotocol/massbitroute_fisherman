@@ -2,7 +2,7 @@
  * Check from any gateway can connection to any node
  */
 
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::TaskDependency;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
@@ -70,7 +70,7 @@ impl TaskApplicant for BenchmarkGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, anyhow::Error> {
+    ) -> Result<JobAssignmentBuffer, anyhow::Error> {
         log::debug!("Task benchmark apply for component {:?}", component);
         log::debug!("Workers {:?}", workers);
         let job_benchmark = JobBenchmark {
@@ -102,7 +102,7 @@ impl TaskApplicant for BenchmarkGenerator {
             "x-api-key".to_lowercase().to_string(),
             component.token.clone(),
         );
-        let mut assignment_buffer = AssignmentBuffer::default();
+        let mut assignment_buffer = JobAssignmentBuffer::default();
         assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
     }

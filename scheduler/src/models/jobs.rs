@@ -5,12 +5,12 @@ use rand::Rng;
 use std::collections::HashSet;
 
 #[derive(Clone, Debug, Default)]
-pub struct AssignmentBuffer {
+pub struct JobAssignmentBuffer {
     pub jobs: Vec<Job>,
     pub list_assignments: Vec<JobAssignment>,
 }
 
-impl AssignmentBuffer {
+impl JobAssignmentBuffer {
     pub fn new() -> Self {
         Self {
             jobs: vec![],
