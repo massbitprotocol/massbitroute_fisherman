@@ -1,5 +1,4 @@
-
-use crate::state::{SchedulerState};
+use crate::state::SchedulerState;
 
 use common::component::ComponentInfo;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
@@ -72,7 +71,7 @@ impl WebService {
         log::info!("Handle node verify request from {:?}", &node_info);
         scheduler_state.lock().await.verify_node(node_info).await;
         return Ok(warp::reply::json(
-            &json!({ "Success": "Node added to verifying queue" }),
+            &json!({ "success": "Provider added to verifying queue" }),
         ));
     }
 }
