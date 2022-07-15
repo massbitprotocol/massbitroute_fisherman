@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct BenchmarkGenerator {
     config: BenchmarkConfig,
     handlebars: Handlebars<'static>,
@@ -93,6 +93,8 @@ impl TaskApplicant for BenchmarkGenerator {
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
         log::debug!("Task benchmark apply for component {:?}", component);
         log::debug!("Workers {:?}", workers);
+        let context = Self::create_context(component);
+        let job_url = self.get_url(component)?;
         let job_benchmark = JobBenchmark {
             component_type: component.component_type.clone(),
             chain_type: component.blockchain.clone(),
@@ -102,9 +104,9 @@ impl TaskApplicant for BenchmarkGenerator {
             duration: self.config.benchmark_duration,
             script: self.config.script.clone(),
             histograms: self.config.histograms.clone(),
-            url_path: self.config.url_path.clone(),
+            url_path: job_url.clone(),
         };
-        let context = Self::create_context(component);
+
         let job_detail = JobDetail::Benchmark(job_benchmark);
         let mut job = Job::new(
             plan_id.clone(),
@@ -114,7 +116,7 @@ impl TaskApplicant for BenchmarkGenerator {
             job_detail,
             phase,
         );
-        job.component_url = self.get_url(component)?;
+        job.component_url = job_url;
         job.header.insert(
             "host".to_lowercase().to_string(),
             component.get_host_header(&*DOMAIN),
