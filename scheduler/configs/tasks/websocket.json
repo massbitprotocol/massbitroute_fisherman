@@ -1,0 +1,71 @@
+{
+  "default": {
+    "name": "Websocket",
+    "active": true,
+    "url_template": "wss://{{provider.ip}}/",
+    "phases": ["*"],
+    "provider_types": ["*"],
+    "blockchains": ["*"],
+    "networks": ["*"],
+    "request_timeout": 3000,
+    "headers": {},
+    "repeat_number": 0,
+    "interval": 120000,
+    "headers": {
+      "X-Api-Key": "{{provider.appKey}}",
+      "Host": "ws-{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+    },
+    "body": "",
+    "response" : {
+      "response_type" : "text"
+    },
+    "assignment": {
+      "broadcast": false,
+      "worker_number": 1,
+      "nearby_only": false,
+      "by_distance": false
+    },
+    "thresholds": {
+
+    }
+  },
+  "tasks": [
+    {
+      "name": "EthWebsocket",
+      "blockchains": ["eth"],
+      "provider_types": ["*"],
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "eth_getBlockByNumber",
+        "params": ["latest",true],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "hash": ["result", "hash"],
+          "number": ["result", "number"],
+          "timestamp": ["result", "timestamp"]
+        }
+      }
+    },
+    {
+      "name": "DotWebsocket",
+      "blockchains": ["dot"],
+      "provider_types": ["*"],
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "chain_getBlock",
+        "params": [],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "parent_hash": ["result", "block","header","parentHash"],
+          "number": ["result", "block","header","number"]
+        }
+      }
+    }
+  ]
+}

@@ -11,7 +11,7 @@ use std::fmt::Formatter;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub struct JobHttpRequest {
     pub url: String,
     pub chain_info: Option<ChainInfo>,
@@ -131,6 +131,8 @@ pub struct HttpRequestJobConfig {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
+    pub active: bool,
+    #[serde(default)]
     pub request_type: String,
     #[serde(default)]
     pub http_method: String,
@@ -174,22 +176,26 @@ pub struct HttpResponseConfig {
     pub values: HashMap<String, Vec<Value>>, //Path to values
 }
 impl HttpRequestJobConfig {
-    pub fn read_config(path: &str) -> Vec<HttpRequestJobConfig> {
+    pub fn read_config(path: &str, phase: &JobRole) -> Vec<HttpRequestJobConfig> {
         let json_content = std::fs::read_to_string(path).unwrap_or_default();
         let configs: Map<String, serde_json::Value> =
             serde_json::from_str(&*json_content).unwrap_or_default();
-        let mut task_configs = Vec::new();
+        let mut task_configs: Vec<HttpRequestJobConfig> = Vec::new();
         let default = configs["default"].as_object().unwrap();
-        let mut tasks = configs["tasks"].as_array().unwrap();
+        let tasks = configs["tasks"].as_array().unwrap();
         for config in tasks.iter() {
             let mut map_config = serde_json::Map::from(default.clone());
             let mut task_config = config.as_object().unwrap().clone();
             //log::debug!("Task config before append {:?}", &task_config);
             Self::append(&mut map_config, &mut task_config);
             let value = serde_json::Value::Object(map_config);
-            log::info!("Final task config {:?}", &value);
-            match serde_json::from_value(value) {
-                Ok(config) => task_configs.push(config),
+            log::trace!("Final task config {:?}", &value);
+            match serde_json::from_value::<HttpRequestJobConfig>(value) {
+                Ok(config) => {
+                    if config.match_phase(phase) {
+                        task_configs.push(config)
+                    }
+                }
                 Err(err) => {
                     log::error!("{:?}", &err);
                 }
@@ -210,7 +216,7 @@ impl HttpRequestJobConfig {
         let blockchain = blockchain.to_lowercase();
         if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
         {
-            log::debug!(
+            log::trace!(
                 "Blockchain {:?} not match with {:?}",
                 &blockchain,
                 &self.blockchains
@@ -222,7 +228,7 @@ impl HttpRequestJobConfig {
     pub fn match_network(&self, network: &String) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
-            log::debug!(
+            log::trace!(
                 "Networks {:?} not match with {:?}",
                 &network,
                 &self.networks
@@ -236,7 +242,7 @@ impl HttpRequestJobConfig {
         if !self.provider_types.contains(&String::from("*"))
             && !self.provider_types.contains(&provider_type)
         {
-            log::debug!(
+            log::trace!(
                 "Provider type {:?} not match with {:?}",
                 &provider_type,
                 &self.networks
@@ -246,11 +252,24 @@ impl HttpRequestJobConfig {
         true
     }
     pub fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
+        if !self.active {
+            return false;
+        }
         // Check phase
         if !self.match_phase(phase) {
             return false;
         }
+        if !self.match_provider_type(&provider.component_type.to_string()) {
+            return false;
+        }
+        if !self.match_blockchain(&provider.blockchain) {
+            return false;
+        }
+        if !self.match_network(&provider.network) {
+            return false;
+        }
 
+        /*
         let any = String::from("*");
         let comp_type = provider.component_type.to_string().to_lowercase();
         if !self.provider_types.contains(&any) && !self.provider_types.contains(&comp_type) {
@@ -280,6 +299,7 @@ impl HttpRequestJobConfig {
             );
             return false;
         }
+         */
         true
     }
     pub fn generate_header(
@@ -346,7 +366,6 @@ impl HttpRequestJobConfig {
                 }
                 Ok(Value::Object(rendered_map))
             }
-            Value::String(val) => Ok(Value::from(val.clone())),
             Value::Number(val) => Ok(Value::from(val.clone())),
             Value::Bool(val) => Ok(Value::from(val.clone())),
             Value::Null => Ok(Value::Null),

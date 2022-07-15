@@ -1,25 +1,20 @@
-use crate::models::job_result;
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
-use crate::persistence::services::PlanService;
+
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::service::report_portal::StoreReport;
-use crate::{CONFIG, CONFIG_DIR, JUDGMENT_PERIOD, PORTAL_AUTHORIZATION};
-use anyhow::Error;
+use crate::{CONFIG, CONFIG_DIR, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
-use common::jobs::{Job, JobResult, JobResultWithJob};
-use common::models::plan_entity::PlanStatus;
+use common::jobs::{Job, JobResult};
+
 use common::models::PlanEntity;
-use common::{ComponentId, JobId, PlanId, DOMAIN};
-use log::{debug, error, info};
-use migration::IndexType::Hash;
-use sea_orm::DatabaseConnection;
+use common::{JobId, PlanId, DOMAIN};
+use log::{debug, info};
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::thread::sleep;
-use std::time::{Duration, Instant};
 
 #[derive(Default)]
 pub struct MainJudgment {
@@ -56,8 +51,8 @@ impl LatestJudgmentCache {
 }
 
 impl MainJudgment {
-    pub fn new(result_service: Arc<JobResultService>) -> Self {
-        let judgments = get_report_judgments(CONFIG_DIR.as_str(), result_service.clone());
+    pub fn new(result_service: Arc<JobResultService>, phase: &JobRole) -> Self {
+        let judgments = get_report_judgments(CONFIG_DIR.as_str(), result_service.clone(), phase);
         MainJudgment {
             result_service,
             judgments,
@@ -211,7 +206,7 @@ impl MainJudgment {
                 .apply_for_results(provider_task, results)
                 .await
                 .unwrap_or(JudgmentsResult::Failed);
-            info!(
+            debug!(
                 "Regular judgment result {:?} on task {} for provider {:?}",
                 &judg_result, provider_task.task_name, provider_task.provider_id
             );
@@ -224,8 +219,8 @@ impl MainJudgment {
                         &DOMAIN,
                     );
                     report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
-                    debug!("Send plan report to portal:{:?}", report);
                     if !CONFIG.is_test_mode {
+                        debug!("Send plan report to portal:{:?}", report);
                         let res = report.send_data().await;
                         info!("Send report to portal res: {:?}", res);
                     } else {

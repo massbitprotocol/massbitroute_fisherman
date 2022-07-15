@@ -4,7 +4,6 @@ use common::util::get_current_time;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use warp::get;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct ZoneComponents {
@@ -48,7 +47,7 @@ impl ProviderPlan {
     }
     //Create new plan from expired one
     pub fn renew(&self) -> Self {
-        let current_time = get_current_time();
+        let _current_time = get_current_time();
         self.clone()
     }
 }

@@ -1,8 +1,10 @@
 use crate::Timestamp;
-use anyhow::anyhow;
-use log::debug;
+use anyhow::{anyhow, Error};
+use log::{debug, warn};
 use regex::Regex;
-
+/*
+ * Get current timestamp in milliseconds
+ */
 pub fn get_current_time() -> Timestamp {
     std::time::SystemTime::now()
         .duration_since(std::time::SystemTime::UNIX_EPOCH)
@@ -33,6 +35,13 @@ pub fn from_str_radix16(input: &str) -> Result<i64, anyhow::Error> {
         .and_then(|m| i64::from_str_radix(m.as_str(), 16).map_err(|err| anyhow!("{:?}", err)));
     result
 }
+
+pub fn warning_if_error<T>(message: &str, result: anyhow::Result<T, Error>) {
+    if result.is_err() {
+        warn!("{}. Error: {:?}", message, result.err().unwrap())
+    }
+}
+
 #[test]
 fn test_remove_break_line() {
     let input = "  1\t\n".to_string();

@@ -4,15 +4,16 @@ use crate::{
     BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
     WORKER_ID,
 };
+use anyhow::Error;
 use common::jobs::{Job, JobResult};
 use common::tasks::executor::TaskExecutor;
-use log::{debug, trace};
+use common::util::warning_if_error;
+use log::{debug, trace, warn};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-// use std::thread::sleep;
 use std::time::Duration;
 use tokio::runtime::{Builder, Runtime};
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::mpsc::Sender;
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 /*
@@ -20,8 +21,6 @@ use tokio::time::sleep;
  */
 pub struct JobExecution {
     result_sender: Sender<JobResult>,
-    job_sender: Sender<Job>,
-    job_receiver: Receiver<Job>,
     job_buffers: Arc<Mutex<JobBuffer>>,
     executors: Vec<Arc<dyn TaskExecutor>>,
     //Runtime for parallelable jobs
@@ -32,7 +31,6 @@ pub struct JobExecution {
 impl JobExecution {
     pub fn new(result_sender: Sender<JobResult>, job_buffers: Arc<Mutex<JobBuffer>>) -> Self {
         let executors = get_executors(WORKER_ID.as_str().to_string(), BENCHMARK_WRK_PATH.as_str());
-        let (job_sender, job_receiver): (Sender<Job>, Receiver<Job>) = channel(1024);
 
         let runtime = Builder::new_multi_thread()
             .worker_threads(*MAX_THREAD_COUNTER)
@@ -42,8 +40,6 @@ impl JobExecution {
             .unwrap();
         JobExecution {
             result_sender,
-            job_sender,
-            job_receiver,
             job_buffers,
             executors,
             runtime,
@@ -63,14 +59,14 @@ impl JobExecution {
                             continue;
                         }
                         let result_sender = self.result_sender.clone();
-                        let _job_sender = self.job_sender.clone();
                         let clone_executor = executor.clone();
                         let clone_job = next_job.clone();
                         let counter = self.thread_counter.clone();
                         counter.fetch_add(1, Ordering::SeqCst);
                         rt_handle.spawn(async move {
                             trace!("Execute job on a worker thread: {:?}", clone_job);
-                            clone_executor.execute(&clone_job, result_sender).await;
+                            let res = clone_executor.execute(&clone_job, result_sender).await;
+                            warning_if_error("executor.execute return error", res);
                             //Fixme: Program will hang if it panic before fetch_sub is executed.
                             counter.fetch_sub(1, Ordering::SeqCst);
                         });
@@ -86,25 +82,18 @@ impl JobExecution {
                             continue;
                         }
                         let result_sender = self.result_sender.clone();
-                        let _job_sender = self.job_sender.clone();
                         trace!("Execute job on main execution thread");
-                        executor.execute(&next_job, result_sender).await;
+                        match executor.execute(&next_job, result_sender).await {
+                            Ok(_) => {}
+                            Err(err) => {
+                                debug!("{:?}", &err)
+                            }
+                        }
                     }
                 }
             }
-            //Jun 13 - Don't use this anymore
-            //Get new generated jobs
-            //self.get_jobs_from_executions().await;
             debug!("No Job for execution.");
             sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD)).await;
         }
     }
-    // pub async fn get_jobs_from_executions(&mut self) {
-    //     let mut jobs = Vec::new();
-    //     while let Ok(job) = self.job_receiver.try_recv() {
-    //         trace!("Received job: {:?} from executors", &job);
-    //         jobs.push(job);
-    //     }
-    //     self.job_buffers.lock().await.add_jobs(jobs);
-    // }
 }

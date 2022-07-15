@@ -8,7 +8,7 @@ pub mod executor;
 pub struct JobRpcRequest {}
 
 impl JobRpcRequest {
-    pub fn get_component_url(&self, component: &ComponentInfo) -> String {
+    pub fn get_component_url(&self, _component: &ComponentInfo) -> String {
         String::new()
     }
 }

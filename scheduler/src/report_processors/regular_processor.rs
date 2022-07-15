@@ -29,14 +29,14 @@ impl RegularReportProcessor {
 }
 #[async_trait]
 impl ReportProcessor for RegularReportProcessor {
-    fn can_apply(&self, report: &JobResult) -> bool {
+    fn can_apply(&self, _report: &JobResult) -> bool {
         true
     }
 
     async fn process_job(
         &self,
-        report: &JobResult,
-        db_connection: Arc<DatabaseConnection>,
+        _report: &JobResult,
+        _db_connection: Arc<DatabaseConnection>,
     ) -> Result<StoredJobResult, anyhow::Error> {
         todo!()
     }
@@ -44,11 +44,21 @@ impl ReportProcessor for RegularReportProcessor {
     async fn process_jobs(
         &self,
         reports: Vec<JobResult>,
-        db_connection: Arc<DatabaseConnection>,
+        _db_connection: Arc<DatabaseConnection>,
     ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
         log::info!("Regular report process jobs");
         let stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
+
+        for adapter in self.report_adapters.iter() {
+            log::info!(
+                "With Adapter {} append {} results",
+                adapter.get_name(),
+                reports.len()
+            );
+            adapter.append_job_results(&reports).await;
+        }
+
         for report in reports {
             let key = ProviderTask::new(
                 report.provider_id.clone(),
@@ -60,12 +70,8 @@ impl ReportProcessor for RegularReportProcessor {
             jobs.push(report);
         }
         for (key, results) in provider_task_results {
-            log::info!("Process {} results for task {:?}", results.len(), &key);
-            for adapter in self.report_adapters.iter() {
-                adapter.append_job_results(&key, &results).await;
-            }
             match self.judgment.apply_for_regular(&key, &results).await {
-                Ok(res) => {}
+                Ok(_res) => {}
                 Err(err) => {
                     error!("{:?}", &err);
                 }

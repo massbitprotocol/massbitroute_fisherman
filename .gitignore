@@ -13,3 +13,4 @@ diesel.toml
 migrations
 logs/
 **/.env
+/scheduler/.env_test

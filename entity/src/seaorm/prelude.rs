@@ -9,5 +9,6 @@ pub use super::jobs::Entity as Jobs;
 pub use super::plans::Entity as Plans;
 pub use super::provider_latest_blocks::Entity as ProviderLatestBlocks;
 pub use super::providers::Entity as Providers;
+pub use super::seaql_migrations::Entity as SeaqlMigrations;
 pub use super::worker_provider_maps::Entity as WorkerProviderMaps;
 pub use super::workers::Entity as Workers;

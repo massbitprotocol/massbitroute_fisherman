@@ -6,14 +6,16 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "provider_latest_blocks")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id: i64,
+    pub id: i32,
     pub provider_id: String,
     pub blockchain: String,
     pub network: String,
-    pub block_number: Option<i64>,
+    pub blockhash: Option<String>,
     pub block_timestamp: Option<i64>,
-    pub block_hash: Option<String>,
-    pub response_timestamp: Option<i64>,
+    pub max_block_timestamp: Option<i64>,
+    pub block_number: Option<i64>,
+    pub max_block_number: Option<i64>,
+    pub response_timestamp: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]

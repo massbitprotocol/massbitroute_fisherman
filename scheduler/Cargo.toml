@@ -33,6 +33,11 @@ strum = "0.24"
 local-ip-address = "0.4"
 dotenv = "0.15"
 uuid = "1.1.0"
-sea-orm = {version = "0.8.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros" ]}
+sea-orm = {version = "0.8.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros"]}
 histogram = "0.6.9"
 rand = "0.8.5"
+
+[dev-dependencies]
+sea-orm = {version = "0.8.0", features = [ "mock" ]}
+test_util = {path = "../test_util"}
+pretty_assertions = "0.7"
