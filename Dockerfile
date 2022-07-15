@@ -41,7 +41,7 @@ WORKDIR /usr/local/bin
 
 COPY scheduler/configs /usr/local/bin/configs
 COPY scripts/benchmark /usr/local/bin/benchmark
-COPY script/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
+COPY scripts/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
 
 RUN  supervisorctl reread && supervisorctl update
 
