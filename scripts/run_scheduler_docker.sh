@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export RUST_LOG=info
+export RUST_LOG=debug
 export RUST_LOG_TYPE=console
 export DATABASE_URL=postgres://postgres:postgres@db:5432/massbit-fisherman
 export DOMAIN=massbitroute.net
