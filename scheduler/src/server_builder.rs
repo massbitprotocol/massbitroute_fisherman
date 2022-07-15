@@ -202,7 +202,7 @@ impl SchedulerServer {
         service: Arc<WebService>,
         state: Arc<Mutex<SchedulerState>>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path!("node" / "verify")
+        warp::path!("provider" / "verify")
             .and(SchedulerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
