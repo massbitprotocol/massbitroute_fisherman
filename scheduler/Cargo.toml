@@ -41,3 +41,4 @@ rand = "0.8.5"
 sea-orm = {version = "0.8.0", features = [ "mock" ]}
 test_util = {path = "../test_util"}
 pretty_assertions = "0.7"
+httpmock = "0.6"

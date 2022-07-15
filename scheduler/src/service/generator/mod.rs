@@ -167,7 +167,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_main_generator_verification_node() -> Result<(), Error> {
         load_env();
-        init_logging();
+        //init_logging();
         let db_conn = mock_db_connection();
 
         let arc_conn = Arc::new(db_conn);
@@ -261,7 +261,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_main_generator_verification_gateway() -> Result<(), Error> {
         load_env();
-        init_logging();
+        //init_logging();
         let db_conn = mock_db_connection();
 
         let arc_conn = Arc::new(db_conn);
@@ -353,7 +353,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_main_generator_regular_gateway() -> Result<(), Error> {
         load_env();
-        init_logging();
+        //init_logging();
         let db_conn = mock_db_connection();
 
         let arc_conn = Arc::new(db_conn);

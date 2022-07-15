@@ -1,10 +1,14 @@
 use wrap_wrk::WrkBenchmark;
-fn main() {
+
+fn main() {}
+
+#[test]
+fn test() {
     //let _res = init_logger(&String::from("CheckComponent"));
     //println!("Log output: {}", res); // Print log output type
     let thread = 20;
     let connection = 20;
-    let duration = "15s";
+    let duration = "1s";
     let rate = 10;
     // let dapi_url = "http://34.101.81.225:8545";
     let dapi_url = "https://34.101.146.31";
@@ -12,7 +16,7 @@ fn main() {
     let host = "058a6e94-8b65-46ad-ab52-240a7cb2c36a.node.mbr.massbitroute.net";
     let script = "scripts/benchmark/massbit.lua";
     let wrk_path = "scripts/benchmark/wrk";
-    let wrk_dir = "./";
+    let wrk_dir = "../";
     let latency_threshold_ms = 500f32;
     println!("Build wrk");
     let mut wrk = WrkBenchmark::build(

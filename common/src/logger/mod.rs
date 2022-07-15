@@ -22,7 +22,7 @@ lazy_static! {
 }
 
 pub fn init_logger(file_name: &String) -> String {
-    sleep(Duration::from_millis(rand::thread_rng().gen_range(0..100)));
+    //sleep(Duration::from_millis(rand::thread_rng().gen_range(0..500)));
     if !GLOBAL_INIT_LOGGING.load(Ordering::Relaxed) {
         GLOBAL_INIT_LOGGING.store(true, Ordering::Relaxed);
     } else {

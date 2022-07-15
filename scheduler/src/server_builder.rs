@@ -528,7 +528,7 @@ mod tests {
         "###;
 
         let client = Client::new();
-        let url = format!("http://localhost:{}/node/verify", local_port);
+        let url = format!("http://localhost:{}/provider/verify", local_port);
         let resp = client.post(url).body(body).send().await?.text().await?;
         info!("res: {:#?}", resp);
 
