@@ -29,6 +29,7 @@ RUN cargo build  --release
 
 # Now copy in the rest of the sources
 COPY fisherman /usr/src/fisherman/
+COPY test_util /usr/src/test_util
 WORKDIR /usr/src/fisherman
 # This is the actual application build.
 RUN cargo build  --release
@@ -41,7 +42,7 @@ WORKDIR /usr/local/bin
 COPY scheduler/configs /usr/local/bin/configs
 COPY scheduler/benchmark /usr/local/bin/benchmark
 COPY script/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
-COPY test_util /usr/local/bin/test_util
+
 RUN  supervisorctl reread && supervisorctl update
 
 # Copy application binary from builder image
