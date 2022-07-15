@@ -80,22 +80,6 @@ impl StoreReport {
         Ok(serde_json::to_string(&self)?)
     }
 
-    // fn get_url(&self, job_role: &JobRole) -> String {
-    //     match job_role {
-    //         JobRole::Verification => {
-    //             format!(
-    //                 "https://portal.{}/mbr/verify/{}",
-    //                 self.domain, self.provider_id
-    //             )
-    //         }
-    //         JobRole::Regular => {
-    //             format!(
-    //                 "https://portal.{}/mbr/benchmark/{}",
-    //                 self.domain, self.provider_id
-    //             )
-    //         }
-    //     }
-    // }
     fn get_url(&self) -> String {
         format!(
             "{}/{}",

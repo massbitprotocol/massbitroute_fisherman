@@ -401,13 +401,12 @@ pub mod tests {
     use crate::CONFIG_DIR;
 
     use test_util::helper::{
-        init_logging, load_schedule_env, mock_db_connection, mock_job_result, ChainTypeForTest,
-        JobName,
+        init_logging, load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
     };
 
     #[tokio::test]
     async fn test_http_latest_block_judgment() -> Result<(), Error> {
-        load_schedule_env();
+        load_env();
         //init_logging();
         let db_conn = mock_db_connection();
         let result_service = JobResultService::new(Arc::new(db_conn));
@@ -442,7 +441,12 @@ pub mod tests {
         );
 
         // For eth
-        let job_result = mock_job_result(&JobName::LatestBlock, ChainTypeForTest::Eth);
+        let job_result = mock_job_result(
+            &JobName::LatestBlock,
+            ChainTypeForTest::Eth,
+            "",
+            Default::default(),
+        );
         info!("job_result: {:?}", job_result);
         let res = judge
             .apply_for_results(&task_latest_block, &vec![job_result])
@@ -451,7 +455,12 @@ pub mod tests {
         assert_eq!(res, JudgmentsResult::Pass);
 
         // For dot
-        let job_result = mock_job_result(&JobName::LatestBlock, ChainTypeForTest::Dot);
+        let job_result = mock_job_result(
+            &JobName::LatestBlock,
+            ChainTypeForTest::Dot,
+            "",
+            Default::default(),
+        );
         info!("job_result: {:?}", job_result);
         let res = judge
             .apply_for_results(&task_latest_block, &vec![job_result])
