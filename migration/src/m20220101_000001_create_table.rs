@@ -397,7 +397,7 @@ create table if not exists jobs
     job_name         varchar default ''::character varying     not null,
     component_id     varchar                                   not null,
     header           jsonb   default '{}'::jsonb,
-    job_detail       jsonb   default '{}'::jsonb,
+    job_detail       jsonb   default '{}'::jsonb               not null,
     priority         integer default 0                         not null,
     expected_runtime bigint  default 0                         not null,
     parallelable     boolean default true                      not null,
