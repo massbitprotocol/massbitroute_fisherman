@@ -4,6 +4,8 @@ use common::tasks::http_request::HttpResponseValues;
 use common::util::from_str_radix16;
 use serde::{Deserialize, Serialize};
 
+
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 pub struct LatestBlockEthComparator {}
 
@@ -36,18 +38,25 @@ impl Comparator for LatestBlockEthComparator {
     }
 }
 
-#[test]
-fn test_get_block_time() {
-    let comparator = LatestBlockEthComparator::default();
-    let mut map_values = HashMap::<String, Value>::new();
-    map_values.insert("number".to_string(), Value::from("0xe5a50f"));
-    map_values.insert(
-        "hash".to_string(),
-        Value::from("0x5fe07f604a6ff02ab289f8ced5301dae2273104df3302b63d0c21b8eeeda6f75"),
-    );
-    map_values.insert("timestamp".to_string(), Value::from("0x62bd80c2"));
-    let response_values = HttpResponseValues::new(map_values);
-    let timestamp = LatestBlockEthComparator::get_block_time(&response_values);
-    println!("{:?}", timestamp);
-    assert_eq!(timestamp.ok(), Some(1656586434));
+#[cfg(test)]
+mod test {
+    use crate::service::comparator::LatestBlockEthComparator;
+    use common::tasks::http_request::HttpResponseValues;
+    use serde_json::Value;
+    use std::collections::HashMap;
+
+    fn test_get_block_time() {
+        let _comparator = LatestBlockEthComparator::default();
+        let mut map_values = HashMap::<String, Value>::new();
+        map_values.insert("number".to_string(), Value::from("0xe5a50f"));
+        map_values.insert(
+            "hash".to_string(),
+            Value::from("0x5fe07f604a6ff02ab289f8ced5301dae2273104df3302b63d0c21b8eeeda6f75"),
+        );
+        map_values.insert("timestamp".to_string(), Value::from("0x62bd80c2"));
+        let response_values = HttpResponseValues::new(map_values);
+        let timestamp = LatestBlockEthComparator::get_block_time(&response_values);
+        println!("{:?}", timestamp);
+        assert_eq!(timestamp.ok(), Some(1656586434));
+    }
 }

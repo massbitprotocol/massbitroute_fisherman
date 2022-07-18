@@ -26,11 +26,10 @@ pub struct BenchmarkExecutor {
     benchmark_wrk_path: String,
 }
 
-#[derive(Debug)]
 pub struct DetailedPercentileSpectrum {
     latency: f32,
     percent: f32,
-    count: u64,
+    _count: u64,
 }
 
 impl BenchmarkResponse {
@@ -77,28 +76,35 @@ impl BenchmarkExecutor {
                     connection,
                     duration,
                     rate,
+                    timeout,
                     script,
                     chain_type,
                     component_type,
                     histograms,
                     url_path,
+                    headers,
+                    method,
+                    body,
                 } = job_detail;
                 let duration = format!("{}s", duration / 1000i64);
-                let mut benchmark = WrkBenchmark::build(
-                    thread,
-                    connection,
-                    duration,
-                    rate,
-                    component_url.to_string(),
-                    token.clone(),
-                    host.clone(),
+                let mut benchmark = WrkBenchmark::new(
                     script,
                     WRK_NAME.to_string(),
                     self.benchmark_wrk_path.clone(),
-                    Default::default(),
                 );
 
-                let stdout = benchmark.run(&component_type.to_string(), &url_path, &chain_type);
+                //let stdout = benchmark.run(&component_type.to_string(), &url_path, &chain_type);
+                let stdout = benchmark.run(
+                    thread,
+                    connection,
+                    duration.to_string(),
+                    rate,
+                    timeout,
+                    url_path.to_string(),
+                    body.map(|body| body.to_string()),
+                    &method,
+                    &header,
+                );
                 if let Ok(stdout) = stdout {
                     return self
                         .get_result(&stdout, &histograms)
@@ -203,7 +209,7 @@ impl BenchmarkExecutor {
                     Some(DetailedPercentileSpectrum {
                         latency: arr[0].parse::<f32>().unwrap_or(f32::MAX),
                         percent: arr[1].parse::<f32>().unwrap_or(f32::MAX),
-                        count: arr[2].parse::<u64>().unwrap_or(u64::MAX),
+                        _count: arr[2].parse::<u64>().unwrap_or(u64::MAX),
                     })
                 } else {
                     None

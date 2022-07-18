@@ -24,7 +24,7 @@ lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String =
         env::var("SCHEDULER_ENDPOINT").unwrap_or(String::from("0.0.0.0:3031"));
     pub static ref REPORT_CALLBACK: String =
-        env::var("REPORT_CALLBACK").unwrap_or(String::from("http://127.0.0.1:3031/report"));
+        env::var("REPORT_CALLBACK").expect("There is no env var REPORT_CALLBACK");
     pub static ref SCHEDULER_CONFIG: String =
         env::var("SCHEDULER_CONFIG").unwrap_or(String::from("configs/scheduler.json"));
     pub static ref CONNECTION_POOL_SIZE: u32 = env::var("CONNECTION_POOL_SIZE")
@@ -44,7 +44,14 @@ lazy_static! {
         env::var("URL_NODES_LIST").expect("There is no env var URL_NODES_LIST");
     pub static ref URL_GATEWAYS_LIST: String =
         env::var("URL_GATEWAYS_LIST").expect("There is no env var URL_GATEWAYS_LIST");
+    pub static ref URL_PORTAL_PROVIDER_REPORT: String =
+        env::var("URL_PORTAL_PROVIDER_REPORT").expect("There is no env var URL_PORTAL_PROVIDER_REPORT");
     pub static ref CONFIG: Config = Config::load(SCHEDULER_CONFIG.as_str());
+    pub static ref SQLX_LOGGING: bool =
+        env::var("SQLX_LOGGING").ok().and_then(|val|val.parse::<bool>().ok()).unwrap_or(false);
+    //time between 2 database flush in ms
+     pub static ref LATEST_BLOCK_CACHING_DURATION: i64 =
+        env::var("LATEST_BLOCK_CACHING_DURATION").ok().and_then(|val|val.parse::<i64>().ok()).unwrap_or(10000);
     //Worker configurations
     pub static ref WORKER_PATH_JOBS_HANDLE: String =
         env::var("WORKER_PATH_JOBS_HANDLE").unwrap_or(String::from("jobs_handle"));

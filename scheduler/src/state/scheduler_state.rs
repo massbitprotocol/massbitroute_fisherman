@@ -1,20 +1,16 @@
-use crate::models::component::ProviderPlan;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::plan_service::PlanService;
 use crate::persistence::services::WorkerService;
-use crate::service::generator::JobGenerator;
-use crate::{Config, CONFIG, REPORT_CALLBACK};
+use crate::{CONFIG, REPORT_CALLBACK};
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
-use entity::workers;
-use log::debug;
-use sea_orm::ActiveModelTrait;
+
 use sea_orm::DatabaseConnection;
-use std::borrow::BorrowMut;
+
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -65,7 +61,7 @@ impl SchedulerState {
             })
         } else {
             let worker_id = worker_info.worker_id.clone();
-            self.worker_service.clone().store_worker(&worker_info).await;
+            let _res = self.worker_service.clone().store_worker(&worker_info).await;
             self.worker_pool.lock().await.add_worker(worker_info);
             Ok(WorkerRegisterResult {
                 worker_id,
@@ -82,7 +78,7 @@ impl SchedulerState {
         log::debug!("Push node {:?} to verification queue", &node_info);
         //Create a scheduler in db
         let current_time = get_current_time();
-        let expiry_time = current_time + CONFIG.plan_expiry_time;
+        let expiry_time = current_time + CONFIG.plan_expiry_time * 1000;
         let plan = PlanEntity::new(
             node_info.id.clone(),
             current_time,
@@ -93,11 +89,6 @@ impl SchedulerState {
         if let Ok(model) = store_res {
             //Generate verification job base on stored plan
             self.providers.add_verify_node(model, node_info).await;
-            /*
-             self.job_generator
-                 .generate_verification_job(plan.plan_id.clone(), &node_info)
-                 .await;
-            */
         }
 
         Ok(plan)

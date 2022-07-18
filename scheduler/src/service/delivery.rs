@@ -1,4 +1,4 @@
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::workers::WorkerInfoStorage;
 use crate::JOB_DELIVERY_PERIOD;
 use common::jobs::{Job, JobAssignment};
@@ -7,13 +7,13 @@ use common::WorkerId;
 use futures_util::future::join_all;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::thread::sleep;
 use std::time::Duration;
 use tokio::sync::Mutex;
+use tokio::time::sleep;
 
 #[derive(Default)]
 pub struct JobDelivery {
-    assignment_buffer: Arc<Mutex<AssignmentBuffer>>,
+    assignment_buffer: Arc<Mutex<JobAssignmentBuffer>>,
     worker_infos: Arc<Mutex<WorkerInfoStorage>>,
     worker_pool: HashMap<WorkerId, Arc<Worker>>,
 }
@@ -21,7 +21,7 @@ pub struct JobDelivery {
 impl JobDelivery {
     pub fn new(
         worker_infos: Arc<Mutex<WorkerInfoStorage>>,
-        assignment_buffer: Arc<Mutex<AssignmentBuffer>>,
+        assignment_buffer: Arc<Mutex<JobAssignmentBuffer>>,
     ) -> Self {
         JobDelivery {
             worker_infos,
@@ -33,13 +33,13 @@ impl JobDelivery {
         loop {
             let assignments = self.assignment_buffer.lock().await.pop_all();
             log::debug!("Run delivery for {} jobs", assignments.len());
-            let undelivered = Vec::<JobAssignment>::default();
+            let _undelivered = Vec::<JobAssignment>::default();
             let mut handlers = Vec::new();
             let mut worker_jobs = HashMap::<WorkerId, Vec<Job>>::default();
             for job_assign in assignments.into_iter() {
                 let JobAssignment { worker, job, .. } = job_assign;
                 let worker_id = worker.get_id();
-                if let Some(mut jobs) = worker_jobs.get_mut(&worker_id) {
+                if let Some(jobs) = worker_jobs.get_mut(&worker_id) {
                     jobs.push(job)
                 } else {
                     worker_jobs.insert(worker_id.clone(), vec![job]);
@@ -59,7 +59,7 @@ impl JobDelivery {
             if !handlers.is_empty() {
                 join_all(handlers).await;
             }
-            sleep(Duration::from_secs(JOB_DELIVERY_PERIOD));
+            sleep(Duration::from_secs(JOB_DELIVERY_PERIOD)).await;
         }
     }
     // fn get_worker(&mut self, worker_id: WorkerId) -> Arc<Worker> {

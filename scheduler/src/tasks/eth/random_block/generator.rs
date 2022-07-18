@@ -1,15 +1,12 @@
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::ComponentInfo;
-use common::job_manage::{JobDetail, JobPing, JobResultDetail, JobRole};
-use common::jobs::Job;
-use common::models::PlanEntity;
+use common::job_manage::JobRole;
 use common::workers::MatchedWorkers;
 use common::{Node, PlanId};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use std::vec;
+
 /*
  * Apply for node to get randome block number and response time
  */
@@ -32,17 +29,17 @@ impl TaskApplicant for TaskRandomBlock {
     fn get_name(&self) -> String {
         String::from("RandomBlock")
     }
-    fn can_apply(&self, component: &ComponentInfo) -> bool {
+    fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
     }
 
     fn apply(
         &self,
-        plan_id: &PlanId,
-        node: &Node,
-        phase: JobRole,
-        workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, Error> {
-        Ok(AssignmentBuffer::default())
+        _plan_id: &PlanId,
+        _node: &Node,
+        _phase: JobRole,
+        _workers: &MatchedWorkers,
+    ) -> Result<JobAssignmentBuffer, Error> {
+        Ok(JobAssignmentBuffer::default())
     }
 }

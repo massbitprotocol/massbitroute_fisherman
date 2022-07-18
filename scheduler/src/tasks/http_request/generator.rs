@@ -1,27 +1,19 @@
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
-use anyhow::{anyhow, Context, Error};
-use async_trait::async_trait;
-use common::component::{ChainInfo, ComponentInfo, ComponentType, Zone};
+use anyhow::{anyhow, Error};
+use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
-use common::jobs::{AssignmentConfig, Job, JobAssignment};
+use common::jobs::{Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
-use handlebars::template::TemplateMapping;
 use handlebars::Handlebars;
-use log::{debug, info, trace};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use log::{debug, trace};
+use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::vec;
-use tokio::sync::mpsc::Sender;
-use warp::head;
-use warp::reply::json;
 
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
@@ -37,29 +29,9 @@ impl HttpRequestGenerator {
     pub fn get_name() -> String {
         String::from("HttpRequest")
     }
-    pub fn new(config_dir: &str) -> Self {
+    pub fn new(config_dir: &str, phase: &JobRole) -> Self {
         let path = format!("{}/http_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str());
-        // let json_content = std::fs::read_to_string(path.as_str()).unwrap_or_default();
-        // let mut configs: Map<String, serde_json::Value> =
-        //     serde_json::from_str(&*json_content).unwrap_or_default();
-        // let mut task_configs = Vec::new();
-        // let default = configs["default"].as_object().unwrap();
-        // let mut tasks = configs["tasks"].as_array().unwrap();
-        // for config in tasks.iter() {
-        //     let mut map_config = serde_json::Map::from(default.clone());
-        //     let mut task_config = config.as_object().unwrap().clone();
-        //     map_config.append(&mut task_config);
-        //     let value = serde_json::Value::Object(map_config);
-        //     log::info!("{:?}", &value);
-        //     match serde_json::from_value(value) {
-        //         Ok(config) => task_configs.push(config),
-        //         Err(err) => {
-        //             log::error!("{:?}", &err);
-        //         }
-        //     }
-        // }
-        //log::info!("configs HttpRequestGenerator: {:?}", &configs);
+        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         HttpRequestGenerator {
             //root_config: configs,
             task_configs,
@@ -150,15 +122,20 @@ impl TaskApplicant for HttpRequestGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, Error> {
-        let mut assignment_buffer = AssignmentBuffer::new();
+    ) -> Result<JobAssignmentBuffer, Error> {
+        let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
         log::debug!(
             "Http Request apply for component {:?} with context {:?}",
             component,
             &context
         );
-        for config in self.task_configs.iter() {
+        for config in self.task_configs.iter().filter(|config| {
+            config.match_phase(&phase)
+                && config.match_blockchain(&component.blockchain)
+                && config.match_network(&component.network)
+                && config.match_provider_type(&component.component_type.to_string())
+        }) {
             if !config.can_apply(component, &phase) {
                 debug!("Can not apply config {:?} for {:?}", config, component);
                 continue;
@@ -168,7 +145,11 @@ impl TaskApplicant for HttpRequestGenerator {
                 assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
             }
         }
-        log::debug!("Generated jobs {:?}", &assignment_buffer);
+        log::debug!(
+            "Generated {:?} jobs and {:?} assignments.",
+            &assignment_buffer.jobs.len(),
+            &assignment_buffer.list_assignments.len()
+        );
         Ok(assignment_buffer)
     }
     fn apply_with_cache(
@@ -178,17 +159,22 @@ impl TaskApplicant for HttpRequestGenerator {
         phase: JobRole,
         workers: &MatchedWorkers,
         latest_update: HashMap<String, Timestamp>,
-    ) -> Result<AssignmentBuffer, Error> {
-        let mut assignment_buffer = AssignmentBuffer::new();
+    ) -> Result<JobAssignmentBuffer, Error> {
+        let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
         log::debug!(
             "Http Request apply for component {:?} with context {:?}",
             component,
             &context
         );
-        for config in self.task_configs.iter() {
+        for config in self.task_configs.iter().filter(|config| {
+            config.match_phase(&phase)
+                && config.match_blockchain(&component.blockchain)
+                && config.match_network(&component.network)
+                && config.match_provider_type(&component.component_type.to_string())
+        }) {
             if !config.can_apply(component, &phase) {
-                debug!("Can not apply config {:?} for {:?}", config, component);
+                trace!("Can not apply config {:?} for {:?}", config, component);
                 continue;
             }
             let latest_update_timestamp = latest_update
@@ -196,15 +182,19 @@ impl TaskApplicant for HttpRequestGenerator {
                 .map(|val| val.clone())
                 .unwrap_or_default();
             //Check time_to_timeout > 0: timeout; <=0 not yet.
-            let time_pass_timeout = (get_current_time() - latest_update_timestamp)
-                - (CONFIG.generate_new_regular_timeout * 1000);
+            let time_pass_timeout = get_current_time()
+                - latest_update_timestamp
+                - config.interval
+                - CONFIG.generate_new_regular_timeout * 1000;
             if time_pass_timeout < 0 {
                 //Job for current config is already generated or received result recently
                 continue;
             }
-            trace!(
-                "time_to_timeout: {}. Generate task for {} with config {}",
+            debug!(
+                "time_to_timeout: {}. Generate task {}.{} for {} with config {}",
                 time_pass_timeout,
+                self.get_name(),
+                &config.name,
                 component,
                 config
             );
@@ -213,19 +203,19 @@ impl TaskApplicant for HttpRequestGenerator {
                 assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
             }
         }
-        log::debug!("Generated jobs {:?}", &assignment_buffer);
+        log::trace!("Generated jobs {:?}", &assignment_buffer);
         Ok(assignment_buffer)
     }
     fn assign_jobs(
         &self,
-        plan: &PlanModel,
-        provider_node: &ComponentInfo,
+        _plan: &PlanModel,
+        _provider_node: &ComponentInfo,
         jobs: &Vec<Job>,
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
         let mut assignments = Vec::default();
-        jobs.iter().enumerate().for_each(|(ind, job)| {
-            for worker in workers.best_workers.iter() {
+        jobs.iter().enumerate().for_each(|(_ind, job)| {
+            for worker in workers.measured_workers.iter() {
                 let job_assignment = JobAssignment::new(worker.clone(), job);
                 assignments.push(job_assignment);
                 debug!(

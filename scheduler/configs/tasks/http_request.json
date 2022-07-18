@@ -1,6 +1,7 @@
 {
   "default": {
     "name": "http_request",
+    "active": true,
     "phases": ["verification", "regular"],
     "url_template": "",
     "http_method": "get",
@@ -87,16 +88,23 @@
           "timestamp": ["result", "timestamp"]
         }
       },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
       "thresholds": {
         "late_duration":  1200
       }
     },
     {
       "name": "LatestBlock",
+      "active": true,
       "phases": ["regular"],
       "blockchains": ["eth"],
       "repeat_number": 1000000000,
-      "interval": 30000,
+      "interval": 60000,
       "type": "rpc",
       "http_method": "post",
       "url_template": "https://{{provider.ip}}/",
@@ -120,6 +128,12 @@
           "number": ["result", "number"],
           "timestamp": ["result", "timestamp"]
         }
+      },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
       },
       "thresholds" : {
         "late_duration":  1200
@@ -154,16 +168,23 @@
           "number": ["result", "block","header","number"]
         }
       },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
       "thresholds": {
         "max_block_missing": 200
       }
     },
     {
       "name": "LatestBlock",
+      "active": true,
       "phases": ["regular"],
       "blockchains": ["dot"],
       "repeat_number": 1000000000,
-      "interval": 30000,
+      "interval": 60000,
       "type": "rpc",
       "http_method": "post",
       "url_template": "https://{{provider.ip}}/",
@@ -186,6 +207,12 @@
           "parent_hash": ["result", "block","header","parentHash"],
           "number": ["result", "block","header","number"]
         }
+      },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
       },
       "thresholds": {
         "max_block_missing": 200

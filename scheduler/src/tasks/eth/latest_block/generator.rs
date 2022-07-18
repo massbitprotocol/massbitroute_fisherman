@@ -1,4 +1,4 @@
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
@@ -9,12 +9,9 @@ use common::tasks::eth::{JobLatestBlock, LatestBlockConfig};
 use common::tasks::LoadConfig;
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
-use common::{Node, PlanId, Timestamp, DOMAIN};
-use log::{debug, info};
+use common::{Node, PlanId, DOMAIN};
+use log::debug;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::vec;
 /*
  * Apply for node to get latest block number and time
  */
@@ -56,7 +53,7 @@ impl TaskApplicant for LatestBlockGenerator {
         node: &Node,
         phase: JobRole,
         workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, Error> {
+    ) -> Result<JobAssignmentBuffer, Error> {
         let job = JobLatestBlock {
             assigned_at: get_current_time(),
             request_body: self.config.latest_block_request_body.clone(),
@@ -84,7 +81,7 @@ impl TaskApplicant for LatestBlockGenerator {
         job.interval = self.config.interval;
         job.repeat_number = self.config.repeat_number as i32;
         debug!("job header: {:?}", job.header);
-        let mut assignment_buffer = AssignmentBuffer::default();
+        let mut assignment_buffer = JobAssignmentBuffer::default();
         assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
     }
@@ -93,14 +90,14 @@ impl TaskApplicant for LatestBlockGenerator {
      */
     fn assign_jobs(
         &self,
-        plan: &PlanModel,
-        provider_node: &ComponentInfo,
+        _plan: &PlanModel,
+        _provider_node: &ComponentInfo,
         jobs: &Vec<Job>,
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
         let mut assignments = Vec::default();
-        jobs.iter().enumerate().for_each(|(ind, job)| {
-            for worker in workers.best_workers.iter() {
+        jobs.iter().enumerate().for_each(|(_ind, job)| {
+            for worker in workers.measured_workers.iter() {
                 let job_assignment = JobAssignment::new(worker.clone(), job);
                 assignments.push(job_assignment);
             }

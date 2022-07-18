@@ -1,8 +1,25 @@
 #!/bin/bash
 cargo build --release
-strip ../target/release/fisherman
-rsync -avz ../target/release/fisherman "demo-gateway-2:~/fisherman/fisherman"
-rsync -avz ./run_worker.sh "demo-gateway-2:~/fisherman/run.sh"
-rsync -avz ./benchmark "demo-gateway-2:~/fisherman/"
 
-#ssh "demo-gateway-1" < update_bin_and_restart_service_worker.sh
+if [ -z "$1" ]
+then
+    #ZONES=( 'as' 'eu' 'na' 'sa' 'oc' 'af' )
+    ZONES=( 'as-1' 'as-2' 'eu-1' 'eu-2' 'na-1' 'na-2' 'na-3' 'na-4' 'oc-1' 'oc-2' )
+else
+    ZONES=( "$1" )
+fi
+
+for ZN in "${ZONES[@]}"
+do
+  echo "Create fisherman folder $ZN"
+  ssh "worker-demo-$ZN" "mkdir fisherman"
+
+  echo "Update bin file in zone $ZN"
+  strip ../target/release/fisherman
+  rsync -avz ../target/release/fisherman "worker-demo-$ZN:~/fisherman/fisherman"
+  rsync -avz ./run_worker.sh "worker-demo-$ZN:~/fisherman/run.sh"
+  rsync -avz ./benchmark "worker-demo-$ZN:~/fisherman/"
+
+  echo "Restart tmux session in zone $ZN"
+  ssh "worker-demo-$ZN" < update_bin_and_restart_service_worker.sh
+done

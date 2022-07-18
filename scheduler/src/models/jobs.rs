@@ -1,23 +1,16 @@
-use crate::models::component::ProviderPlan;
-use common::component::Zone;
-use common::job_manage::JobResultDetail;
 use common::jobs::{AssignmentConfig, Job, JobAssignment};
-use common::workers::WorkerInfo;
-use common::workers::{MatchedWorkers, Worker};
-use common::{JobId, WorkerId};
-use log::debug;
+use common::workers::MatchedWorkers;
+use log::{debug, warn};
 use rand::Rng;
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::sync::Arc;
 
 #[derive(Clone, Debug, Default)]
-pub struct AssignmentBuffer {
+pub struct JobAssignmentBuffer {
     pub jobs: Vec<Job>,
     pub list_assignments: Vec<JobAssignment>,
 }
 
-impl AssignmentBuffer {
+impl JobAssignmentBuffer {
     pub fn new() -> Self {
         Self {
             jobs: vec![],
@@ -31,24 +24,33 @@ impl AssignmentBuffer {
         assignment_config: &Option<AssignmentConfig>,
     ) {
         //Do assignment
+        log::debug!("Assign job {:?} to workers {:?}", &job, workers);
         let mut rng = rand::thread_rng();
         match assignment_config {
             None => {
                 //without config, assign job for one random nearby worker
-
                 let worker = if workers.nearby_workers.len() > 0 {
                     let ind = rng.gen_range(0..workers.nearby_workers.len());
-                    workers.get_nearby_worker(ind).unwrap()
+                    workers.get_nearby_worker(ind)
+                } else if workers.measured_workers.len() > 0 {
+                    let ind = rng.gen_range(0..workers.measured_workers.len());
+                    workers.get_best_worker(ind)
+                } else if workers.remain_workers.len() > 0 {
+                    workers.get_random_worker()
                 } else {
-                    let ind = rng.gen_range(0..workers.best_workers.len());
-                    workers.get_best_worker(ind).unwrap()
+                    warn!("No workers found for component {:?}", job.component_id);
+                    None
                 };
-                debug!(
-                    "Assign job {:?}.{:?} to one random worker {:?}",
-                    &job.job_name, &job.job_id, &worker.worker_info
-                );
-                let job_assignment = JobAssignment::new(worker, &job);
-                self.list_assignments.push(job_assignment);
+                if let Some(worker) = worker {
+                    debug!(
+                        "Assign job {:?}.{:?} to one random worker {:?}",
+                        &job.job_name, &job.job_id, &worker.worker_info
+                    );
+                    let job_assignment = JobAssignment::new(worker, &job);
+                    self.list_assignments.push(job_assignment);
+                } else {
+                    warn!("No workers found for component {:?}", job.component_id);
+                }
             }
             Some(config) => {
                 self.assign_job_with_config(&job, workers, config);
@@ -64,7 +66,7 @@ impl AssignmentBuffer {
     ) {
         let mut rng = rand::thread_rng();
         if let Some(true) = config.broadcast {
-            for worker in workers.best_workers.iter() {
+            for worker in workers.measured_workers.iter() {
                 let job_assignment = JobAssignment::new(worker.clone(), &job);
                 self.list_assignments.push(job_assignment);
                 debug!(
@@ -73,11 +75,21 @@ impl AssignmentBuffer {
                     worker.get_url("")
                 )
             }
+            for worker in workers.remain_workers.iter() {
+                let job_assignment = JobAssignment::new(worker.clone(), &job);
+                self.list_assignments.push(job_assignment);
+                debug!(
+                    "Assign job {:?} on provider {:?} to worker {:?}",
+                    job.job_name,
+                    job.component_id,
+                    worker.get_url("")
+                )
+            }
             return;
         } else if let Some(val) = config.worker_number {
             if let Some(true) = config.nearby_only {
                 if workers.nearby_workers.len() > 0 {
-                    for i in 0..val {
+                    for _i in 0..val {
                         let ind = rng.gen_range(0..workers.nearby_workers.len());
                         let worker = workers.get_nearby_worker(ind).unwrap();
                         let job_assignment = JobAssignment::new(worker.clone(), &job);
@@ -85,13 +97,40 @@ impl AssignmentBuffer {
                     }
                 }
             } else if let Some(true) = config.by_distance {
-                if workers.best_workers.len() > 0 {
-                    for i in 0..val {
-                        let ind = rng.gen_range(0..workers.best_workers.len());
+                if workers.measured_workers.len() > 0 {
+                    for _i in 0..val {
+                        let ind = rng.gen_range(0..workers.measured_workers.len());
                         let worker = workers.get_best_worker(ind).unwrap();
                         let job_assignment = JobAssignment::new(worker.clone(), &job);
                         self.list_assignments.push(job_assignment);
                     }
+                }
+            } else {
+                let all_workers = workers.get_all_workers();
+                log::debug!(
+                    "Try to assign job {:?}.{:?}.{:?} to {} random worker among {} workers",
+                    &job.job_type,
+                    &job.job_name,
+                    &job.job_id,
+                    val,
+                    all_workers.len()
+                );
+                if all_workers.len() > 0 {
+                    for _ in 0..val {
+                        let ind = rng.gen_range(0..all_workers.len());
+                        if let Some(worker) = all_workers.get(ind) {
+                            debug!(
+                                "Assign job {:?} on provider {:?} to worker {:?}",
+                                job.job_name,
+                                job.component_id,
+                                worker.get_url("")
+                            );
+                            let job_assignment = JobAssignment::new(worker.clone(), &job);
+                            self.list_assignments.push(job_assignment);
+                        }
+                    }
+                } else {
+                    log::debug!("No worker found in {:?}", &self);
                 }
             }
         }
@@ -124,7 +163,7 @@ impl AssignmentBuffer {
             .map(|job| job.job_name.clone())
             .collect::<HashSet<String>>()
     }
-    pub fn remove_redundant_jobs(mut self, exist_jobs: &HashSet<String>) -> Self {
+    pub fn remove_redundant_jobs(self, exist_jobs: &HashSet<String>) -> Self {
         let Self {
             jobs,
             list_assignments,

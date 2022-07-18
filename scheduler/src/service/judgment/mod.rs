@@ -3,7 +3,8 @@ pub mod http_latestblock_judg;
 pub mod http_ping_judg;
 pub mod latestblock_judg;
 pub mod main_judg;
-pub mod ping_judg;
+//pub mod ping_judg;
+pub mod websocket_judg;
 
 use crate::persistence::services::job_result_service::JobResultService;
 use async_trait::async_trait;
@@ -11,7 +12,9 @@ pub use benchmark_judg::BenchmarkJudgment;
 use common::models::PlanEntity;
 pub use latestblock_judg::LatestBlockJudgment;
 pub use main_judg::MainJudgment;
-pub use ping_judg::PingJudgment;
+//pub use ping_judg::PingJudgment;
+pub use websocket_judg::WebsocketJudgment;
+
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -19,9 +22,9 @@ use crate::models::job_result::ProviderTask;
 use crate::service::judgment::http_latestblock_judg::HttpLatestBlockJudgment;
 use crate::service::judgment::http_ping_judg::HttpPingJudgment;
 use common::jobs::{Job, JobResult};
-use common::PlanId;
-use sea_orm::DatabaseConnection;
-use std::sync::{Arc, Mutex};
+
+use common::job_manage::JobRole;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum JudgmentsResult {
@@ -48,8 +51,8 @@ pub trait ReportCheck: Sync + Send + Debug {
     /// For Verification phase
     async fn apply(
         &self,
-        plan: &PlanEntity,
-        job: &Vec<Job>,
+        _plan: &PlanEntity,
+        _job: &Vec<Job>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         //Todo: remove this function
         Ok(JudgmentsResult::Unfinished)
@@ -57,8 +60,8 @@ pub trait ReportCheck: Sync + Send + Debug {
     /// For Regular phase
     async fn apply_for_results(
         &self,
-        provider_task: &ProviderTask,
-        result: &Vec<JobResult>,
+        _provider_task: &ProviderTask,
+        _result: &Vec<JobResult>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         Ok(JudgmentsResult::Error)
     }
@@ -67,27 +70,27 @@ pub trait ReportCheck: Sync + Send + Debug {
 pub fn get_report_judgments(
     config_dir: &str,
     result_service: Arc<JobResultService>,
+    phase: &JobRole,
 ) -> Vec<Arc<dyn ReportCheck>> {
-    let mut result: Vec<Arc<dyn ReportCheck>> = Default::default();
-    result.push(Arc::new(PingJudgment::new(
-        config_dir,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(LatestBlockJudgment::new(
-        config_dir,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(BenchmarkJudgment::new(
-        config_dir,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(HttpPingJudgment::new(
-        config_dir,
-        result_service.clone(),
-    )));
-    result.push(Arc::new(HttpLatestBlockJudgment::new(
-        config_dir,
-        result_service.clone(),
-    )));
+    let result: Vec<Arc<dyn ReportCheck>> = vec![
+        //Arc::new(PingJudgment::new(config_dir, result_service.clone())),
+        Arc::new(LatestBlockJudgment::new(config_dir, result_service.clone())),
+        Arc::new(BenchmarkJudgment::new(config_dir, result_service.clone())),
+        Arc::new(HttpPingJudgment::new(
+            config_dir,
+            phase,
+            result_service.clone(),
+        )),
+        Arc::new(HttpLatestBlockJudgment::new(
+            config_dir,
+            phase,
+            result_service.clone(),
+        )),
+        Arc::new(WebsocketJudgment::new(
+            config_dir,
+            phase,
+            result_service.clone(),
+        )),
+    ];
     result
 }

@@ -3,14 +3,11 @@ use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use anyhow::Error;
 use async_trait::async_trait;
-use common::job_manage::{JobDetail, JobRole};
+use common::job_manage::JobRole;
 use common::jobs::Job;
 use common::models::PlanEntity;
 use common::tasks::eth::LatestBlockConfig;
 use common::tasks::LoadConfig;
-use log::{debug, info};
-use sea_orm::DatabaseConnection;
-use std::str::FromStr;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -44,10 +41,11 @@ impl ReportCheck for LatestBlockJudgment {
         String::from("LatestBlock")
     }
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
-        return task.task_name.as_str() == "LatestBlock";
+        return task.task_name.as_str() == "LatestBlock"
+            && task.task_type.as_str() == "LatestBlock";
     }
 
-    async fn apply(&self, plan: &PlanEntity, job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         //Todo: Unimplement
         Ok(JudgmentsResult::Unfinished)
         /*

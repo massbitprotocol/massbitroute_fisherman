@@ -5,16 +5,13 @@ use common::job_manage::JobRole;
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
 use common::util::get_current_time;
-use common::workers::WorkerInfo;
 use common::{ComponentId, PlanId};
 use entity::plans;
-use log::{debug, error};
-use log::{info, warn};
+use log::{debug, warn};
 use sea_orm::sea_query::Expr;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{Condition, DatabaseConnection};
 use std::collections::HashSet;
-use std::str::FromStr;
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -35,7 +32,7 @@ impl PlanService {
         for status in statuses {
             condition_status = condition_status.add(plans::Column::Status.eq(status.to_string()));
         }
-        let mut condition = match phase {
+        let condition = match phase {
             None => condition_status,
             Some(phase) => {
                 let mut condition = Condition::all();
@@ -146,7 +143,7 @@ impl PlanService {
         for status in statuses {
             condition_status = condition_status.add(plans::Column::Status.eq(status.to_string()));
         }
-        let mut condition = match phase {
+        let condition = match phase {
             None => condition_status,
             Some(phase) => {
                 let mut condition = Condition::all();

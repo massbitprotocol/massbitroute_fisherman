@@ -1,20 +1,18 @@
 use anyhow::Error;
-use async_trait::async_trait;
+
 use common::tasks::LoadConfig;
 
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use common::component::ComponentInfo;
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job};
-use common::models::PlanEntity;
+
 use common::tasks::rpc_request::JobRpcRequest;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use std::vec;
-use tokio::sync::mpsc::Sender;
+
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
  */
@@ -61,7 +59,7 @@ impl TaskApplicant for RpcRequestGenerator {
         String::from("RpcRequest")
     }
 
-    fn can_apply(&self, component: &ComponentInfo) -> bool {
+    fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
     }
 
@@ -71,7 +69,7 @@ impl TaskApplicant for RpcRequestGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, Error> {
+    ) -> Result<JobAssignmentBuffer, Error> {
         log::debug!("TaskPing apply for component {:?}", component);
         let detail = JobRpcRequest {};
         let comp_url = detail.get_component_url(component);
@@ -87,7 +85,7 @@ impl TaskApplicant for RpcRequestGenerator {
         job.component_url = comp_url;
         job.timeout = self.config.ping_timeout_ms;
         job.repeat_number = self.config.ping_sample_number;
-        let mut assignment_buffer = AssignmentBuffer::default();
+        let mut assignment_buffer = JobAssignmentBuffer::default();
         assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
     }

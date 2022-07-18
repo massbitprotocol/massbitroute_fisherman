@@ -3,6 +3,7 @@ use crate::jobs::Job;
 use crate::models::TimeFrames;
 use crate::{ComponentInfo, IPAddress, WorkerId};
 use anyhow::anyhow;
+use rand::Rng;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -94,13 +95,7 @@ impl Worker {
         format!("{}/{}", self.worker_info.url, path)
     }
     pub fn get_host(&self) -> String {
-        let parts = self.worker_info.url.split('/').collect::<Vec<&str>>();
-        if parts.len() >= 3 {
-            parts[2].to_string()
-        } else {
-            String::default()
-        }
-        //format!("{}/{}", self.worker_info.url, path)
+        format!("{}.gw.mbr.massbitroute.net", self.worker_info.worker_id)
     }
     pub async fn send_job(&self, job: &Job) -> Result<(), anyhow::Error> {
         let client_builder = reqwest::ClientBuilder::new();
@@ -161,7 +156,8 @@ impl Worker {
 pub struct MatchedWorkers {
     pub provider: ComponentInfo,
     pub nearby_workers: Vec<Arc<Worker>>, //Workers defined by zone
-    pub best_workers: Vec<Arc<Worker>>,   //Workers order by ping time
+    pub measured_workers: Vec<Arc<Worker>>, //Workers order by round trip time
+    pub remain_workers: Vec<Arc<Worker>>, //All remain workers
 }
 
 impl MatchedWorkers {
@@ -169,6 +165,25 @@ impl MatchedWorkers {
         self.nearby_workers.get(ind).map(|arc| arc.clone())
     }
     pub fn get_best_worker(&self, ind: usize) -> Option<Arc<Worker>> {
-        self.best_workers.get(ind).map(|arc| arc.clone())
+        self.measured_workers.get(ind).map(|arc| arc.clone())
+    }
+    pub fn get_random_worker(&self) -> Option<Arc<Worker>> {
+        if self.remain_workers.len() > 0 {
+            let mut rng = rand::thread_rng();
+            let ind = rng.gen_range(0..self.remain_workers.len());
+            self.remain_workers.get(ind).map(|val| val.clone())
+        } else {
+            None
+        }
+    }
+    pub fn get_all_workers(&self) -> Vec<Arc<Worker>> {
+        let mut all_workers = Vec::new();
+        for worker in self.measured_workers.iter() {
+            all_workers.push(worker.clone());
+        }
+        for worker in self.remain_workers.iter() {
+            all_workers.push(worker.clone());
+        }
+        all_workers
     }
 }

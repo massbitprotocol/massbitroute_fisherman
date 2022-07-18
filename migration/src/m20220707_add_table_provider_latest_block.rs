@@ -1,0 +1,391 @@
+use sea_orm_migration::prelude::*;
+use sea_orm_migration::sea_orm::{ConnectionTrait, Statement};
+
+pub struct Migration;
+
+impl MigrationName for Migration {
+    fn name(&self) -> &str {
+        "m20220707_add_table_provider_latest_block"
+    }
+}
+const SQL_PROVIDER_LATEST_BLOCK: &str = r#"
+create table if not exists provider_latest_blocks
+(
+    id            serial primary key,
+    provider_id         varchar           not null,
+    blockchain          varchar           not null,
+    network             varchar           not null,
+    blockhash           varchar,
+    block_timestamp     bigint,
+    max_block_timestamp bigint,
+    block_number        bigint,
+    max_block_number    bigint,
+    response_timestamp  bigint            not null,
+    message             varchar not null default '',
+    CONSTRAINT provider_latest_blocks_provider_id_uindex UNIQUE (provider_id)
+)"#;
+
+#[async_trait::async_trait]
+impl MigrationTrait for Migration {
+    async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
+        let SQLs = vec![SQL_PROVIDER_LATEST_BLOCK];
+        for sql in SQLs {
+            let stmt = Statement::from_string(manager.get_database_backend(), sql.to_owned());
+            manager.get_connection().execute(stmt).await.map(|_| ())?;
+        }
+        /*
+                // JobAssignments table
+                manager
+                    .create_table(
+                        sea_query::Table::create()
+                            .table(job_assignments::Entity)
+                            .if_not_exists()
+                            .col(
+                                ColumnDef::new(job_assignments::Column::Id)
+                                    .integer()
+                                    .not_null()
+                                    .auto_increment()
+                                    .primary_key(),
+                            )
+                            // .col(ColumnDef::new(jobs::Column::JobId).string().not_null())
+                            .col(
+                                ColumnDef::new(job_assignments::Column::JobId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_assignments::Column::WorkerId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_assignments::Column::PlanId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_assignments::Column::Status)
+                                    .string()
+                                    .not_null()
+                                    .default(""),
+                            )
+                            .col(
+                                ColumnDef::new(job_assignments::Column::AssignTime)
+                                    .big_integer()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_assignments::Column::JobName)
+                                    .string()
+                                    .not_null()
+                                    .default(""),
+                            )
+                            .col(
+                                ColumnDef::new(job_assignments::Column::JobType)
+                                    .string()
+                                    .not_null()
+                                    .default(""),
+                            )
+                            .to_owned(),
+                    )
+                    .await?;
+
+                // JobResultBenchmarks table
+                manager
+                    .create_table(
+                        sea_query::Table::create()
+                            .table(job_result_benchmarks::Entity)
+                            .if_not_exists()
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::Id)
+                                    .integer()
+                                    .not_null()
+                                    .auto_increment()
+                                    .primary_key(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::JobId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::WorkerId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::PrviderId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ProviderType)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ExecutionTimestamp)
+                                    .big_integer()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::RecordedTimestamp)
+                                    .integer()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::RequestRate)
+                                    .float()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::TransferRate)
+                                    .float()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::AverageLatency)
+                                    .float()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::Histogram90)
+                                    .float()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::Histogram95)
+                                    .float()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::Histogram99)
+                                    .float()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ErrorCode)
+                                    .integer()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::message)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ResponseTime)
+                                    .integer()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::PlanId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .to_owned(),
+                    )
+                    .await?;
+
+                // JobResultBenchmarks table
+                manager
+                    .create_table(
+                        sea_query::Table::create()
+                            .table(job_result_http_requests::Entity)
+                            .if_not_exists()
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::Id)
+                                    .integer()
+                                    .not_null()
+                                    .auto_increment()
+                                    .primary_key(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::JobId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::JobName)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::WorkerId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::PrviderId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ProviderType)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ExecutionTimestamp)
+                                    .big_integer()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ChainId)
+                                    .string()
+                                    .not_null()
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::PlanId)
+                                    .string()
+                                    .not_null()
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::HttpCode)
+                                    .integer()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ErrorCode)
+                                    .integer()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::message)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::ResponseTime)
+                                    .integer()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(job_result_benchmarks::Column::Values)
+                                    .json_binary()
+                                    .not_null(),
+                                    .default("{}")
+                            )
+                            .to_owned(),
+                    )
+                    .await?;
+
+                // Job table
+                manager
+                    .create_table(
+                        sea_query::Table::create()
+                            .table(jobs::Entity)
+                            .if_not_exists()
+                            .col(
+                                ColumnDef::new(jobs::Column::Id)
+                                    .integer()
+                                    .not_null()
+                                    .auto_increment()
+                                    .primary_key(),
+                            )
+                            .col(ColumnDef::new(jobs::Column::JobId).string().not_null())
+                            .col(
+                                ColumnDef::new(jobs::Column::ComponentId)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::Header)
+                                    .json_binary()
+                                    .default("{}"),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::JobDetail)
+                                    .json_binary()
+                                    .default("{}"),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::Priority)
+                                    .big_integer()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::ExpectedRuntime)
+                                    .integer()
+                                    .not_null()
+                                    .default(0),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::Parallelable)
+                                    .boolean()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::Timeout)
+                                    .big_integer()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::ComponentUrl)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::RepeatNumber)
+                                    .integer()
+                                    .not_null(),
+                            )
+                            .col(
+                                ColumnDef::new(jobs::Column::Interval)
+                                    .big_integer()
+                                    .not_null(),
+                            )
+                            .col(ColumnDef::new(jobs::Column::JobName).string().not_null())
+                            .col(ColumnDef::new(jobs::Column::PlanId).string().not_null())
+                            .col(
+                                ColumnDef::new(jobs::Column::ComponentType)
+                                    .string()
+                                    .not_null(),
+                            )
+                            .col(ColumnDef::new(jobs::Column::Phase).string().not_null())
+                            .to_owned(),
+                    )
+                    .await?;
+                manager
+                    .create_table(
+                        sea_query::Table::create()
+                            .table(providers::Entity)
+                            .if_not_exists()
+                            .col(
+                                ColumnDef::new(providers::Column::Id)
+                                    .integer()
+                                    .not_null()
+                                    .auto_increment()
+                                    .primary_key(),
+                            )
+                            .col(ColumnDef::new(providers::Column::Url).string().not_null())
+                            .col(ColumnDef::new(providers::Column::Zone).string().not_null())
+                            .col(
+                                ColumnDef::new(providers::Column::Specification)
+                                    .json_binary()
+                                    .default("{}"),
+                            )
+                            .col(ColumnDef::new(providers::Column::Description).text())
+                            .to_owned(),
+                    )
+                    .await?;
+        */
+        Ok(())
+    }
+
+    async fn down(&self, _manager: &SchemaManager) -> Result<(), DbErr> {
+        todo!()
+    }
+}

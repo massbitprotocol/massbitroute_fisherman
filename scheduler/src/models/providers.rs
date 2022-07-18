@@ -1,13 +1,7 @@
-use crate::models::component::{ProviderPlan, ZoneComponents};
+use crate::models::component::ProviderPlan;
 use crate::persistence::PlanModel;
-use crate::tasks::generator::TaskApplicant;
-use anyhow::Error;
-use common::component::{ComponentInfo, ComponentType, Zone};
-use common::jobs::Job;
+use common::component::{ComponentInfo, ComponentType};
 use common::util::get_current_time;
-use common::ComponentId;
-use log::{debug, log};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -26,9 +20,9 @@ impl ProviderStorage {
         components: Vec<ComponentInfo>,
     ) {
         log::debug!(
-            "Update {:?} list for regular schedule: {:?}",
+            "Update {:?} list for regular schedule: with {:?} components",
             component_type,
-            components
+            components.len()
         );
         match component_type {
             ComponentType::Node => {
@@ -94,39 +88,33 @@ impl ProviderStorage {
         gateways.append(&mut active_gateways);
         expired_nodes
     }
-    pub async fn get_components_for_verifications(&self) -> Vec<Arc<ProviderPlan>> {
+    pub async fn pop_components_for_verifications(&self) -> Vec<Arc<ProviderPlan>> {
         let mut res = Vec::new();
-        let current_time = get_current_time();
+        let _current_time = get_current_time();
         let mut nodes = self.verification_nodes.lock().await;
-        for plan in nodes.iter() {
-            res.push(plan.clone());
-        }
+        res.append(&mut nodes);
         let mut gateways = self.verification_gateways.lock().await;
-        for plan in gateways.iter() {
-            res.push(plan.clone());
+        res.append(&mut gateways);
+        res
+    }
+    pub async fn get_active_providers(&self) -> Vec<ComponentInfo> {
+        let mut providers = Vec::new();
+        let nodes = self.nodes.lock().await;
+        for comp in nodes.iter() {
+            providers.push(comp.clone());
         }
-        res
+        let gateways = self.gateways.lock().await;
+        for comp in gateways.iter() {
+            providers.push(comp.clone());
+        }
+        providers
     }
-    /*
-    pub async fn pop_nodes_for_verifications(&self) -> Vec<ProviderPlan> {
-        let mut res = Vec::new();
-        let mut nodes = self.verification_nodes.lock().await;
-        res.append(&mut nodes);
-        res
-    }
-    pub async fn pop_gateways_for_verifications(&self) -> Vec<ProviderPlan> {
-        let mut res = Vec::new();
-        let mut nodes = self.verification_gateways.lock().await;
-        res.append(&mut nodes);
-        res
-    }
-    */
     pub async fn clone_nodes_list(&self) -> Vec<ComponentInfo> {
-        let mut nodes = self.nodes.lock().await;
+        let nodes = self.nodes.lock().await;
         nodes.clone()
     }
     pub async fn clone_gateways_list(&self) -> Vec<ComponentInfo> {
-        let mut gateways = self.gateways.lock().await;
+        let gateways = self.gateways.lock().await;
         gateways.clone()
     }
 
