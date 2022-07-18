@@ -1,23 +1,38 @@
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
-use crate::tasks::ping::generator::PingConfig;
+
 use anyhow::anyhow;
 use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
-use common::jobs::JobResult;
+use common::jobs::{AssignmentConfig, JobResult};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
 use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;
 use log::{debug, trace};
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::default::Default;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct PingConfig {
+    pub ping_success_percent_threshold: f64, //
+    pub ping_percentile: f64,
+    pub ping_response_time_threshold: u64,
+    pub repeat_number: i32,
+    pub ping_request_response: String,
+    pub ping_timeout_ms: Timestamp,
+    pub ping_number_for_decide: i32,
+    pub assignment: Option<AssignmentConfig>,
+}
+
+impl LoadConfig<PingConfig> for PingConfig {}
 
 #[derive(Debug, Default)]
 pub struct HttpPingResultCache {
