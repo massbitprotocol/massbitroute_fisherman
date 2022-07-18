@@ -25,7 +25,8 @@ impl WrkBenchmark {
         connection: u32,
         duration: String,
         rate: u32,
-        dapi_url: String,
+        timeout: Option<u32>,
+        url: String,
         body: Option<String>,
         method: &str,
         headers: &HashMap<String, String>,
@@ -33,7 +34,7 @@ impl WrkBenchmark {
         println!("current_dir: {}", self.current_dir);
         println!("wrk_path: {}", self.wrk_path);
         println!("script: {}", self.script);
-        println!("dapi_url: {}", dapi_url);
+        println!("url: {}", url);
         println!("headers: {:?}", headers);
         println!("duration: {:?}", duration);
         println!("thread: {:?}", thread);
@@ -46,6 +47,9 @@ impl WrkBenchmark {
         let mut cmd = org_cmd
             .current_dir(&self.current_dir)
             .arg(format!("--latency"));
+        if let Some(timeout) = timeout {
+            cmd = cmd.arg(format!("--timeout")).arg(format!("{}", timeout));
+        }
         for (key, value) in headers {
             cmd = cmd.arg(format!("-H")).arg(format!("{}: {}", key, value));
         }
@@ -57,7 +61,7 @@ impl WrkBenchmark {
             .arg(format!("-R{}", rate))
             .arg(format!("-s"))
             .arg(format!("{}", self.script))
-            .arg(format!("{}", dapi_url))
+            .arg(format!("{}", url))
             .arg(format!("--"))
             .arg(format!("--method"))
             .arg(method.to_string())

@@ -44,7 +44,8 @@ pub struct JobBenchmark {
     pub chain_type: BlockChainType,
     pub connection: u32,
     pub thread: u32,
-    pub rate: u32,            // Requests/sec
+    pub rate: u32, // Requests/sec
+    pub timeout: Option<u32>,
     pub duration: Timestamp,  // Time to perform benchmark in ms
     pub script: String,       // Name of .lua script
     pub histograms: Vec<u32>, // List of expected percentile,

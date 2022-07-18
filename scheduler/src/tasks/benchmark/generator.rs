@@ -29,6 +29,8 @@ pub struct BenchmarkConfig {
     benchmark_connection: u32,
     benchmark_duration: Timestamp,
     benchmark_rate: u32,
+    #[serde(default)]
+    timeout: Option<u32>,
     script: String,
     histograms: Vec<u32>,
     url_template: String,
@@ -110,6 +112,7 @@ impl TaskApplicant for BenchmarkGenerator {
             connection: self.config.benchmark_connection,
             thread: self.config.benchmark_thread,
             rate: self.config.benchmark_rate,
+            timeout: self.config.timeout,
             duration: self.config.benchmark_duration,
             script: self.config.script.clone(),
             histograms: self.config.histograms.clone(),
