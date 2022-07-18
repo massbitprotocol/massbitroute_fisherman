@@ -81,23 +81,28 @@ impl BenchmarkExecutor {
                     component_type,
                     histograms,
                     url_path,
+                    headers,
+                    method,
+                    body,
                 } = job_detail;
                 let duration = format!("{}s", duration / 1000i64);
-                let mut benchmark = WrkBenchmark::build(
-                    thread,
-                    connection,
-                    duration,
-                    rate,
-                    component_url.to_string(),
-                    token.clone(),
-                    host.clone(),
+                let mut benchmark = WrkBenchmark::new(
                     script,
                     WRK_NAME.to_string(),
                     self.benchmark_wrk_path.clone(),
-                    Default::default(),
                 );
 
-                let stdout = benchmark.run(&component_type.to_string(), &url_path, &chain_type);
+                //let stdout = benchmark.run(&component_type.to_string(), &url_path, &chain_type);
+                let stdout = benchmark.run(
+                    thread,
+                    connection,
+                    duration.to_string(),
+                    rate,
+                    url_path.to_string(),
+                    body.map(|body| body.to_string()),
+                    &method,
+                    &header,
+                );
                 if let Ok(stdout) = stdout {
                     return self
                         .get_result(&stdout, &histograms)

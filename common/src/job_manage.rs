@@ -49,6 +49,7 @@ pub struct JobBenchmark {
     pub script: String,       // Name of .lua script
     pub histograms: Vec<u32>, // List of expected percentile,
     pub url_path: String,     // URL path for benchmark,
+    pub method: String,
     pub headers: HashMap<String, String>,
     pub body: Option<Value>,
 }

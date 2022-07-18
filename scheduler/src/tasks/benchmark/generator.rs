@@ -114,6 +114,7 @@ impl TaskApplicant for BenchmarkGenerator {
             script: self.config.script.clone(),
             histograms: self.config.histograms.clone(),
             url_path: job_url.clone(),
+            method: self.config.http_method.clone(),
             headers,
             body,
         };
