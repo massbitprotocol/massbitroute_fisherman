@@ -11,6 +11,7 @@
     "judge_histogram_percentile":  95,
     "response_threshold": 500,
     "headers": {
+      "Connection": "Close",
       "content-type":"application/json",
       "X-Api-Key": "{{provider.appKey}}",
       "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
