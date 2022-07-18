@@ -12,7 +12,7 @@ pub struct Model {
     pub job_name: String,
     pub component_id: String,
     pub header: Option<Json>,
-    pub job_detail: Option<Json>,
+    pub job_detail: Json,
     pub priority: i32,
     pub expected_runtime: i64,
     pub parallelable: bool,

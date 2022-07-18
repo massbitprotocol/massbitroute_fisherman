@@ -37,16 +37,7 @@ impl From<&WorkerInfo> for workers::ActiveModel {
 impl From<&Job> for jobs::ActiveModel {
     fn from(job: &Job) -> Self {
         debug!("job.job_detail: {:?}", job.job_detail);
-        let job_detail = match &job.job_detail {
-            None => None,
-            Some(detail) => match serde_json::to_value(detail) {
-                Ok(value) => Some(value),
-                Err(err) => {
-                    debug!("err from job_detail: {:?}", err);
-                    None
-                }
-            },
-        };
+        let job_detail = serde_json::to_value(&job.job_detail).unwrap();
         let header = match job.header.is_empty() {
             true => None,
             false => match serde_json::to_value(job.header.to_owned()) {
@@ -86,7 +77,7 @@ impl From<&JobAssignment> for job_assignments::ActiveModel {
     fn from(assign: &JobAssignment) -> Self {
         job_assignments::ActiveModel {
             job_id: Set(assign.job.job_id.to_owned()),
-            job_type: Set(assign.job.job_detail.as_ref().unwrap().get_job_name()),
+            job_type: Set(assign.job.job_detail.get_job_name()),
             job_name: Set(assign.job.job_name.to_owned()),
             worker_id: Set(assign.worker.get_id()),
             plan_id: Set(assign.job.plan_id.to_owned()),
@@ -140,7 +131,7 @@ impl From<&jobs::Model> for Job {
             interval: model.interval.clone(),
             header: headers,
             //Fixme: add converter here
-            job_detail: None,
+            job_detail: serde_json::from_value(model.job_detail.clone()).unwrap_or_default(),
             phase: JobRole::from_str(model.phase.as_str()).unwrap_or_default(),
         }
     }
