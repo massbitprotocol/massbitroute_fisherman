@@ -1,7 +1,6 @@
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
-use crate::tasks::ping::generator::PingConfig;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
@@ -10,10 +9,9 @@ use common::models::PlanEntity;
 use common::tasks::http_request::{JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
 
-
-
 use std::collections::HashMap;
 
+use crate::service::judgment::http_ping_judg::PingConfig;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
