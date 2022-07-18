@@ -234,7 +234,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_main_judgment_regular() -> Result<(), Error> {
         load_env();
-        init_logging();
+        //init_logging();
         let db_conn = mock_db_connection();
         let result_service = JobResultService::new(Arc::new(db_conn));
         let phase = JobRole::Verification;

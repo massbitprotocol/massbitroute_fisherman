@@ -1,25 +1,21 @@
-use crate::helper::JobName::Benchmark;
 use common::component::{ChainInfo, ComponentType, Zone};
 use common::job_manage::{
     BenchmarkResponse, JobBenchmark, JobBenchmarkResult, JobDetail, JobResultDetail, JobRole,
 };
 use common::jobs::{Job, JobResult};
 use common::logger::init_logger;
-use common::tasks::eth::JobLatestBlock;
+
 use common::tasks::http_request::{
-    HttpResponseValues, JobHttpRequest, JobHttpResponse, JobHttpResponseDetail, JobHttpResult,
+    JobHttpRequest, JobHttpResponse, JobHttpResponseDetail, JobHttpResult,
 };
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
-use common::{ChainId, ComponentInfo};
+use common::ComponentInfo;
 use entity::job_result_http_requests;
 use sea_orm::{DatabaseBackend, DatabaseConnection, MockDatabase, MockExecResult};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::sync::atomic::{AtomicBool, AtomicUsize};
-
-static GLOBAL_INIT_LOGGING: AtomicBool = AtomicBool::new(false);
 
 pub fn load_env() {
     dotenv::from_filename(".env_test").ok();
@@ -109,11 +105,10 @@ pub fn mock_db_connection() -> DatabaseConnection {
         rows_affected: 1,
     };
 
-    let db_conn = MockDatabase::new(DatabaseBackend::Postgres)
+    MockDatabase::new(DatabaseBackend::Postgres)
         .append_query_results(vec![vec![data; 1000]])
         .append_exec_results(vec![exec_res; 1000])
-        .into_connection();
-    db_conn
+        .into_connection()
 }
 
 pub fn mock_component_info(

@@ -90,14 +90,14 @@ pub fn get_tasks(
     if task_types.contains(&BenchmarkGenerator::get_name()) {
         result.push(Arc::new(BenchmarkGenerator::new(config_dir, &role)));
     }
-    if task_types.contains(&PingGenerator::get_name()) {
-        result.push(Arc::new(PingGenerator::new(config_dir, &role)));
-    }
-    if task_types.contains(&LatestBlockGenerator::get_name()) {
-        result.push(Arc::new(LatestBlockGenerator::new(config_dir, &role)));
-    }
-    if task_types.contains(&TaskGWNodeConnection::get_name()) {
-        result.push(Arc::new(TaskGWNodeConnection::new()));
-    }
+    // if task_types.contains(&PingGenerator::get_name()) {
+    //     result.push(Arc::new(PingGenerator::new(config_dir, &role)));
+    // }
+    // if task_types.contains(&LatestBlockGenerator::get_name()) {
+    //     result.push(Arc::new(LatestBlockGenerator::new(config_dir, &role)));
+    // }
+    // if task_types.contains(&TaskGWNodeConnection::get_name()) {
+    //     result.push(Arc::new(TaskGWNodeConnection::new()));
+    // }
     result
 }

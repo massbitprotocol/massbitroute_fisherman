@@ -110,7 +110,7 @@ impl BenchmarkResultCache {
             .entry(provider_task.clone())
             .or_insert(ProviderBenchmarkResult::default())
             .add_results(benchmark_results, histogram_percentile);
-        println!("append_results res:{:?}", res);
+        debug!("append_results res:{:?}", res);
         res
     }
 }
@@ -229,13 +229,10 @@ impl ReportCheck for BenchmarkJudgment {
                 );
                 if *res < config.response_threshold as f32 {
                     return Ok(JudgmentsResult::Pass);
-                } else {
-                    return Ok(JudgmentsResult::Failed);
                 }
             }
         }
-
-        Ok(JudgmentsResult::Unfinished)
+        Ok(JudgmentsResult::Failed)
     }
 }
 

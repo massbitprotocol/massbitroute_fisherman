@@ -3,7 +3,7 @@ pub mod http_latestblock_judg;
 pub mod http_ping_judg;
 pub mod latestblock_judg;
 pub mod main_judg;
-pub mod ping_judg;
+//pub mod ping_judg;
 pub mod websocket_judg;
 
 use crate::persistence::services::job_result_service::JobResultService;
@@ -12,7 +12,7 @@ pub use benchmark_judg::BenchmarkJudgment;
 use common::models::PlanEntity;
 pub use latestblock_judg::LatestBlockJudgment;
 pub use main_judg::MainJudgment;
-pub use ping_judg::PingJudgment;
+//pub use ping_judg::PingJudgment;
 pub use websocket_judg::WebsocketJudgment;
 
 use serde::{Deserialize, Serialize};
@@ -73,7 +73,7 @@ pub fn get_report_judgments(
     phase: &JobRole,
 ) -> Vec<Arc<dyn ReportCheck>> {
     let result: Vec<Arc<dyn ReportCheck>> = vec![
-        Arc::new(PingJudgment::new(config_dir, result_service.clone())),
+        //Arc::new(PingJudgment::new(config_dir, result_service.clone())),
         Arc::new(LatestBlockJudgment::new(config_dir, result_service.clone())),
         Arc::new(BenchmarkJudgment::new(config_dir, result_service.clone())),
         Arc::new(HttpPingJudgment::new(
