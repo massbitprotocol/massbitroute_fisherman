@@ -15,6 +15,8 @@ use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResult};
 use crate::tasks::websocket_request::{JobWebsocket, JobWebsocketResult};
 use crate::{BlockChainType, JobId, Timestamp, WorkerId};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
 #[derive(Debug, PartialEq, Clone, Deserialize, Serialize, Hash, Eq)]
 pub enum JobType {
     // perform ping check
@@ -46,7 +48,9 @@ pub struct JobBenchmark {
     pub duration: Timestamp,  // Time to perform benchmark in ms
     pub script: String,       // Name of .lua script
     pub histograms: Vec<u32>, // List of expected percentile,
-    pub url_path: String,     // URL path for benchmark
+    pub url_path: String,     // URL path for benchmark,
+    pub headers: HashMap<String, String>,
+    pub body: Option<Value>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
