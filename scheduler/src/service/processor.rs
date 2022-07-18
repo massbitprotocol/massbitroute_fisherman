@@ -1,25 +1,18 @@
 use crate::models::job_result_cache::JobResultCache;
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 
-
-
 use crate::state::ProcessorState;
 
 use anyhow::Error;
 
-use common::jobs::{JobResult};
+use common::jobs::JobResult;
 
-
-
-use log::{info};
-
-
+use log::info;
 
 use std::default::Default;
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
-
 
 #[derive(Default)]
 pub struct ProcessorService {
@@ -37,7 +30,7 @@ impl ProcessorService {
         results: Vec<JobResult>,
         state: Arc<ProcessorState>,
     ) -> Result<(), Error> {
-        if results.len() > 0 {
+        if !results.is_empty() {
             let worker_id = results.get(0).unwrap().worker_id.clone();
             info!(
                 "Handle report from worker {:?} with {} details",
@@ -47,7 +40,7 @@ impl ProcessorService {
             //Store results to persistence storage: csv file, sql db, monitor system v.v...
             return state.process_results(results).await;
         }
-        return Ok(());
+        Ok(())
     }
 }
 #[derive(Default)]
