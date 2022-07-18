@@ -19,7 +19,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug, Default)]
 pub struct BenchmarkGenerator {
-    config: BenchmarkConfig,
+    configs: Vec<BenchmarkConfig>,
     handlebars: Handlebars<'static>,
 }
 
