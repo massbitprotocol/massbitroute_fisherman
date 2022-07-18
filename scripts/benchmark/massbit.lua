@@ -1,5 +1,27 @@
 -- local inspect = require "inspect"
 function init(args)
+    local ind = 1;
+    headers = {};
+    while ( ind < #args)
+    do
+        if (args[ind] == '--method' ) {
+            method = args[ind + 1]
+            ind = ind + 2
+        }
+        if (args[ind] == '--path') {
+            path = args[ind + 1]
+            ind = ind + 2
+        }
+        if (args[ind] == '--body') {
+            body = args[ind + 1]
+            ind = ind + 2
+        }
+        if (args[ind] == '-h' || args[ind] == '-H') {
+            headers[args[ind+1]] = args[ind + 2]
+            ind = ind + 3
+        }
+    end
+    --[[
     if #args > 0 then
         token = args[1]
         host = args[2]
@@ -7,12 +29,24 @@ function init(args)
         path = args[4]
         chain_type = args[5]
     end
-
+    ]]--
     local msg = "thread addr: %s"
     print(msg:format(wrk.thread.addr))
 end
 
 function request()
+    local method = wrk.thread.get("method") or "GET"
+    local path = wrk.thread:get("path") or "/"
+    local headers = wrk.thread.get("headers") or {}
+    if method == "GET" then {
+        return wrk.format(method, path, headers)
+    } else if method == "POST" {
+        local body = wrk.thread.get("body")
+        return wrk.format(method, path, headers, body)
+    }
+end
+
+function request_bk()
     local token = wrk.thread:get("token")
     local host = wrk.thread:get("host")
     local provider_type = wrk.thread:get("provider_type")
