@@ -6,8 +6,6 @@ use async_trait::async_trait;
 use common::job_manage::JobRole;
 use common::jobs::Job;
 use common::models::PlanEntity;
-use common::tasks::eth::LatestBlockConfig;
-use common::tasks::LoadConfig;
 use std::sync::Arc;
 
 #[derive(Debug)]

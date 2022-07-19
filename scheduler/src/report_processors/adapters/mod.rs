@@ -1,11 +1,10 @@
-
 use crate::report_processors::adapters::csv_appender::CsvAppender;
 use crate::report_processors::adapters::postgres_appender::PostgresAppender;
 use crate::report_processors::adapters::providers_map_appender::ProvidersMapAdapter;
 use async_trait::async_trait;
 use common::job_manage::JobBenchmarkResult;
 use common::jobs::JobResult;
-use common::tasks::eth::JobLatestBlockResult;
+
 use common::tasks::ping::JobPingResult;
 use sea_orm::DatabaseConnection;
 use serde_json::{Map, Value};
@@ -30,15 +29,18 @@ pub trait Appender: Sync + Send {
         Ok(())
     }
 
-    async fn append_ping_results(&self, _results: &Vec<JobPingResult>) -> Result<(), anyhow::Error> {
-        Ok(())
-    }
-    async fn append_latest_block_results(
+    async fn append_ping_results(
         &self,
-        _result: &Vec<JobLatestBlockResult>,
+        _results: &Vec<JobPingResult>,
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
+    // async fn append_latest_block_results(
+    //     &self,
+    //     _result: &Vec<JobLatestBlockResult>,
+    // ) -> Result<(), anyhow::Error> {
+    //     Ok(())
+    // }
     async fn append_benchmark_results(
         &self,
         _result: &Vec<JobBenchmarkResult>,
