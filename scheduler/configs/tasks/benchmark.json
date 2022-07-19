@@ -18,6 +18,7 @@
     "response_threshold": 500,
     "headers": {
       "content-type":"application/json",
+      "Connection": "Close",
       "X-Api-Key": "{{provider.appKey}}",
       "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
     },
@@ -42,7 +43,7 @@
       "body": {
         "jsonrpc": "2.0",
         "method": "eth_getBlockByNumber",
-        "params": ["latest",true],
+        "params": ["latest",false],
         "id": 1
       }
     },
