@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::{AssignmentConfig, JobResult};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpResponseDetail, JobHttpResult};
-use common::tasks::LoadConfig;
+use common::tasks::{LoadConfig, TaskConfigTrait};
 use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;

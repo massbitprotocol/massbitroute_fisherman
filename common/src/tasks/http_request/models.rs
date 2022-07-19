@@ -1,6 +1,7 @@
 use crate::component::ChainInfo;
 use crate::job_manage::JobRole;
 use crate::jobs::{AssignmentConfig, Job};
+use crate::tasks::{LoadConfigs, TaskConfigTrait};
 use crate::{ComponentInfo, Timestamp};
 use handlebars::Handlebars;
 use log::{debug, error};
@@ -177,19 +178,9 @@ pub struct HttpResponseConfig {
     #[serde(default)]
     pub values: HashMap<String, Vec<Value>>, //Path to values
 }
+
+impl LoadConfigs<HttpRequestJobConfig> for HttpRequestJobConfig {}
 impl HttpRequestJobConfig {
-    pub fn read_configs(config_path: &str, phase: &JobRole) -> Vec<HttpRequestJobConfig> {
-        if let Ok(md) = metadata(config_path) {
-            if md.is_dir() {
-                Self::read_config_dir(config_path, phase)
-            } else {
-                Self::read_config_file(config_path, phase)
-            }
-        } else {
-            error!("Config dir is not exist");
-            vec![]
-        }
-    }
     pub fn read_config(path: &str, phase: &JobRole) -> Vec<HttpRequestJobConfig> {
         let json_content = std::fs::read_to_string(path).unwrap_or_default();
         let configs: Map<String, serde_json::Value> =
@@ -217,55 +208,18 @@ impl HttpRequestJobConfig {
         }
         task_configs
     }
-    /*
-     * read config from directory
-     */
-    pub fn read_configs(config_path: &str, phase: &JobRole) -> Vec<HttpRequestJobConfig> {
-        if let Ok(md) = metadata(config_path) {
-            if md.is_dir() {
-                Self::read_config_dir(config_path, phase)
-            } else {
-                Self::read_config_file(config_path, phase)
-            }
-        } else {
-            error!("Config dir is not exist");
-            vec![]
-        }
-        let json_content = std::fs::read_to_string(path).unwrap_or_default();
-        let configs: Map<String, serde_json::Value> =
-            serde_json::from_str(&*json_content).unwrap_or_default();
-        let mut task_configs: Vec<HttpRequestJobConfig> = Vec::new();
-        let default = configs["default"].as_object().unwrap();
-        let tasks = configs["tasks"].as_array().unwrap();
-        for config in tasks.iter() {
-            let mut map_config = serde_json::Map::from(default.clone());
-            let mut task_config = config.as_object().unwrap().clone();
-            //log::debug!("Task config before append {:?}", &task_config);
-            Self::append(&mut map_config, &mut task_config);
-            let value = serde_json::Value::Object(map_config);
-            log::trace!("Final task config {:?}", &value);
-            match serde_json::from_value::<HttpRequestJobConfig>(value) {
-                Ok(config) => {
-                    if config.match_phase(phase) {
-                        task_configs.push(config)
-                    }
-                }
-                Err(err) => {
-                    log::error!("{:?}", &err);
-                }
-            }
-        }
-        task_configs
-    }
+
     //Todo: Implement Deep append
     pub fn append(target: &mut Map<String, Value>, source: &mut Map<String, Value>) {
         target.append(source);
     }
 }
-impl HttpRequestJobConfig {
-    pub fn match_phase(&self, phase: &JobRole) -> bool {
+impl TaskConfigTrait for HttpRequestJobConfig {
+    fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
+}
+impl HttpRequestJobConfig {
     pub fn match_blockchain(&self, blockchain: &String) -> bool {
         let blockchain = blockchain.to_lowercase();
         if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)

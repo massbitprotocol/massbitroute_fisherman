@@ -12,7 +12,7 @@ use common::tasks::eth::LatestBlockConfig;
 use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
-use common::tasks::LoadConfig;
+use common::tasks::{LoadConfig, TaskConfigTrait};
 use common::{BlockChainType, ChainId, NetworkType, Timestamp};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
