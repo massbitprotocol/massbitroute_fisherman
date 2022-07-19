@@ -7,7 +7,7 @@ use crate::{
     DEFAULT_JOB_TIMEOUT, WORKER_ID,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -43,7 +43,6 @@ pub struct Job {
     pub component_url: Url,
     pub repeat_number: i32,  //0-don't repeat
     pub interval: Timestamp, //
-    pub header: HashMap<String, String>,
     pub job_detail: JobDetail,
     pub phase: JobRole,
 }
@@ -84,7 +83,6 @@ impl Job {
             repeat_number: 0,
             timeout: DEFAULT_JOB_TIMEOUT,
             interval: DEFAULT_JOB_INTERVAL,
-            header: Default::default(),
             job_detail,
             parallelable: false,
             component_url: "".to_string(),

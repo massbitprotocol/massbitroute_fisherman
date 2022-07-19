@@ -132,14 +132,7 @@ impl TaskApplicant for BenchmarkGenerator {
             phase,
         );
         job.component_url = job_url;
-        job.header.insert(
-            "host".to_lowercase().to_string(),
-            component.get_host_header(&*DOMAIN),
-        );
-        job.header.insert(
-            "x-api-key".to_lowercase().to_string(),
-            component.token.clone(),
-        );
+
         let mut assignment_buffer = JobAssignmentBuffer::default();
         assignment_buffer.assign_job(job, workers, &self.config.assignment);
         Ok(assignment_buffer)
