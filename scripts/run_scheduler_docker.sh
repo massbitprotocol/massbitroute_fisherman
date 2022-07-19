@@ -11,6 +11,6 @@ export PATH_GATEWAYS_LIST=mbr/gateway/list/verify
 export PATH_NODES_LIST=mbr/node/list/verify
 export PATH_PORTAL_PROVIDER_REPORT=mbr/benchmark
 export PATH_PORTAL_PROVIDER_VERIFY=mbr/verify
-export URL_PORTAL=https://portal.$DOMAIN
+export URL_PORTAL=http://portal.$DOMAIN
 
 /usr/local/bin/scheduler
