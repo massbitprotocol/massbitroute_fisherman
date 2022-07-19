@@ -2,7 +2,6 @@ use anyhow::anyhow;
 use common::component::ChainInfo;
 use common::job_manage::{BenchmarkResponse, JobBenchmarkResult};
 use common::jobs::{Job, JobResult};
-use common::tasks::eth::{JobLatestBlockResult, LatestBlockResponse};
 use common::tasks::ping::JobPingResult;
 use entity::seaorm::job_result_pings::Model as ResultPingModel;
 use entity::seaorm::{
@@ -233,31 +232,31 @@ impl JobResultService {
             }
         }
     }
-    pub async fn save_result_latest_blocks(
-        &self,
-        vec_results: &Vec<JobLatestBlockResult>,
-    ) -> Result<i64, anyhow::Error> {
-        let records = vec_results
-            .iter()
-            .map(|job| job_result_latest_blocks::ActiveModel::from(job))
-            .collect::<Vec<job_result_latest_blocks::ActiveModel>>();
-        let length = records.len();
-        debug!("Save job_result_latest_blocks with {:?} records", records);
-
-        match job_result_latest_blocks::Entity::insert_many(records)
-            .exec(self.db.as_ref())
-            .await
-        {
-            Ok(res) => {
-                log::debug!("Insert {} records", length);
-                Ok(res.last_insert_id)
-            }
-            Err(err) => {
-                log::debug!("Error {:?}", &err);
-                Err(anyhow!("{:?}", &err))
-            }
-        }
-    }
+    // pub async fn save_result_latest_blocks(
+    //     &self,
+    //     vec_results: &Vec<JobLatestBlockResult>,
+    // ) -> Result<i64, anyhow::Error> {
+    //     let records = vec_results
+    //         .iter()
+    //         .map(|job| job_result_latest_blocks::ActiveModel::from(job))
+    //         .collect::<Vec<job_result_latest_blocks::ActiveModel>>();
+    //     let length = records.len();
+    //     debug!("Save job_result_latest_blocks with {:?} records", records);
+    //
+    //     match job_result_latest_blocks::Entity::insert_many(records)
+    //         .exec(self.db.as_ref())
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //             log::debug!("Insert {} records", length);
+    //             Ok(res.last_insert_id)
+    //         }
+    //         Err(err) => {
+    //             log::debug!("Error {:?}", &err);
+    //             Err(anyhow!("{:?}", &err))
+    //         }
+    //     }
+    // }
     pub async fn get_result_benchmarks(
         &self,
         job: &Job,
@@ -305,26 +304,26 @@ trait FromDb<T> {
     fn from_db(model: &T, job: &Job) -> Self;
 }
 
-impl FromDb<job_result_latest_blocks::Model> for JobLatestBlockResult {
-    fn from_db(model: &job_result_latest_blocks::Model, job: &Job) -> Self {
-        let res = LatestBlockResponse {
-            response_duration: model.response_duration,
-            block_number: model.block_number as u64,
-            block_timestamp: model.block_timestamp,
-            block_hash: model.block_hash.clone(),
-            http_code: model.http_code as u16,
-            error_code: model.error_code as u32,
-            message: model.message.clone(),
-            chain_info: ChainInfo::from_str(model.chain_id.as_str()).unwrap_or_default(),
-        };
-        JobLatestBlockResult {
-            job: job.clone(),
-            worker_id: model.worker_id.clone(),
-            response: res,
-            execution_timestamp: model.execution_timestamp,
-        }
-    }
-}
+// impl FromDb<job_result_latest_blocks::Model> for JobLatestBlockResult {
+//     fn from_db(model: &job_result_latest_blocks::Model, job: &Job) -> Self {
+//         let res = LatestBlockResponse {
+//             response_duration: model.response_duration,
+//             block_number: model.block_number as u64,
+//             block_timestamp: model.block_timestamp,
+//             block_hash: model.block_hash.clone(),
+//             http_code: model.http_code as u16,
+//             error_code: model.error_code as u32,
+//             message: model.message.clone(),
+//             chain_info: ChainInfo::from_str(model.chain_id.as_str()).unwrap_or_default(),
+//         };
+//         JobLatestBlockResult {
+//             job: job.clone(),
+//             worker_id: model.worker_id.clone(),
+//             response: res,
+//             execution_timestamp: model.execution_timestamp,
+//         }
+//     }
+// }
 
 impl FromDb<job_result_benchmarks::Model> for JobBenchmarkResult {
     fn from_db(model: &job_result_benchmarks::Model, job: &Job) -> Self {
