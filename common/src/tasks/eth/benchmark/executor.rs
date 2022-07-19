@@ -53,60 +53,52 @@ impl BenchmarkExecutor {
         }
     }
     pub async fn call_benchmark(&self, job: &Job) -> Result<BenchmarkResponse, CallBenchmarkError> {
-        let Job {
-            component_url,
-            job_detail,
-            ..
-        } = job;
+        let Job { job_detail, .. } = job;
         let job_detail = job_detail.clone();
-        match job_detail {
-            JobDetail::Benchmark(job_detail) => {
-                let JobBenchmark {
-                    thread,
-                    connection,
-                    duration,
-                    rate,
-                    timeout,
-                    script,
-                    chain_type,
-                    component_type,
-                    histograms,
-                    url_path,
-                    headers,
-                    method,
-                    body,
-                } = job_detail;
-                let duration = format!("{}s", duration / 1000i64);
-                let mut benchmark = WrkBenchmark::new(
-                    script,
-                    WRK_NAME.to_string(),
-                    self.benchmark_wrk_path.clone(),
-                );
+        if let JobDetail::Benchmark(job_detail) = job_detail {
+            let JobBenchmark {
+                thread,
+                connection,
+                duration,
+                rate,
+                timeout,
+                script,
+                chain_type: _chain_type,
+                component_type: _component_type,
+                histograms,
+                url_path,
+                headers,
+                method,
+                body,
+            } = job_detail;
+            let duration = format!("{}s", duration / 1000i64);
+            let mut benchmark = WrkBenchmark::new(
+                script,
+                WRK_NAME.to_string(),
+                self.benchmark_wrk_path.clone(),
+            );
 
-                //let stdout = benchmark.run(&component_type.to_string(), &url_path, &chain_type);
-                let stdout = benchmark.run(
-                    thread,
-                    connection,
-                    duration.to_string(),
-                    rate,
-                    timeout,
-                    url_path.to_string(),
-                    body.map(|body| body.to_string()),
-                    &method,
-                    &headers,
-                );
-                if let Ok(stdout) = stdout {
-                    return self
-                        .get_result(&stdout, &histograms)
-                        .map_err(|err| CallBenchmarkError::ParseResultError(format!("{:?}", err)));
-                }
+            let stdout = benchmark.run(
+                thread,
+                connection,
+                duration,
+                rate,
+                timeout,
+                url_path,
+                body.map(|body| body.to_string()),
+                &method,
+                &headers,
+            );
+            if let Ok(stdout) = stdout {
+                return self
+                    .get_result(&stdout, &histograms)
+                    .map_err(|err| CallBenchmarkError::ParseResultError(format!("{:?}", err)));
             }
-            _ => {}
         }
 
-        return Err(CallBenchmarkError::GetJobInfoError(format!(
-            "Unknown error"
-        )));
+        Err(CallBenchmarkError::GetJobInfoError(
+            "Unknown error".to_string(),
+        ))
     }
 
     pub fn get_latency_by_percent(
@@ -124,11 +116,7 @@ impl BenchmarkExecutor {
         latency
     }
 
-    fn get_result(
-        &self,
-        stdout: &String,
-        histograms: &Vec<u32>,
-    ) -> Result<BenchmarkResponse, Error> {
+    fn get_result(&self, stdout: &str, histograms: &Vec<u32>) -> Result<BenchmarkResponse, Error> {
         //info!("{}", stdout);
         // Get percent_low_latency
         let sorted_table = Self::get_latency_table(stdout)?;
@@ -176,18 +164,18 @@ impl BenchmarkExecutor {
         })
     }
 
-    fn get_latency_table(text: &String) -> Result<Vec<DetailedPercentileSpectrum>, Error> {
+    fn get_latency_table(text: &str) -> Result<Vec<DetailedPercentileSpectrum>, Error> {
         let re = Regex::new(
             r"Value   Percentile   TotalCount 1/\(1-Percentile\)\s+(?P<table>[\d.\sinf]+)#",
         )?;
         let caps = re
             .captures(text)
-            .ok_or(Error::msg("Cannot capture latency table"))?;
+            .ok_or_else(|| Error::msg("Cannot capture latency table"))?;
         let table = caps.name("table").unwrap().as_str();
         //info!("table:{}", table);
 
         let sorted_table: Vec<DetailedPercentileSpectrum> = table
-            .split("\n")
+            .split('\n')
             .filter_map(|line| {
                 //info!("s:{}", line);
                 let arr = line
@@ -210,7 +198,7 @@ impl BenchmarkExecutor {
         Ok(sorted_table)
     }
 
-    fn parse_string_duration(time: &String) -> Option<Duration> {
+    fn parse_string_duration(time: &str) -> Option<Duration> {
         if time.contains("-nan") || time.contains("-nanus") {
             return None;
         }
@@ -220,11 +208,11 @@ impl BenchmarkExecutor {
             ))
         } else if time.contains("us") {
             Some(Duration::from_secs_f32(
-                time.strip_suffix("us").unwrap().parse::<f32>().unwrap() / 1000_000f32,
+                time.strip_suffix("us").unwrap().parse::<f32>().unwrap() / 1_000_000_f32,
             ))
         } else {
             Some(Duration::from_secs_f32(
-                time.strip_suffix("s").unwrap().parse::<f32>().unwrap(),
+                time.strip_suffix('s').unwrap().parse::<f32>().unwrap(),
             ))
         }
     }
@@ -264,9 +252,6 @@ impl TaskExecutor for BenchmarkExecutor {
         }
     }
     fn can_apply(&self, job: &Job) -> bool {
-        return match job.job_detail {
-            JobDetail::Benchmark(_) => true,
-            _ => false,
-        };
+        matches!(job.job_detail, JobDetail::Benchmark(_))
     }
 }

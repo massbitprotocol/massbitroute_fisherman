@@ -1,15 +1,9 @@
 use anyhow::Error;
 use bytesize::ByteSize;
-use log::info;
+
 use std::collections::HashMap;
 use std::process::Command;
 use std::time::Duration;
-
-// pub struct DetailedPercentileSpectrum {
-//     latency: f32,
-//     percent: f32,
-//     count: u64,
-// }
 
 impl WrkBenchmark {
     pub fn new(script: String, wrk_path: String, current_dir: String) -> Self {
@@ -19,6 +13,8 @@ impl WrkBenchmark {
             current_dir,
         }
     }
+
+    #[allow(clippy::too_many_arguments)]
     pub fn run(
         &mut self,
         thread: u32,
@@ -44,14 +40,12 @@ impl WrkBenchmark {
         println!("method: {:?}", method);
 
         let mut org_cmd = Command::new(&self.wrk_path);
-        let mut cmd = org_cmd
-            .current_dir(&self.current_dir)
-            .arg(format!("--latency"));
+        let mut cmd = org_cmd.current_dir(&self.current_dir).arg("--latency");
         if let Some(timeout) = timeout {
-            cmd = cmd.arg(format!("--timeout")).arg(format!("{}", timeout));
+            cmd = cmd.arg("--timeout").arg(format!("{}", timeout));
         }
         for (key, value) in headers {
-            cmd = cmd.arg(format!("-H")).arg(format!("{}: {}", key, value));
+            cmd = cmd.arg("-H").arg(format!("{}: {}", key, value));
         }
 
         let output = cmd
@@ -59,13 +53,13 @@ impl WrkBenchmark {
             .arg(format!("-c{}", connection))
             .arg(format!("-d{}", duration))
             .arg(format!("-R{}", rate))
-            .arg(format!("-s"))
-            .arg(format!("{}", self.script))
-            .arg(format!("{}", url))
-            .arg(format!("--"))
-            .arg(format!("--method"))
-            .arg(method.to_uppercase().to_string())
-            .arg(format!("--body"))
+            .arg("-s")
+            .arg(&self.script)
+            .arg(url)
+            .arg("--")
+            .arg("--method")
+            .arg(&method.to_uppercase())
+            .arg("--body")
             .arg(body.unwrap_or_default())
             .output()
             .expect("failed to execute process");
@@ -424,8 +418,8 @@ pub struct ValueMetric<T> {
 
 #[derive(Default)]
 pub struct SocketError {
-    connect: usize,
-    read: usize,
-    write: usize,
-    timeout: usize,
+    _connect: usize,
+    _read: usize,
+    _write: usize,
+    _timeout: usize,
 }

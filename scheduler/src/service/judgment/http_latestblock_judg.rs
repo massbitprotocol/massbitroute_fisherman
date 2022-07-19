@@ -8,7 +8,6 @@ use common::component::ComponentType;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
-use common::tasks::eth::LatestBlockConfig;
 use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
@@ -63,31 +62,6 @@ pub struct LatestBlockResultCache {
 }
 
 impl LatestBlockResultCache {
-    // pub fn insert_values(&self, key: CacheKey, time: &Timestamp, values: &HashMap<String, Value>) {
-    //     let mut map = self.values.lock().unwrap();
-    //     debug!(
-    //         "Insert result value {:?} with time {:?} to cache",
-    //         values, time
-    //     );
-    //     let _blockchain = key.blockchain.as_str();
-    //     let _network = key.network.as_str();
-    //     match map.get(&key) {
-    //         None => {
-    //             map.insert(
-    //                 key.clone(),
-    //                 ResultValue::new(time.clone(), HttpResponseValues::new(values.clone())),
-    //             );
-    //         }
-    //         Some(val) => {
-    //             if val.time < *time {
-    //                 map.insert(
-    //                     key.clone(),
-    //                     ResultValue::new(time.clone(), HttpResponseValues::new(values.clone())),
-    //                 );
-    //             }
-    //         }
-    //     }
-    // }
     /*
      * Compare received latest values with cached values.
      * Hard code some parser function base on blockchain
@@ -100,7 +74,7 @@ impl LatestBlockResultCache {
         result_value: ResultValue,
         comparator: Arc<dyn Comparator>,
         thresholds: Map<String, Value>,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
+    ) -> Result<JudgmentsResult, Error> {
         debug!(
             "Check latest block for blockchain {:?} with values {:?} and thresholds {:?}",
             &cache_key.blockchain, &result_value, &thresholds
@@ -117,7 +91,7 @@ impl LatestBlockResultCache {
         result_value: ResultValue,
         comparator: Arc<dyn Comparator>,
         thresholds: Map<String, Value>,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
+    ) -> Result<JudgmentsResult, Error> {
         let latest_block_time =
             comparator
                 .get_latest_value(&result_value.values)
@@ -156,7 +130,7 @@ impl LatestBlockResultCache {
         result_value: ResultValue,
         comparator: Arc<dyn Comparator>,
         thresholds: Map<String, Value>,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
+    ) -> Result<JudgmentsResult, Error> {
         let mut values = self.values.lock().unwrap();
         //Compare current value with max value in cache;
         let mut missing_block = i64::MIN;
@@ -183,26 +157,10 @@ impl LatestBlockResultCache {
             Ok(JudgmentsResult::Failed)
         }
     }
-    /*
-     * get all latest block values from current cache
-     */
-    // pub fn get_cache_values(&self, key: &CacheKey) -> Vec<ResultValue> {
-    //     let blockchain = key.blockchain.as_str();
-    //     let network = key.network.as_str();
-    //     self.values
-    //         .lock()
-    //         .unwrap()
-    //         .iter()
-    //         .filter(|(k, _)| k.blockchain.as_str() == blockchain && k.network.as_str() == network)
-    //         .map(|(_, v)| v.clone())
-    //         .collect::<Vec<ResultValue>>()
-    // }
 }
 
 #[derive(Debug)]
 pub struct HttpLatestBlockJudgment {
-    verification_config: LatestBlockConfig,
-    regular_config: LatestBlockConfig,
     task_configs: Vec<HttpRequestJobConfig>,
     result_service: Arc<JobResultService>,
     cache_values: LatestBlockResultCache,
@@ -211,20 +169,10 @@ pub struct HttpLatestBlockJudgment {
 
 impl HttpLatestBlockJudgment {
     pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
-        let verification_config = LatestBlockConfig::load_config(
-            format!("{}/latest_block.json", config_dir).as_str(),
-            &JobRole::Verification,
-        );
-        let regular_config = LatestBlockConfig::load_config(
-            format!("{}/latest_block.json", config_dir).as_str(),
-            &JobRole::Regular,
-        );
         let path = format!("{}/http_request.json", config_dir);
         let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         let comparators = get_comparators();
         HttpLatestBlockJudgment {
-            verification_config,
-            regular_config,
             task_configs,
             result_service,
             cache_values: LatestBlockResultCache::default(),
@@ -270,53 +218,12 @@ impl ReportCheck for HttpLatestBlockJudgment {
         return task.task_type.as_str() == "HttpRequest"
             && task.task_name.as_str() == "LatestBlock";
     }
-    // async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
-    //     //Todo: remove this function
-    //     Ok(JudgmentsResult::Error)
-    //     /*
-    //     let config = match JobRole::from_str(&*plan.phase)? {
-    //         JobRole::Verification => &self.verification_config,
-    //         JobRole::Regular => &self.regular_config,
-    //     };
-    //
-    //     let results = self.result_service.get_result_latest_blocks(job).await?;
-    //     info!("Latest block results: {:?}", results);
-    //     if results.is_empty() {
-    //         return Ok(JudgmentsResult::Unfinished);
-    //     }
-    //     // Select result for judge
-    //     let result = results
-    //         .iter()
-    //         .max_by(|r1, r2| r1.execution_timestamp.cmp(&r2.execution_timestamp))
-    //         .unwrap();
-    //     // Get late duration from execution time to block time
-    //     if result.response.error_code != 0 {
-    //         return Ok(JudgmentsResult::Error);
-    //     }
-    //     let late_duration = result.execution_timestamp - result.response.block_timestamp * 1000;
-    //     info!(
-    //         "execution_timestamp: {}, block_timestamp: {}, Latest block late_duration/threshold: {}s/{}s",
-    //         result.execution_timestamp,
-    //         result.response.block_timestamp * 1000,
-    //         late_duration / 1000,
-    //         config.late_duration_threshold_ms / 1000,
-    //     );
-    //
-    //     return if (late_duration / 1000) > (config.late_duration_threshold_ms / 1000) {
-    //         Ok(JudgmentsResult::Failed)
-    //     } else {
-    //         Ok(JudgmentsResult::Pass)
-    //     };
-    //      */
-    // }
-    /*
-     * Job result received for each provider with task HttpRequest.LatestBlock
-     */
+
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
         job_results: &Vec<JobResult>,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
+    ) -> Result<JudgmentsResult, Error> {
         if job_results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);
         }

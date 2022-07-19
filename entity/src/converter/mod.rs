@@ -8,7 +8,7 @@ use common::job_manage::{JobBenchmarkResult, JobResultDetail, JobRole};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::plan_entity::PlanStatus;
 use common::models::PlanEntity;
-use common::tasks::eth::JobLatestBlockResult;
+// use common::tasks::eth::JobLatestBlockResult;
 use common::tasks::ping::JobPingResult;
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
@@ -38,16 +38,6 @@ impl From<&Job> for jobs::ActiveModel {
     fn from(job: &Job) -> Self {
         debug!("job.job_detail: {:?}", job.job_detail);
         let job_detail = serde_json::to_value(&job.job_detail).unwrap();
-        let header = match job.header.is_empty() {
-            true => None,
-            false => match serde_json::to_value(job.header.to_owned()) {
-                Ok(value) => Some(value),
-                Err(err) => {
-                    debug!("err from job_detail: {:?}", err);
-                    None
-                }
-            },
-        };
 
         //debug!("from job_detail: {:?}", job_detail);
 
@@ -64,7 +54,6 @@ impl From<&Job> for jobs::ActiveModel {
             timeout: Set(job.timeout as i64),
             job_detail: Set(job_detail),
             component_url: Set(job.component_url.to_owned()),
-            header: Set(header),
             interval: Set(job.interval),
             repeat_number: Set(job.repeat_number),
             id: NotSet,
@@ -100,20 +89,6 @@ impl job_result_pings::Model {
 
 impl From<&jobs::Model> for Job {
     fn from(model: &jobs::Model) -> Self {
-        let mut headers = HashMap::<String, String>::new();
-        if let Some(header) = &model.header {
-            if let Some(map) = header.as_object() {
-                for (key, val) in map.iter() {
-                    headers.insert(
-                        key.clone(),
-                        val.as_str()
-                            .map(|str| str.to_string())
-                            .unwrap_or(String::new()),
-                    );
-                }
-            }
-        }
-
         Job {
             job_id: model.job_id.to_string(),
             job_type: model.job_type.to_string(),
@@ -129,8 +104,6 @@ impl From<&jobs::Model> for Job {
             component_url: model.component_url.to_string(),
             repeat_number: model.repeat_number.clone(),
             interval: model.interval.clone(),
-            header: headers,
-            //Fixme: add converter here
             job_detail: serde_json::from_value(model.job_detail.clone()).unwrap_or_default(),
             phase: JobRole::from_str(model.phase.as_str()).unwrap_or_default(),
         }
@@ -236,27 +209,27 @@ impl From<&JobBenchmarkResult> for job_result_benchmarks::ActiveModel {
     }
 }
 
-impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
-    fn from(result: &JobLatestBlockResult) -> Self {
-        job_result_latest_blocks::ActiveModel {
-            job_id: Set(result.job.job_id.to_owned()),
-            plan_id: Set(result.job.plan_id.to_string()),
-            worker_id: Set(result.worker_id.to_owned()),
-            provider_id: Set(result.job.component_id.to_owned()),
-            provider_type: Set(result.job.component_type.to_string()),
-            block_number: Set(result.response.block_number as i64),
-            block_timestamp: Set(result.response.block_timestamp as i64),
-            chain_id: Set(result.response.chain_info.chain_id()),
-            http_code: Set(result.response.http_code as i32),
-            error_code: Set(result.response.error_code as i32),
-            message: Set(result.response.message.to_string()),
-            response_duration: Set(result.response.response_duration),
-            execution_timestamp: Set(result.execution_timestamp as i64),
-            block_hash: Set(result.response.block_hash.to_owned()),
-            ..Default::default()
-        }
-    }
-}
+// impl From<&JobLatestBlockResult> for job_result_latest_blocks::ActiveModel {
+//     fn from(result: &JobLatestBlockResult) -> Self {
+//         job_result_latest_blocks::ActiveModel {
+//             job_id: Set(result.job.job_id.to_owned()),
+//             plan_id: Set(result.job.plan_id.to_string()),
+//             worker_id: Set(result.worker_id.to_owned()),
+//             provider_id: Set(result.job.component_id.to_owned()),
+//             provider_type: Set(result.job.component_type.to_string()),
+//             block_number: Set(result.response.block_number as i64),
+//             block_timestamp: Set(result.response.block_timestamp as i64),
+//             chain_id: Set(result.response.chain_info.chain_id()),
+//             http_code: Set(result.response.http_code as i32),
+//             error_code: Set(result.response.error_code as i32),
+//             message: Set(result.response.message.to_string()),
+//             response_duration: Set(result.response.response_duration),
+//             execution_timestamp: Set(result.execution_timestamp as i64),
+//             block_hash: Set(result.response.block_hash.to_owned()),
+//             ..Default::default()
+//         }
+//     }
+// }
 
 impl From<&JobResult> for job_result_http_requests::ActiveModel {
     fn from(job_result: &JobResult) -> Self {

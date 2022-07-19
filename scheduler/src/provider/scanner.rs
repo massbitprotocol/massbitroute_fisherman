@@ -207,8 +207,9 @@ pub mod tests {
         let gateways: Vec<ComponentInfo> = serde_json::from_str(body_gateway)?;
 
         let portal = run_mock_portal_server(body_node, body_gateway);
-        env::set_var("URL_NODES_LIST", portal.url("/mbr/node/list/verify"));
-        env::set_var("URL_GATEWAYS_LIST", portal.url("/mbr/gateway/list/verify"));
+        env::set_var("URL_PORTAL", portal.base_url());
+        env::set_var("PATH_NODES_LIST", "mbr/node/list/verify");
+        env::set_var("PATH_GATEWAYS_LIST", "mbr/gateway/list/verify");
 
         let arc_conn = Arc::new(mock_db_connection());
         //Get worker infos

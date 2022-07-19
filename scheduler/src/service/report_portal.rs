@@ -1,4 +1,4 @@
-use crate::URL_PORTAL_PROVIDER_REPORT;
+use crate::{URL_PORTAL_PROVIDER_REPORT, URL_PORTAL_PROVIDER_VERIFY};
 use anyhow::{anyhow, Error};
 use common::component::ComponentType;
 use common::job_manage::JobRole;
@@ -81,11 +81,22 @@ impl StoreReport {
     }
 
     fn get_url(&self) -> String {
-        format!(
-            "{}/{}",
-            URL_PORTAL_PROVIDER_REPORT.as_str(),
-            self.provider_id
-        )
+        match self.report_type {
+            JobRole::Verification => {
+                format!(
+                    "{}/{}",
+                    URL_PORTAL_PROVIDER_VERIFY.as_str(),
+                    self.provider_id
+                )
+            }
+            JobRole::Regular => {
+                format!(
+                    "{}/{}",
+                    URL_PORTAL_PROVIDER_REPORT.as_str(),
+                    self.provider_id
+                )
+            }
+        }
     }
 
     pub async fn send_data(&self) -> Result<Response, Error> {
