@@ -51,7 +51,7 @@ lazy_static! {
     pub static ref URL_PORTAL_PROVIDER_REPORT: String = format!("{}/{}",*URL_PORTAL,
         env::var("PATH_PORTAL_PROVIDER_REPORT").expect("There is no env var PATH_PORTAL_PROVIDER_REPORT, e.g. mbr/benchmark"));
     pub static ref URL_PORTAL_PROVIDER_VERIFY: String = format!("{}/{}",*URL_PORTAL,
-        env::var("PATH_PORTAL_PROVIDER_VERIFY").expect("There is no env var PATH_PORTAL_PROVIDER_REPORT, e.g. mbr/verify"));
+        env::var("PATH_PORTAL_PROVIDER_VERIFY").expect("There is no env var PATH_PORTAL_PROVIDER_VERIFY, e.g. mbr/verify"));
     pub static ref CONFIG: Config = Config::load(SCHEDULER_CONFIG.as_str());
     pub static ref SQLX_LOGGING: bool =
         env::var("SQLX_LOGGING").ok().and_then(|val|val.parse::<bool>().ok()).unwrap_or(false);
