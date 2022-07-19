@@ -154,7 +154,7 @@ impl WebsocketRequestExecutor {
 impl TaskExecutor for WebsocketRequestExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         trace!("WebsocketRequestExecutor execute job {:?}", &job);
-        if let Some(JobDetail::Websocket(request)) = &job.job_detail {
+        if let JobDetail::Websocket(request) = &job.job_detail {
             let res = self.call_websocket_request(request).await;
             let response = match res {
                 Ok(res) => {
@@ -180,7 +180,7 @@ impl TaskExecutor for WebsocketRequestExecutor {
                 }
             };
             trace!("Websocket request result {:?}", &response);
-            if let Some(JobDetail::Websocket(request)) = &job.job_detail {
+            if let JobDetail::Websocket(request) = &job.job_detail {
                 let job_result = JobResult::new(
                     JobResultDetail::Websocket(response),
                     request.chain_info.clone(),
@@ -197,7 +197,7 @@ impl TaskExecutor for WebsocketRequestExecutor {
 
     fn can_apply(&self, job: &Job) -> bool {
         match &job.job_detail {
-            Some(JobDetail::Websocket(request)) => {
+            JobDetail::Websocket(request) => {
                 if request.url.len() > 0 {
                     return true;
                 }

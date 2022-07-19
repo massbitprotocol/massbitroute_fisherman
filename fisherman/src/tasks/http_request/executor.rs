@@ -33,7 +33,7 @@ impl HttpRequestExecutor {
     }
     pub async fn call_http_request(&self, job: &Job) -> Result<JobHttpResponse, HttpRequestError> {
         // Measure response_duration
-        if let Some(JobDetail::HttpRequest(request)) = job.job_detail.as_ref() {
+        if let JobDetail::HttpRequest(request) = &job.job_detail {
             let mut req_builder = match request.method.to_lowercase().as_str() {
                 "post" => self.client.post(job.component_url.as_str()),
                 "put" => self.client.put(job.component_url.as_str()),
@@ -169,7 +169,7 @@ impl TaskExecutor for HttpRequestExecutor {
             //response_timestamp: get_current_time(),
             response,
         };
-        if let Some(JobDetail::HttpRequest(request)) = &job.job_detail {
+        if let JobDetail::HttpRequest(request) = &job.job_detail {
             let job_result = JobResult::new(
                 JobResultDetail::HttpRequest(result),
                 request.chain_info.clone(),
@@ -185,7 +185,7 @@ impl TaskExecutor for HttpRequestExecutor {
 
     fn can_apply(&self, job: &Job) -> bool {
         match &job.job_detail {
-            Some(JobDetail::HttpRequest(_)) => true,
+            JobDetail::HttpRequest(_) => true,
             _ => false,
         }
     }

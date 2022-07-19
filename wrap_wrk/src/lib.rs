@@ -64,7 +64,7 @@ impl WrkBenchmark {
             .arg(format!("{}", url))
             .arg(format!("--"))
             .arg(format!("--method"))
-            .arg(method.to_string())
+            .arg(method.to_uppercase().to_string())
             .arg(format!("--body"))
             .arg(body.unwrap_or_default())
             .output()
