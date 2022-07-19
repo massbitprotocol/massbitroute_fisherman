@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use wrap_wrk::WrkBenchmark;
 fn main() {}
 
 #[cfg(test)]

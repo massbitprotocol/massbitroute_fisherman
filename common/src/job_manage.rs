@@ -148,52 +148,6 @@ pub enum JobResultDetail {
 }
 
 impl JobResultDetail {
-    /*
-    pub fn new(job: &Job) -> Self {
-        let current_timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis();
-        match job.job_detail.as_ref().unwrap() {
-            JobDetail::HttpRequest(_rpc) => JobResultDetail::HttpRequest(JobHttpResult::new(
-                job.clone(),
-                JobHttpResponse::default(),
-            )),
-            JobDetail::RpcRequest(_rpc) => JobResultDetail::RpcRequest(JobRpcResult::new(
-                job.clone(),
-                JobRpcResponse::default(),
-            )),
-            JobDetail::Command(_rpc) => JobResultDetail::Command(JobCommandResult::new(
-                job.clone(),
-                JobCommandResponse::default(),
-            )),
-            JobDetail::Websocket(_rpc) => JobResultDetail::Websocket(JobWebsocketResult::new(
-                job.clone(),
-                JobWebsocketResponse::default(),
-            )),
-            JobDetail::Ping(_) => JobResultDetail::Ping(JobPingResult {
-                job: job.clone(),
-                //response_timestamp: current_timestamp,
-                ..Default::default()
-            }),
-            JobDetail::LatestBlock(_) => JobResultDetail::LatestBlock(JobLatestBlockResult {
-                job: job.clone(),
-                //response_timestamp: current_timestamp,
-                ..Default::default()
-            }),
-            JobDetail::Compound(_) => JobResultDetail::Compound(JobCompoundResult {
-                job: job.clone(),
-                response_timestamp: current_timestamp as i64,
-                ..Default::default()
-            }),
-            JobDetail::Benchmark(_) => JobResultDetail::Benchmark(JobBenchmarkResult {
-                job: job.clone(),
-                response_timestamp: current_timestamp as i64,
-                ..Default::default()
-            }),
-        }
-    }
-     */
     pub async fn send(&self) -> Result<String, Error> {
         //http://192.168.1.30:3031/report
         let url = "http://192.168.1.30:3031/report";
@@ -214,20 +168,6 @@ impl JobResultDetail {
 
         Ok(sender)
     }
-    /*
-    pub fn get_job(&self) -> &Job {
-        match self {
-            JobResultDetail::HttpRequest(job_result) => &job_result.job,
-            JobResultDetail::RpcRequest(job_result) => &job_result.job,
-            JobResultDetail::Websocket(job_result) => &job_result.job,
-            JobResultDetail::Command(job_result) => &job_result.job,
-            JobResultDetail::Ping(job_result) => &job_result.job,
-            JobResultDetail::LatestBlock(job_result) => &job_result.job,
-            JobResultDetail::Benchmark(job_result) => &job_result.job,
-            JobResultDetail::Compound(job_result) => &job_result.job,
-        }
-    }
-     */
 }
 
 impl JobResultDetail {
