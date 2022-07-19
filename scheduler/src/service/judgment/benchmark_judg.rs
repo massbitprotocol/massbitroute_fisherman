@@ -110,7 +110,7 @@ impl BenchmarkResultCache {
             .entry(provider_task.clone())
             .or_insert(ProviderBenchmarkResult::default())
             .add_results(benchmark_results, histogram_percentile);
-        println!("append_results res:{:?}", res);
+        debug!("append_results res:{:?}", res);
         res
     }
 }
@@ -229,13 +229,10 @@ impl ReportCheck for BenchmarkJudgment {
                 );
                 if *res < config.response_threshold as f32 {
                     return Ok(JudgmentsResult::Pass);
-                } else {
-                    return Ok(JudgmentsResult::Failed);
                 }
             }
         }
-
-        Ok(JudgmentsResult::Unfinished)
+        Ok(JudgmentsResult::Failed)
     }
 }
 
@@ -249,13 +246,12 @@ pub mod tests {
 
     use test_util::helper::JobName::Benchmark;
     use test_util::helper::{
-        init_logging, load_schedule_env, mock_db_connection, mock_job_result, ChainTypeForTest,
-        JobName,
+        init_logging, load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
     };
 
     #[tokio::test]
     async fn test_benchmark_judgment() -> Result<(), Error> {
-        load_schedule_env();
+        load_env();
         // init_logging();
         let db_conn = mock_db_connection();
         //let db_conn = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
@@ -286,7 +282,12 @@ pub mod tests {
         );
 
         // For eth
-        let job_result = mock_job_result(&JobName::Benchmark, ChainTypeForTest::Eth);
+        let job_result = mock_job_result(
+            &JobName::Benchmark,
+            ChainTypeForTest::Eth,
+            "",
+            Default::default(),
+        );
         info!("job_result: {:?}", job_result);
         let res = judge
             .apply_for_results(&task_benchmark, &vec![job_result])
@@ -295,7 +296,12 @@ pub mod tests {
         assert_eq!(res, JudgmentsResult::Pass);
 
         // For dot
-        let job_result = mock_job_result(&JobName::Benchmark, ChainTypeForTest::Dot);
+        let job_result = mock_job_result(
+            &JobName::Benchmark,
+            ChainTypeForTest::Dot,
+            "",
+            Default::default(),
+        );
         info!("job_result: {:?}", job_result);
         let res = judge
             .apply_for_results(&task_benchmark, &vec![job_result])

@@ -33,7 +33,7 @@ impl HttpRequestExecutor {
     }
     pub async fn call_http_request(&self, job: &Job) -> Result<JobHttpResponse, HttpRequestError> {
         // Measure response_duration
-        if let Some(JobDetail::HttpRequest(request)) = job.job_detail.as_ref() {
+        if let JobDetail::HttpRequest(request) = &job.job_detail {
             let mut req_builder = match request.method.to_lowercase().as_str() {
                 "post" => self.client.post(job.component_url.as_str()),
                 "put" => self.client.put(job.component_url.as_str()),
@@ -169,7 +169,7 @@ impl TaskExecutor for HttpRequestExecutor {
             //response_timestamp: get_current_time(),
             response,
         };
-        if let Some(JobDetail::HttpRequest(request)) = &job.job_detail {
+        if let JobDetail::HttpRequest(request) = &job.job_detail {
             let job_result = JobResult::new(
                 JobResultDetail::HttpRequest(result),
                 request.chain_info.clone(),
@@ -185,7 +185,7 @@ impl TaskExecutor for HttpRequestExecutor {
 
     fn can_apply(&self, job: &Job) -> bool {
         match &job.job_detail {
-            Some(JobDetail::HttpRequest(_)) => true,
+            JobDetail::HttpRequest(_) => true,
             _ => false,
         }
     }
@@ -329,8 +329,8 @@ mod tests {
     #[test]
     fn test_can_apply() {
         let executor = new_executor();
-        let job_benchmark = mock_job(&JobName::Benchmark, "");
-        let job_http = mock_job(&JobName::RoundTripTime, "");
+        let job_benchmark = mock_job(&JobName::Benchmark, "", "", &Default::default());
+        let job_http = mock_job(&JobName::RoundTripTime, "", "", &Default::default());
 
         assert_eq!(executor.can_apply(&job_benchmark), false);
         assert_eq!(executor.can_apply(&job_http), true);
@@ -414,7 +414,12 @@ mod tests {
         println!("url: {}", url);
 
         // Create Job that point to provider mock server
-        let job_http = mock_job(&JobName::RoundTripTime, url.as_str());
+        let job_http = mock_job(
+            &JobName::RoundTripTime,
+            url.as_str(),
+            "",
+            &Default::default(),
+        );
         println!("job: {:?}", job_http);
 
         let res = executor.call_http_request(&job_http).await;

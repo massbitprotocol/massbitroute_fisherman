@@ -1,7 +1,7 @@
 pub mod regular;
 pub mod verification;
 use crate::models::job_result_cache::JobResultCache;
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
@@ -19,6 +19,22 @@ use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 pub use verification::VerificationJobGenerator;
+
+trait JobGeneratorTrait {
+    fn get_assignment(&self) -> Arc<Mutex<JobAssignmentBuffer>>;
+}
+
+impl JobGeneratorTrait for RegularJobGenerator {
+    fn get_assignment(&self) -> Arc<Mutex<JobAssignmentBuffer>> {
+        self.assignments.clone()
+    }
+}
+
+impl JobGeneratorTrait for VerificationJobGenerator {
+    fn get_assignment(&self) -> Arc<Mutex<JobAssignmentBuffer>> {
+        self.assignments.clone()
+    }
+}
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct TaskConfig {
@@ -41,7 +57,7 @@ impl JobGenerator {
         providers: Arc<ProviderStorage>,
         worker_infos: Arc<Mutex<WorkerInfoStorage>>,
         job_service: Arc<JobService>,
-        assignments: Arc<Mutex<AssignmentBuffer>>,
+        assignments: Arc<Mutex<JobAssignmentBuffer>>,
         result_cache: Arc<Mutex<JobResultCache>>,
     ) -> Self {
         //Load config
@@ -124,5 +140,302 @@ impl JobGenerator {
         });
 
         join(verification_task, regular_task).await;
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    use anyhow::{anyhow, Error};
+
+    use crate::persistence::services::provider_service::ProviderService;
+    use crate::persistence::services::WorkerService;
+    use crate::persistence::PlanModel;
+    use crate::SCHEDULER_ENDPOINT;
+    use common::component::ComponentType;
+    use log::info;
+    use test_util::helper::{
+        init_logging, load_env, mock_component_info, mock_db_connection, mock_job, mock_job_result,
+        mock_worker, ChainTypeForTest, CountItems, JobName,
+    };
+    use tokio::task;
+    use JobGeneratorTrait;
+
+    const TEST_TIMEOUT: u64 = 15;
+
+    #[tokio::test]
+    async fn test_main_generator_verification_node() -> Result<(), Error> {
+        load_env();
+        //init_logging();
+        let db_conn = mock_db_connection();
+
+        let arc_conn = Arc::new(db_conn);
+        let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
+        //Get worker infos
+        let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
+        let job_service = Arc::new(JobService::new(arc_conn.clone()));
+        let mut all_workers = worker_service.clone().get_active().await;
+        all_workers.push(mock_worker("worker_id"));
+
+        // Keep the list of node and gateway
+        let provider_storage = Arc::new(ProviderStorage::default());
+        log::debug!("Init with {:?} workers", all_workers.len());
+        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+        // Keep the list of assignment Job
+        let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
+        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+
+        let job_generator = JobGenerator::new(
+            arc_conn.clone(),
+            plan_service.clone(),
+            provider_storage.clone(),
+            worker_infos.clone(),
+            job_service.clone(),
+            assigment_buffer.clone(),
+            result_cache.clone(),
+        );
+        let assignment = job_generator.verification.get_assignment();
+        task::spawn(async move { job_generator.run().await });
+
+        sleep(Duration::from_secs(1)).await;
+        // Check Node
+        let com_type = ComponentType::Node;
+        let com_1 = mock_component_info("com_1", &ChainTypeForTest::Eth, &com_type);
+        let com_2 = mock_component_info("com_2", &ChainTypeForTest::Dot, &com_type);
+
+        let plan_model = PlanModel {
+            id: 0,
+            plan_id: "".to_string(),
+            provider_id: "".to_string(),
+            request_time: 0,
+            finish_time: None,
+            result: None,
+            message: None,
+            status: "".to_string(),
+            phase: "".to_string(),
+            expiry_time: 0,
+        };
+        provider_storage
+            .add_verify_node(plan_model.clone(), com_1.clone())
+            .await;
+        provider_storage
+            .add_verify_node(plan_model.clone(), com_2.clone())
+            .await;
+        let now = Instant::now();
+
+        // Todo: get config for checking
+        let expect_job_names: CountItems<String> = CountItems::new(vec![
+            "RoundTripTime".to_string(),
+            "RoundTripTime".to_string(),
+            "LatestBlock".to_string(),
+            "LatestBlock".to_string(),
+            "EthWebsocket".to_string(),
+            "DotWebsocket".to_string(),
+        ]);
+        let expect_len = expect_job_names.sum_len();
+        let mut job_names = CountItems::new(vec![]);
+        loop {
+            if now.elapsed().as_secs() > TEST_TIMEOUT {
+                return Err(anyhow!("Test Timeout"));
+            }
+            {
+                println!("lock assigment_buffer");
+                let lock = assignment.lock().await;
+                println!("assigment_buffer: {:#?}", lock);
+
+                for job_assign in lock.list_assignments.iter() {
+                    job_names.add_item(job_assign.job.job_name.to_string());
+                }
+                if job_names.sum_len() == expect_len {
+                    break;
+                }
+            }
+            sleep(Duration::from_secs(1)).await;
+        }
+        assert_eq!(expect_job_names, job_names);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_main_generator_verification_gateway() -> Result<(), Error> {
+        load_env();
+        //init_logging();
+        let db_conn = mock_db_connection();
+
+        let arc_conn = Arc::new(db_conn);
+        let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
+        //Get worker infos
+        let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
+        let job_service = Arc::new(JobService::new(arc_conn.clone()));
+        let mut all_workers = worker_service.clone().get_active().await;
+        all_workers.push(mock_worker("worker_id"));
+
+        // Keep the list of node and gateway
+        let provider_storage = Arc::new(ProviderStorage::default());
+        log::debug!("Init with {:?} workers", all_workers.len());
+        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+        // Keep the list of assignment Job
+        let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
+        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+
+        let job_generator = JobGenerator::new(
+            arc_conn.clone(),
+            plan_service.clone(),
+            provider_storage.clone(),
+            worker_infos.clone(),
+            job_service.clone(),
+            assigment_buffer.clone(),
+            result_cache.clone(),
+        );
+        let assignment = job_generator.verification.get_assignment();
+        task::spawn(async move { job_generator.run().await });
+
+        sleep(Duration::from_secs(1)).await;
+        // Check Node
+        let com_type = ComponentType::Gateway;
+        let com_1 = mock_component_info("com_1", &ChainTypeForTest::Eth, &com_type);
+        let com_2 = mock_component_info("com_2", &ChainTypeForTest::Dot, &com_type);
+
+        let plan_model = PlanModel {
+            id: 0,
+            plan_id: "".to_string(),
+            provider_id: "".to_string(),
+            request_time: 0,
+            finish_time: None,
+            result: None,
+            message: None,
+            status: "".to_string(),
+            phase: "".to_string(),
+            expiry_time: 0,
+        };
+        provider_storage
+            .add_verify_node(plan_model.clone(), com_1.clone())
+            .await;
+        provider_storage
+            .add_verify_node(plan_model.clone(), com_2.clone())
+            .await;
+        let now = Instant::now();
+
+        // Todo: get config for checking
+        let expect_job_names: CountItems<String> = CountItems::new(vec![
+            "RoundTripTime".to_string(),
+            "RoundTripTime".to_string(),
+            "EthWebsocket".to_string(),
+            "DotWebsocket".to_string(),
+        ]);
+        let expect_len = expect_job_names.sum_len();
+        let mut job_names = CountItems::new(vec![]);
+        loop {
+            if now.elapsed().as_secs() > TEST_TIMEOUT {
+                return Err(anyhow!("Test Timeout"));
+            }
+
+            {
+                let lock = assignment.lock().await;
+
+                for job_assign in lock.list_assignments.iter() {
+                    job_names.add_item(job_assign.job.job_name.to_string());
+                }
+                if job_names.sum_len() == expect_len {
+                    println!("assigment_buffer: {:#?}", lock);
+                    break;
+                }
+            }
+            sleep(Duration::from_secs(1)).await;
+        }
+        assert_eq!(expect_job_names, job_names);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_main_generator_regular_gateway() -> Result<(), Error> {
+        load_env();
+        //init_logging();
+        let db_conn = mock_db_connection();
+
+        let arc_conn = Arc::new(db_conn);
+        let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
+        //Get worker infos
+        let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
+        let job_service = Arc::new(JobService::new(arc_conn.clone()));
+        let mut all_workers = worker_service.clone().get_active().await;
+        all_workers.push(mock_worker("worker_id"));
+
+        // Keep the list of node and gateway
+        let provider_storage = Arc::new(ProviderStorage::default());
+        log::debug!("Init with {:?} workers", all_workers.len());
+        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+        // Keep the list of assignment Job
+        let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
+        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+
+        let job_generator = JobGenerator::new(
+            arc_conn.clone(),
+            plan_service.clone(),
+            provider_storage.clone(),
+            worker_infos.clone(),
+            job_service.clone(),
+            assigment_buffer.clone(),
+            result_cache.clone(),
+        );
+        let assignment = job_generator.regular.get_assignment();
+        task::spawn(async move { job_generator.run().await });
+
+        sleep(Duration::from_secs(1)).await;
+        // Check Node
+        let com_type = ComponentType::Gateway;
+        let com_1 = mock_component_info("com_1", &ChainTypeForTest::Eth, &com_type);
+        let com_2 = mock_component_info("com_2", &ChainTypeForTest::Dot, &com_type);
+
+        let plan_model = PlanModel {
+            id: 0,
+            plan_id: "".to_string(),
+            provider_id: "".to_string(),
+            request_time: 0,
+            finish_time: None,
+            result: None,
+            message: None,
+            status: "".to_string(),
+            phase: "".to_string(),
+            expiry_time: 0,
+        };
+        provider_storage
+            .update_components_list(com_type, vec![com_1.clone(), com_2.clone()])
+            .await;
+        let now = Instant::now();
+
+        // Todo: get config for checking
+        let expect_job_names: CountItems<String> = CountItems::new(vec![
+            "RoundTripTime".to_string(),
+            "RoundTripTime".to_string(),
+        ]);
+        let expect_len = expect_job_names.sum_len();
+        let mut job_names = CountItems::new(vec![]);
+        loop {
+            if now.elapsed().as_secs() > TEST_TIMEOUT {
+                return Err(anyhow!("Test Timeout"));
+            }
+
+            {
+                let lock = assignment.lock().await;
+                info!("assigment_buffer: {:#?}", lock);
+
+                for job_assign in lock.list_assignments.iter() {
+                    job_names.add_item(job_assign.job.job_name.to_string());
+                    info!("job_names: {:?}", job_names);
+                }
+                if job_names.sum_len() == expect_len {
+                    println!("assigment_buffer: {:#?}", lock);
+                    break;
+                }
+            }
+            sleep(Duration::from_secs(1)).await;
+        }
+        assert_eq!(expect_job_names, job_names);
+
+        Ok(())
     }
 }

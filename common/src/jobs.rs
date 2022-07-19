@@ -44,7 +44,7 @@ pub struct Job {
     pub repeat_number: i32,  //0-don't repeat
     pub interval: Timestamp, //
     pub header: HashMap<String, String>,
-    pub job_detail: Option<JobDetail>,
+    pub job_detail: JobDetail,
     pub phase: JobRole,
 }
 
@@ -85,7 +85,7 @@ impl Job {
             timeout: DEFAULT_JOB_TIMEOUT,
             interval: DEFAULT_JOB_INTERVAL,
             header: Default::default(),
-            job_detail: Some(job_detail),
+            job_detail,
             parallelable: false,
             component_url: "".to_string(),
             phase,

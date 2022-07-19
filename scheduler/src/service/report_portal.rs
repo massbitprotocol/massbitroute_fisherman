@@ -1,6 +1,6 @@
-
+use crate::URL_PORTAL_PROVIDER_REPORT;
 use anyhow::{anyhow, Error};
-use common::component::{ComponentType};
+use common::component::ComponentType;
 use common::job_manage::JobRole;
 use common::{ComponentId, Deserialize, Serialize};
 use log::debug;
@@ -80,26 +80,11 @@ impl StoreReport {
         Ok(serde_json::to_string(&self)?)
     }
 
-    // fn get_url(&self, job_role: &JobRole) -> String {
-    //     match job_role {
-    //         JobRole::Verification => {
-    //             format!(
-    //                 "https://portal.{}/mbr/verify/{}",
-    //                 self.domain, self.provider_id
-    //             )
-    //         }
-    //         JobRole::Regular => {
-    //             format!(
-    //                 "https://portal.{}/mbr/benchmark/{}",
-    //                 self.domain, self.provider_id
-    //             )
-    //         }
-    //     }
-    // }
     fn get_url(&self) -> String {
         format!(
-            "https://portal.{}/mbr/benchmark/{}",
-            self.domain, self.provider_id
+            "{}/{}",
+            URL_PORTAL_PROVIDER_REPORT.as_str(),
+            self.provider_id
         )
     }
 

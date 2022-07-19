@@ -1,23 +1,38 @@
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
-use crate::tasks::ping::generator::PingConfig;
+
 use anyhow::anyhow;
 use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
-use common::jobs::JobResult;
+use common::jobs::{AssignmentConfig, JobResult};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpResponseDetail, JobHttpResult};
 use common::tasks::LoadConfig;
 use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;
-use log::debug;
+use log::{debug, trace};
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::default::Default;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+pub struct PingConfig {
+    pub ping_success_percent_threshold: f64, //
+    pub ping_percentile: f64,
+    pub ping_response_time_threshold: u64,
+    pub repeat_number: i32,
+    pub ping_request_response: String,
+    pub ping_timeout_ms: Timestamp,
+    pub ping_number_for_decide: i32,
+    pub assignment: Option<AssignmentConfig>,
+}
+
+impl LoadConfig<PingConfig> for PingConfig {}
 
 #[derive(Debug, Default)]
 pub struct HttpPingResultCache {
@@ -34,7 +49,7 @@ impl JudRoundTripTimeDatas {
         JudRoundTripTimeDatas { inner: vec![] }
     }
     fn get_success_percent(&self) -> f64 {
-        let success_count = self.iter().filter(|&n| n.success == true).count() as f64;
+        let success_count = self.iter().filter(|&data| data.success).count() as f64;
         success_count * 100.0 / (self.len() as f64)
     }
 }
@@ -80,13 +95,14 @@ impl HttpPingResultCache {
             if let JobResultDetail::HttpRequest(JobHttpResult { response, .. }) = &res.result_detail
             {
                 let mut data = JudRoundTripTimeData::new_false(res.receive_timestamp);
+                trace!("append_results response: {:?}", response);
                 if let JobHttpResponseDetail::Body(val) = &response.detail {
                     if let Ok(response_duration) = val.parse::<Timestamp>() {
                         // Change unit of RTT response from us -> ms
                         let response_duration = response_duration / 1000;
 
                         data = JudRoundTripTimeData {
-                            response_duration: response_duration,
+                            response_duration,
                             receive_timestamp: res.receive_timestamp,
                             success: true,
                         };
@@ -136,6 +152,10 @@ impl HttpPingJudgment {
         }
     }
     pub fn get_judgment_thresholds(&self, phase: &JobRole) -> Map<String, Value> {
+        trace!(
+            "get_judgment_thresholds task_configs: {:#?}",
+            self.task_configs
+        );
         self.task_configs
             .iter()
             .filter(|config| {
@@ -186,6 +206,11 @@ impl ReportCheck for HttpPingJudgment {
 
         // Get threshold from config
         let thresholds = self.get_judgment_thresholds(&phase);
+        trace!(
+            "apply_for_results thresholds phase {}: {:?}",
+            phase.to_string(),
+            thresholds
+        );
         let number_for_decide =
             Self::get_threshold_value(&thresholds, &String::from("number_for_decide"))?;
         let success_percent =
@@ -199,7 +224,7 @@ impl ReportCheck for HttpPingJudgment {
         return if response_durations.len() < number_for_decide as usize {
             Ok(JudgmentsResult::Unfinished)
         } else if response_durations.get_success_percent() < success_percent as f64 {
-            Ok(JudgmentsResult::Error)
+            Ok(JudgmentsResult::Failed)
         } else {
             let mut histogram = Histogram::new();
             for val in response_durations.iter() {

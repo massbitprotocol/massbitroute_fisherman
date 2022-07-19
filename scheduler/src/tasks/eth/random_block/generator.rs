@@ -1,4 +1,4 @@
-use crate::models::jobs::AssignmentBuffer;
+use crate::models::jobs::JobAssignmentBuffer;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::Error;
 use common::component::ComponentInfo;
@@ -39,7 +39,7 @@ impl TaskApplicant for TaskRandomBlock {
         _node: &Node,
         _phase: JobRole,
         _workers: &MatchedWorkers,
-    ) -> Result<AssignmentBuffer, Error> {
-        Ok(AssignmentBuffer::default())
+    ) -> Result<JobAssignmentBuffer, Error> {
+        Ok(JobAssignmentBuffer::default())
     }
 }

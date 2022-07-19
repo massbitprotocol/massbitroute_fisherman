@@ -1,6 +1,7 @@
 use anyhow::Error;
 use bytesize::ByteSize;
 use log::info;
+use std::collections::HashMap;
 use std::process::Command;
 use std::time::Duration;
 
@@ -11,68 +12,69 @@ use std::time::Duration;
 // }
 
 impl WrkBenchmark {
-    pub fn build(
-        thread: u32,
-        connection: u32,
-        duration: String,
-        rate: u32,
-        dapi_url: String,
-        token: String,
-        host: String,
-        script: String,
-        wrk_path: String,
-        current_dir: String,
-        latency_threshold_ms: f32,
-    ) -> Self {
+    pub fn new(script: String, wrk_path: String, current_dir: String) -> Self {
         WrkBenchmark {
-            thread,
-            connection,
-            duration,
-            rate,
-            dapi_url,
-            token,
-            host,
             script,
             wrk_path,
             current_dir,
-            _latency_threshold_ms: latency_threshold_ms,
         }
     }
     pub fn run(
         &mut self,
-        provider_type: &String,
-        path: &String,
-        chain_type: &String,
+        thread: u32,
+        connection: u32,
+        duration: String,
+        rate: u32,
+        timeout: Option<u32>,
+        url: String,
+        body: Option<String>,
+        method: &str,
+        headers: &HashMap<String, String>,
     ) -> Result<String, Error> {
-        info!("current_dir: {}", self.current_dir);
-        info!("wrk_path: {}", self.wrk_path);
-        info!("script: {}", self.script);
-        info!("dapi_url: {}", self.dapi_url);
-        info!("path: {}", path);
-        let output = Command::new(&self.wrk_path)
+        println!("current_dir: {}", self.current_dir);
+        println!("wrk_path: {}", self.wrk_path);
+        println!("script: {}", self.script);
+        println!("url: {}", url);
+        println!("headers: {:?}", headers);
+        println!("duration: {:?}", duration);
+        println!("thread: {:?}", thread);
+        println!("connection: {:?}", connection);
+        println!("rate: {:?}", rate);
+        println!("body: {:?}", body);
+        println!("method: {:?}", method);
+
+        let mut org_cmd = Command::new(&self.wrk_path);
+        let mut cmd = org_cmd
             .current_dir(&self.current_dir)
-            .arg(format!("--latency"))
-            .arg(format!("-t{}", self.thread))
-            .arg(format!("-c{}", self.connection))
-            .arg(format!("-d{}", self.duration))
-            .arg(format!("-R{}", self.rate))
+            .arg(format!("--latency"));
+        if let Some(timeout) = timeout {
+            cmd = cmd.arg(format!("--timeout")).arg(format!("{}", timeout));
+        }
+        for (key, value) in headers {
+            cmd = cmd.arg(format!("-H")).arg(format!("{}: {}", key, value));
+        }
+
+        let output = cmd
+            .arg(format!("-t{}", thread))
+            .arg(format!("-c{}", connection))
+            .arg(format!("-d{}", duration))
+            .arg(format!("-R{}", rate))
             .arg(format!("-s"))
             .arg(format!("{}", self.script))
-            .arg(format!("{}", self.dapi_url))
+            .arg(format!("{}", url))
             .arg(format!("--"))
-            .arg(format!("{}", self.token))
-            .arg(format!("{}", self.host))
-            .arg(format!("{}", provider_type))
-            .arg(format!("{}", path))
-            .arg(format!("{}", chain_type))
+            .arg(format!("--method"))
+            .arg(method.to_uppercase().to_string())
+            .arg(format!("--body"))
+            .arg(body.unwrap_or_default())
             .output()
             .expect("failed to execute process");
         let status = output.status;
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr);
-        info!("status: {}", status);
-        info!("stdout: {}", stdout);
-        info!("stderr: {}", stderr);
+        println!("status: {}", status);
+        println!("stdout: {}", stdout);
+        println!("stderr: {}", stderr);
 
         Ok(stdout)
         //         let stdout = "thread addr: 34.142.136.135:443
@@ -197,17 +199,17 @@ impl WrkBenchmark {
     //         .captures(text)
     //         .ok_or(Error::msg("Cannot capture latency table"))?;
     //     let table = caps.name("table").unwrap().as_str();
-    //     //info!("table:{}", table);
+    //     //println!("table:{}", table);
     //
     //     let sorted_table: Vec<DetailedPercentileSpectrum> = table
     //         .split("\n")
     //         .filter_map(|line| {
-    //             //info!("s:{}", line);
+    //             //println!("s:{}", line);
     //             let arr = line
     //                 .split_whitespace()
     //                 .map(|value| value.to_string())
     //                 .collect::<Vec<String>>();
-    //             //info!("arr:{:?}", arr);
+    //             //println!("arr:{:?}", arr);
     //             if arr.len() == 4 {
     //                 Some(DetailedPercentileSpectrum {
     //                     latency: arr[0].parse::<f32>().unwrap_or(f32::MAX),
@@ -251,10 +253,10 @@ impl WrkBenchmark {
     // }
 
     // fn get_report(&self, stdout: &String, _percent_pass_latency: f32) -> Result<WrkReport, Error> {
-    //     //info!("{}", stdout);
+    //     //println!("{}", stdout);
     //     // Get percent_low_latency
     //     let sorted_table = self.get_latency_table(stdout)?;
-    //     //info!("vec table:{:?}", sorted_table);
+    //     //println!("vec table:{:?}", sorted_table);
     //     let percent_low_latency = self.get_percent_latency(&sorted_table);
     //     let histogram_90 = Self::get_latency_by_percent(0.90f32, &sorted_table)?;
     //     let histogram_95 = Self::get_latency_by_percent(0.95f32, &sorted_table)?;
@@ -319,7 +321,7 @@ impl WrkBenchmark {
     //         .map(|s| s.to_string())
     //         .collect();
     //
-    //     //info!("arr: {:?}", arr);
+    //     //println!("arr: {:?}", arr);
     //     let latency = ValueMetric::<Duration> {
     //         avg: Self::parse_string_duration(&arr[0]),
     //         stdev: Self::parse_string_duration(&arr[1]),
@@ -378,17 +380,9 @@ impl WrkBenchmark {
 
 #[derive(Default)]
 pub struct WrkBenchmark {
-    thread: u32,
-    connection: u32,
-    duration: String,
-    rate: u32,
-    dapi_url: String,
-    token: String,
-    host: String,
     script: String,
     wrk_path: String,
     current_dir: String,
-    _latency_threshold_ms: f32,
 }
 
 #[derive(Default)]

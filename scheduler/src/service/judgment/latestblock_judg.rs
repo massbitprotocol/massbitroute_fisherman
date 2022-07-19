@@ -41,7 +41,8 @@ impl ReportCheck for LatestBlockJudgment {
         String::from("LatestBlock")
     }
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
-        return task.task_name.as_str() == "LatestBlock";
+        return task.task_name.as_str() == "LatestBlock"
+            && task.task_type.as_str() == "LatestBlock";
     }
 
     async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {

@@ -19,17 +19,6 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-// #[derive(Clone, Default)]
-// pub struct PlanEntityWithExpiry {
-//     pub plan: PlanEntity,
-//     pub expiry_time: i64,
-// }
-//
-// impl PlanEntityWithExpiry {
-//     pub fn new(plan: PlanEntity, expiry_time: i64) -> PlanEntityWithExpiry {
-//         Self { plan, expiry_time }
-//     }
-// }
 #[derive(Default)]
 pub struct VerificationReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
@@ -192,50 +181,7 @@ impl VerificationReportProcessor {
                     .collect::<HashMap<ComponentId, PlanEntity>>()
             })
     }
-    /*
-    pub async fn get_active_plans(
-        &self,
-        plan_ids: &HashSet<ComponentId>,
-    ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
-        let current_time = get_current_time();
-        let mut result = HashMap::new();
-        let mut missing_plan = HashSet::<ComponentId>::new();
-        {
-            let mut active_plan_cache = self.active_plans.lock().unwrap();
-            let mut expired_plan = HashSet::<ComponentId>::new();
-            for provider_id in providers {
-                if let Some(plan_entity) = active_plan_cache.get(provider_id) {
-                    if plan_entity.expiry_time < current_time {
-                        //Cached plan expired. Remove it from cache and reload from database
-                        missing_plan.insert(provider_id.clone());
-                        expired_plan.insert(plan_entity.plan_id.clone());
-                    } else {
-                        result.insert(provider_id.clone(), plan_entity.clone());
-                    }
-                } else {
-                    missing_plan.insert(provider_id.clone());
-                }
-            }
-            debug!("Expired plans {:?}", &expired_plan);
-            for expired_id in expired_plan {
-                active_plan_cache.remove(&expired_id);
-            }
-        }
-        //Load active plan from database if missing
-        if missing_plan.len() > 0 {
-            debug!("Load missing plans {:?} from database", &missing_plan);
-            if let Ok(plans) = self.load_missing_plans(&missing_plan).await {
-                let mut active_plan_cache = self.active_plans.lock().unwrap();
-                for (provider_id, plan) in plans {
-                    result.insert(provider_id.clone(), plan.clone());
-                    active_plan_cache.insert(provider_id, plan);
-                }
-            }
-        }
 
-        Ok(result)
-    }
-     */
     pub async fn load_missing_plans(
         &self,
         providers: &HashSet<ComponentId>,
@@ -319,94 +265,4 @@ impl VerificationReportProcessor {
             _ => {}
         }
     }
-    /*
-    pub async fn judg_plans(&self, plan_ids: Vec<PlanId>) {
-        if let (Ok(plans), Ok(all_jobs)) = (
-            self.plan_service.get_plan_by_ids(&plan_ids).await,
-            self.job_service.get_job_by_plan_ids(&plan_ids).await,
-        ) {
-            info!(
-                "get_job_by_plan_ids {} plan_service: {:?}, {} all_jobs: {:?}",
-                plans.len(),
-                plans,
-                all_jobs.len(),
-                all_jobs
-            );
-            let mut map_plan_jobs = HashMap::<String, Vec<Job>>::new();
-            for job in all_jobs.into_iter() {
-                let mut jobs = map_plan_jobs.entry(job.plan_id.clone()).or_insert(vec![]);
-                jobs.push(job);
-            }
-            for plan in plans.iter() {
-                if let Some(jobs) = map_plan_jobs.get(&plan.plan_id) {
-                    let mut plan_result = JudgmentsResult::Pass;
-                    let component_type = match jobs.first() {
-                        None => Default::default(),
-                        Some(job) => job.component_type.clone(),
-                    };
-
-                    for job in jobs {
-                        let job_result = self
-                            .judgment
-                            .apply(plan, job)
-                            .await
-                            .unwrap_or(JudgmentsResult::Failed);
-                        info!(
-                            "job_result :{:?}, plan: {:?},job: {:?}",
-                            job_result, plan, job
-                        );
-                        match job_result {
-                            JudgmentsResult::Pass => {}
-                            JudgmentsResult::Failed | JudgmentsResult::Error => {
-                                plan_result = job_result;
-                                break;
-                            }
-                            JudgmentsResult::Unfinished => {
-                                plan_result = JudgmentsResult::Unfinished;
-                                break;
-                            }
-                        }
-                    }
-                    info!("Plan_result :{:?}", plan_result);
-                    match plan_result {
-                        JudgmentsResult::Pass
-                        | JudgmentsResult::Failed
-                        | JudgmentsResult::Error => {
-                            let plan_phase = JobRole::from_str(&*plan.phase).unwrap_or_default();
-                            //Todo: move StoreReport to processor Service member
-                            // call portal for report result
-                            if JobRole::Verification == plan_phase
-                                || plan_result == JudgmentsResult::Failed
-                                || plan_result == JudgmentsResult::Error
-                            {
-                                let mut report = StoreReport::build(
-                                    &"Scheduler".to_string(),
-                                    &plan_phase,
-                                    &*PORTAL_AUTHORIZATION,
-                                    &DOMAIN,
-                                );
-
-                                let is_data_correct = plan_result.is_pass();
-                                report.set_report_data_short(
-                                    is_data_correct,
-                                    &plan.provider_id,
-                                    &component_type,
-                                );
-                                debug!("Send plan report to portal:{:?}", report);
-                                if !CONFIG.is_test_mode {
-                                    let res = report.send_data().await;
-                                    info!("Send report to portal res: {:?}", res);
-                                } else {
-                                    let res = report.write_data();
-                                    info!("Write report to file res: {:?}", res);
-                                }
-                            }
-                        }
-                        JudgmentsResult::Unfinished => {}
-                    }
-                }
-            }
-        }
-    }
-    */
 }

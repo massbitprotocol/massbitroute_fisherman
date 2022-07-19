@@ -55,20 +55,10 @@ impl BenchmarkExecutor {
     pub async fn call_benchmark(&self, job: &Job) -> Result<BenchmarkResponse, CallBenchmarkError> {
         let Job {
             component_url,
-            header,
             job_detail,
             ..
         } = job;
-        let job_detail = job_detail
-            .clone()
-            .ok_or(CallBenchmarkError::GetJobInfoError(
-                "No job detail".to_string(),
-            ))?;
-        let host = header.get("host").unwrap_or(&"".to_string()).to_string();
-        let token = header
-            .get("x-api-key")
-            .unwrap_or(&Default::default())
-            .to_string();
+        let job_detail = job_detail.clone();
         match job_detail {
             JobDetail::Benchmark(job_detail) => {
                 let JobBenchmark {
@@ -76,28 +66,35 @@ impl BenchmarkExecutor {
                     connection,
                     duration,
                     rate,
+                    timeout,
                     script,
                     chain_type,
                     component_type,
                     histograms,
                     url_path,
+                    headers,
+                    method,
+                    body,
                 } = job_detail;
                 let duration = format!("{}s", duration / 1000i64);
-                let mut benchmark = WrkBenchmark::build(
-                    thread,
-                    connection,
-                    duration,
-                    rate,
-                    component_url.to_string(),
-                    token.clone(),
-                    host.clone(),
+                let mut benchmark = WrkBenchmark::new(
                     script,
                     WRK_NAME.to_string(),
                     self.benchmark_wrk_path.clone(),
-                    Default::default(),
                 );
 
-                let stdout = benchmark.run(&component_type.to_string(), &url_path, &chain_type);
+                //let stdout = benchmark.run(&component_type.to_string(), &url_path, &chain_type);
+                let stdout = benchmark.run(
+                    thread,
+                    connection,
+                    duration.to_string(),
+                    rate,
+                    timeout,
+                    url_path.to_string(),
+                    body.map(|body| body.to_string()),
+                    &method,
+                    &headers,
+                );
                 if let Ok(stdout) = stdout {
                     return self
                         .get_result(&stdout, &histograms)
@@ -237,7 +234,7 @@ impl BenchmarkExecutor {
 impl TaskExecutor for BenchmarkExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         debug!("TaskBenchmark execute for job {:?}", &job);
-        if let Some(JobDetail::Benchmark(job_detail)) = &job.job_detail {
+        if let JobDetail::Benchmark(job_detail) = &job.job_detail {
             let res = self.call_benchmark(job).await;
             let response = match res {
                 Ok(res) => res,
@@ -267,8 +264,8 @@ impl TaskExecutor for BenchmarkExecutor {
         }
     }
     fn can_apply(&self, job: &Job) -> bool {
-        return match job.job_detail.as_ref() {
-            Some(JobDetail::Benchmark(_)) => true,
+        return match job.job_detail {
+            JobDetail::Benchmark(_) => true,
             _ => false,
         };
     }
