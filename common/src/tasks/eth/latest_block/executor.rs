@@ -48,7 +48,7 @@ impl LatestBlockExecutor {
             .post(job.component_url.as_str())
             .timeout(Duration::from_millis(job.timeout as u64));
         // Add header
-        for (key, value) in job.header.iter() {
+        for (key, value) in job_detail.header.iter() {
             builder = builder.header(key, value);
         }
 

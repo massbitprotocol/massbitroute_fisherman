@@ -16,7 +16,7 @@ mod test {
         let dapi_url = "https://34.101.146.31";
         let script = "scripts/benchmark/massbit.lua";
         let wrk_path = "scripts/benchmark/wrk";
-        let wrk_dir = "./";
+        let wrk_dir = "../";
         let body = r###"{"id": "blockNumber", "jsonrpc": "2.0", "method": "eth_getBlockByNumber", "params": ["latest", false]}"###;
         let method = "POST";
         let header = HashMap::from([

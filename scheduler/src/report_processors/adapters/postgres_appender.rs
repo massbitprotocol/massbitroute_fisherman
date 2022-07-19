@@ -6,7 +6,6 @@ use crate::report_processors::adapters::Appender;
 use async_trait::async_trait;
 use common::job_manage::{JobBenchmarkResult, JobResultDetail};
 use common::jobs::JobResult;
-use common::tasks::eth::JobLatestBlockResult;
 
 use log::debug;
 
@@ -56,7 +55,7 @@ impl Appender for PostgresAppender {
     async fn append_job_results(&self, reports: &Vec<JobResult>) -> Result<(), anyhow::Error> {
         let mut ping_results = Vec::new();
         let mut benchmark_results: Vec<JobBenchmarkResult> = Vec::new();
-        let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
+        // let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
         let _stored_results = Vec::<StoredJobResult>::new();
         let mut http_request_results: Vec<JobResult> = Vec::new();
         for report in reports {
@@ -64,9 +63,9 @@ impl Appender for PostgresAppender {
                 JobResultDetail::Ping(result) => {
                     ping_results.push(result.clone());
                 }
-                JobResultDetail::LatestBlock(result) => {
-                    latest_block_results.push(result.clone());
-                }
+                // JobResultDetail::LatestBlock(result) => {
+                //     latest_block_results.push(result.clone());
+                // }
                 JobResultDetail::Benchmark(result) => {
                     benchmark_results.push(result.clone());
                 }
@@ -84,12 +83,12 @@ impl Appender for PostgresAppender {
                 .save_result_pings(&ping_results)
                 .await;
         }
-        if latest_block_results.len() > 0 {
-            let _res = self
-                .job_result_service
-                .save_result_latest_blocks(&latest_block_results)
-                .await;
-        }
+        // if latest_block_results.len() > 0 {
+        //     let _res = self
+        //         .job_result_service
+        //         .save_result_latest_blocks(&latest_block_results)
+        //         .await;
+        // }
         if benchmark_results.len() > 0 {
             let _res = self
                 .job_result_service

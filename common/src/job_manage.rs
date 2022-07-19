@@ -8,7 +8,7 @@ use crate::component::ComponentType;
 use crate::jobs::Job;
 use crate::tasks::command::{JobCommand, JobCommandResult};
 use crate::tasks::compound::JobCompound;
-use crate::tasks::eth::{CallBenchmarkError, JobLatestBlock, JobLatestBlockResult};
+use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::http_request::{JobHttpRequest, JobHttpResult};
 use crate::tasks::ping::JobPingResult;
 use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResult};
@@ -106,7 +106,7 @@ pub enum JobDetail {
     Compound(JobCompound),
     // perform ping check
     Ping(JobPing),
-    LatestBlock(JobLatestBlock),
+    //LatestBlock(JobLatestBlock),
     // perform benchmark checking
     Benchmark(JobBenchmark),
 }
@@ -126,7 +126,7 @@ impl JobDetail {
             JobDetail::Websocket(_) => "Websocket".to_string(),
             JobDetail::Compound(_) => "Compound".to_string(),
             JobDetail::Ping(_) => "Ping".to_string(),
-            JobDetail::LatestBlock(_) => "LatestBlock".to_string(),
+            //JobDetail::LatestBlock(_) => "LatestBlock".to_string(),
             JobDetail::Benchmark(_) => "Benchmark".to_string(),
         }
     }
@@ -140,7 +140,7 @@ pub enum JobResultDetail {
     Command(JobCommandResult),
     // perform ping check
     Ping(JobPingResult),
-    LatestBlock(JobLatestBlockResult),
+    //LatestBlock(JobLatestBlockResult),
     // perform benchmark checking
     Benchmark(JobBenchmarkResult),
     // Perform some request to node/gateway
@@ -237,7 +237,7 @@ impl JobResultDetail {
             JobResultDetail::RpcRequest(_) => "RpcRequest".to_string(),
             JobResultDetail::Command(_) => "Command".to_string(),
             JobResultDetail::Ping(_) => "Ping".to_string(),
-            JobResultDetail::LatestBlock(_) => "LatestBlock".to_string(),
+            //JobResultDetail::LatestBlock(_) => "LatestBlock".to_string(),
             JobResultDetail::Benchmark(_) => "Benchmark".to_string(),
             JobResultDetail::Compound(_) => "Compound".to_string(),
             JobResultDetail::Websocket(_) => "Websocket".to_string(),
