@@ -12,6 +12,7 @@ use crate::CONFIG;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
+use common::tasks::TaskConfigTrait;
 use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};

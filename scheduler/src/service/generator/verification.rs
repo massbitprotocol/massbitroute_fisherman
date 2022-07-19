@@ -15,7 +15,7 @@ use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::Job;
 
-use common::tasks::LoadConfig;
+use common::tasks::{LoadConfig, TaskConfigTrait};
 use common::util::{get_current_time, warning_if_error};
 use common::workers::MatchedWorkers;
 use common::Timestamp;
@@ -28,6 +28,7 @@ use std::collections::HashSet;
 
 use std::sync::Arc;
 
+use crate::tasks::benchmark::generator::BenchmarkConfig;
 use tokio::sync::Mutex;
 
 #[derive(Default)]
@@ -226,6 +227,7 @@ impl VerificationJobGenerator {
                     if applied_jobs.jobs.len() > 0 {
                         assignment_buffer.append(applied_jobs);
                     }
+                } else {
                 }
             } else {
                 waiting_task.add_task(task.clone());

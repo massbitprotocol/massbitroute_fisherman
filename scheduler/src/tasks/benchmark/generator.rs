@@ -5,34 +5,55 @@
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::TaskDependency;
 use crate::tasks::generator::TaskApplicant;
-use anyhow::anyhow;
-use common::component::{ComponentInfo, ComponentType};
+use anyhow::{anyhow, Error};
+use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
-use common::jobs::{AssignmentConfig, Job};
-use common::tasks::{LoadConfig, TemplateRender};
+use common::jobs::{AssignmentConfig, Job, JobAssignment};
+use common::tasks::{LoadConfig, LoadConfigs, TaskConfigTrait, TemplateRender};
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
+use entity::plans::Model;
 use handlebars::Handlebars;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Clone, Debug, Default)]
 pub struct BenchmarkGenerator {
-    config: BenchmarkConfig,
+    configs: Vec<BenchmarkConfig>,
     handlebars: Handlebars<'static>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct BenchmarkConfig {
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub active: bool,
+    #[serde(default)]
+    pub phases: Vec<String>,
+    #[serde(default)]
+    pub provider_types: Vec<String>,
+    #[serde(default)]
+    pub blockchains: Vec<String>,
+    #[serde(default)]
+    pub networks: Vec<String>,
+    #[serde(default)]
     benchmark_thread: u32,
+    #[serde(default)]
     benchmark_connection: u32,
+    #[serde(default)]
     benchmark_duration: Timestamp,
+    #[serde(default)]
     benchmark_rate: u32,
     #[serde(default)]
     timeout: Option<u32>,
+    #[serde(default)]
     script: String,
+    #[serde(default)]
     histograms: Vec<u32>,
+    #[serde(default)]
     url_template: String,
     #[serde(default)]
     pub http_method: String,
@@ -44,19 +65,83 @@ pub struct BenchmarkConfig {
     pub dependencies: Option<HashMap<String, Vec<String>>>,
 }
 
+impl TaskConfigTrait for BenchmarkConfig {
+    fn match_phase(&self, phase: &JobRole) -> bool {
+        self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
+    }
+    fn match_blockchain(&self, blockchain: &String) -> bool {
+        let blockchain = blockchain.to_lowercase();
+        if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
+        {
+            log::trace!(
+                "Blockchain {:?} not match with {:?}",
+                &blockchain,
+                &self.blockchains
+            );
+            return false;
+        }
+        true
+    }
+    fn match_network(&self, network: &String) -> bool {
+        let network = network.to_lowercase();
+        if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
+            log::trace!(
+                "Networks {:?} not match with {:?}",
+                &network,
+                &self.networks
+            );
+            return false;
+        }
+        true
+    }
+    fn match_provider_type(&self, provider_type: &String) -> bool {
+        let provider_type = provider_type.to_lowercase();
+        if !self.provider_types.contains(&String::from("*"))
+            && !self.provider_types.contains(&provider_type)
+        {
+            log::trace!(
+                "Provider type {:?} not match with {:?}",
+                &provider_type,
+                &self.networks
+            );
+            return false;
+        }
+        true
+    }
+    fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
+        if !self.active {
+            return false;
+        }
+        // Check phase
+        if !self.match_phase(phase) {
+            return false;
+        }
+        if !self.match_provider_type(&provider.component_type.to_string()) {
+            return false;
+        }
+        if !self.match_blockchain(&provider.blockchain) {
+            return false;
+        }
+        if !self.match_network(&provider.network) {
+            return false;
+        }
+        true
+    }
+}
 impl TemplateRender for BenchmarkConfig {}
-impl LoadConfig<BenchmarkConfig> for BenchmarkConfig {}
+
+impl LoadConfigs<BenchmarkConfig> for BenchmarkConfig {}
 
 impl BenchmarkGenerator {
     pub fn get_name() -> String {
         String::from("Benchmark")
     }
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
-        let config: BenchmarkConfig =
-            BenchmarkConfig::load_config(format!("{}/benchmark.json", config_dir).as_str(), role);
-        log::debug!("Benchmark config {:?}", &config);
+        let configs: Vec<BenchmarkConfig> =
+            BenchmarkConfig::read_configs(format!("{}/benchmark.json", config_dir).as_str(), role);
+        log::debug!("Benchmark config {:?}", &configs);
         BenchmarkGenerator {
-            config,
+            configs,
             handlebars: Handlebars::new(),
         }
     }
@@ -70,23 +155,73 @@ impl BenchmarkGenerator {
         };
         context
     }
-    pub fn get_url(&self, component: &ComponentInfo) -> Result<String, anyhow::Error> {
-        let context = Self::create_context(component);
-        self.handlebars
-            .render_template(self.config.url_template.as_str(), &context)
-            .map_err(|err| anyhow!("{}", err))
+    pub fn generate_job(
+        &self,
+        plan_id: &PlanId,
+        component: &ComponentInfo,
+        phase: JobRole,
+        config: &BenchmarkConfig,
+        context: &Value,
+    ) -> Result<Job, anyhow::Error> {
+        BenchmarkConfig::generate_url(config.url_template.as_str(), &self.handlebars, context).map(
+            |job_url| {
+                let headers =
+                    BenchmarkConfig::generate_header(&config.headers, &self.handlebars, &context);
+                let body =
+                    BenchmarkConfig::generate_body(&config.body, &self.handlebars, &context).ok();
+                let job_benchmark = JobBenchmark {
+                    component_type: component.component_type.clone(),
+                    chain_type: component.blockchain.clone(),
+                    connection: config.benchmark_connection,
+                    thread: config.benchmark_thread,
+                    rate: config.benchmark_rate,
+                    timeout: config.timeout,
+                    duration: config.benchmark_duration,
+                    script: config.script.clone(),
+                    histograms: config.histograms.clone(),
+                    url_path: job_url.clone(),
+                    method: config.http_method.clone(),
+                    headers,
+                    body,
+                };
+                let mut job = Job::new(
+                    plan_id.clone(),
+                    Self::get_name(),
+                    config.name.clone(),
+                    component,
+                    JobDetail::Benchmark(job_benchmark),
+                    phase,
+                );
+                job.parallelable = false;
+                job.component_url = job_url;
+                job.timeout = config.timeout.unwrap_or_default() as Timestamp;
+                job.repeat_number = 0;
+                job.interval = 0;
+                job
+            },
+        )
     }
 }
 impl TaskApplicant for BenchmarkGenerator {
     fn get_name(&self) -> String {
         String::from("Benchmark")
     }
+    //Fixme: Improve task dependency
     fn get_task_dependencies(&self) -> TaskDependency {
-        self.config
-            .dependencies
-            .as_ref()
-            .map(|dep| dep.clone())
-            .unwrap_or_default()
+        let mut task_dependencies = TaskDependency::default();
+        for config in self.configs.iter() {
+            if let Some(dependencies) = config.dependencies.as_ref() {
+                for (key, values) in dependencies {
+                    let hash_set = task_dependencies
+                        .entry(key.clone())
+                        .or_insert(HashSet::default());
+                    for value in values {
+                        hash_set.insert(value.clone());
+                    }
+                }
+            }
+        }
+        task_dependencies
     }
     fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
@@ -98,50 +233,36 @@ impl TaskApplicant for BenchmarkGenerator {
         phase: JobRole,
         workers: &MatchedWorkers,
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
+        let mut assignment_buffer = JobAssignmentBuffer::default();
         log::debug!("Task benchmark apply for component {:?}", component);
         log::debug!("Workers {:?}", workers);
         let context = Self::create_context(component);
-        let job_url = self.get_url(component)?;
-        let headers =
-            BenchmarkConfig::generate_header(&self.config.headers, &self.handlebars, &context);
-        let body =
-            BenchmarkConfig::generate_body(&self.config.body, &self.handlebars, &context).ok();
-        let job_benchmark = JobBenchmark {
-            component_type: component.component_type.clone(),
-            chain_type: component.blockchain.clone(),
-            connection: self.config.benchmark_connection,
-            thread: self.config.benchmark_thread,
-            rate: self.config.benchmark_rate,
-            timeout: self.config.timeout,
-            duration: self.config.benchmark_duration,
-            script: self.config.script.clone(),
-            histograms: self.config.histograms.clone(),
-            url_path: job_url.clone(),
-            method: self.config.http_method.clone(),
-            headers,
-            body,
-        };
-
-        let job_detail = JobDetail::Benchmark(job_benchmark);
-        let mut job = Job::new(
-            plan_id.clone(),
-            Self::get_name(),
-            job_detail.get_job_name(),
+        log::debug!(
+            "Benchmark apply for component {:?} with context {:?}",
             component,
-            job_detail,
-            phase,
+            &context
         );
-        job.component_url = job_url;
-        job.header.insert(
-            "host".to_lowercase().to_string(),
-            component.get_host_header(&*DOMAIN),
+        for config in self.configs.iter().filter(|config| {
+            config.match_phase(&phase)
+                && config.match_blockchain(&component.blockchain)
+                && config.match_network(&component.network)
+                && config.match_provider_type(&component.component_type.to_string())
+        }) {
+            if !config.can_apply(component, &phase) {
+                debug!("Can not apply config {:?} for {:?}", config, component);
+                continue;
+            }
+            if let Ok(job) = self.generate_job(plan_id, component, phase.clone(), config, &context)
+            {
+                assignment_buffer.assign_job(job, workers, &config.assignment);
+            }
+        }
+        log::debug!(
+            "Generated {:?} jobs and {:?} assignments.",
+            &assignment_buffer.jobs.len(),
+            &assignment_buffer.list_assignments.len()
         );
-        job.header.insert(
-            "x-api-key".to_lowercase().to_string(),
-            component.token.clone(),
-        );
-        let mut assignment_buffer = JobAssignmentBuffer::default();
-        assignment_buffer.assign_job(job, workers, &self.config.assignment);
+
         Ok(assignment_buffer)
     }
 }

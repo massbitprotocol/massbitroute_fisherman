@@ -9,6 +9,7 @@ pub mod rpc_request;
 pub mod websocket_request;
 
 use crate::job_manage::JobRole;
+use crate::ComponentInfo;
 use anyhow::anyhow;
 use handlebars::Handlebars;
 use serde::de::DeserializeOwned;
@@ -161,8 +162,22 @@ pub trait LoadConfig<T: DeserializeOwned + Default + Debug> {
 }
 pub trait TaskConfigTrait {
     fn match_phase(&self, phase: &JobRole) -> bool;
+    fn match_blockchain(&self, blockchain: &String) -> bool;
+    fn match_network(&self, network: &String) -> bool;
+    fn match_provider_type(&self, provider_type: &String) -> bool;
+    fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool;
 }
 pub trait TemplateRender {
+    fn generate_url(
+        template: &str,
+        handlebars: &Handlebars,
+        context: &Value,
+    ) -> Result<String, anyhow::Error> {
+        // render without register
+        handlebars
+            .render_template(template, context)
+            .map_err(|err| anyhow!("{}", err))
+    }
     fn generate_header(
         templates: &Map<String, Value>,
         handlebars: &Handlebars,

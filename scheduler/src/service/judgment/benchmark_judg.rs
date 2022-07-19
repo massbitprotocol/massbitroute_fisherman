@@ -7,7 +7,7 @@ use async_trait::async_trait;
 use common::job_manage::{BenchmarkResponse, JobBenchmarkResult, JobResultDetail, JobRole};
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
-use common::tasks::LoadConfig;
+use common::tasks::{LoadConfig, LoadConfigs};
 use common::WorkerId;
 use log::debug;
 use std::collections::HashMap;
@@ -117,27 +117,27 @@ impl BenchmarkResultCache {
 #[derive(Debug)]
 pub struct BenchmarkJudgment {
     result_service: Arc<JobResultService>,
-    verification_config: BenchmarkConfig,
-    regular_config: BenchmarkConfig,
+    task_configs: Vec<BenchmarkConfig>,
     result_cache: BenchmarkResultCache,
 }
 
 impl BenchmarkJudgment {
     pub fn new(config_dir: &str, result_service: Arc<JobResultService>) -> Self {
-        let verification_config = BenchmarkConfig::load_config(
+        let task_configs: Vec<BenchmarkConfig> = BenchmarkConfig::read_configs(
             format!("{}/benchmark.json", config_dir).as_str(),
             &JobRole::Verification,
         );
-        let regular_config = BenchmarkConfig::load_config(
-            format!("{}/benchmark.json", config_dir).as_str(),
-            &JobRole::Regular,
-        );
         BenchmarkJudgment {
             result_service,
-            verification_config,
-            regular_config,
+            task_configs,
             result_cache: BenchmarkResultCache::default(),
         }
+    }
+    fn get_config(&self, task_name: &String) -> Option<&BenchmarkConfig> {
+        self.task_configs
+            .iter()
+            .filter(|config| config.name.as_str() == task_name.as_str())
+            .next()
     }
 }
 
@@ -204,31 +204,28 @@ impl ReportCheck for BenchmarkJudgment {
         if results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);
         }
-        let phase = results.first().unwrap().phase.clone();
-        let config = match phase {
-            JobRole::Verification => &self.verification_config,
-            JobRole::Regular => &self.regular_config,
-        };
-        if let Some(best_benchmark) = self
-            .result_cache
-            .append_results(provider_task, results, config.judge_histogram_percentile)
-            .await
-        {
-            debug!(
-                "Best benchmark result for provider {:?} is {:?}",
-                provider_task.provider_id, &best_benchmark
-            );
-            if let Some(res) = best_benchmark
-                .response
-                .histograms
-                .get(&config.judge_histogram_percentile)
+        if let Some(config) = self.get_config(&provider_task.task_name) {
+            if let Some(best_benchmark) = self
+                .result_cache
+                .append_results(provider_task, results, config.judge_histogram_percentile)
+                .await
             {
                 debug!(
-                    "Histogram value at {}% is {}. Config response time threshold {:?}",
-                    &config.judge_histogram_percentile, res, config.response_threshold
+                    "Best benchmark result for provider {:?} is {:?}",
+                    provider_task.provider_id, &best_benchmark
                 );
-                if *res < config.response_threshold as f32 {
-                    return Ok(JudgmentsResult::Pass);
+                if let Some(res) = best_benchmark
+                    .response
+                    .histograms
+                    .get(&config.judge_histogram_percentile)
+                {
+                    debug!(
+                        "Histogram value at {}% is {}. Config response time threshold {:?}",
+                        &config.judge_histogram_percentile, res, config.response_threshold
+                    );
+                    if *res < config.response_threshold as f32 {
+                        return Ok(JudgmentsResult::Pass);
+                    }
                 }
             }
         }
