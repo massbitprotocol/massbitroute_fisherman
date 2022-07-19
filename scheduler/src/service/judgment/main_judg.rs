@@ -3,7 +3,7 @@ use crate::persistence::services::job_result_service::JobResultService;
 
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::service::report_portal::StoreReport;
-use crate::{CONFIG, CONFIG_DIR, PORTAL_AUTHORIZATION};
+use crate::{CONFIG, CONFIG_DIR, IS_TEST_MODE, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 
@@ -196,7 +196,7 @@ impl MainJudgment {
                         &DOMAIN,
                     );
                     report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
-                    if !CONFIG.is_test_mode {
+                    if !*IS_TEST_MODE {
                         debug!("Send plan report to portal:{:?}", report);
                         let res = report.send_data().await;
                         info!("Send report to portal res: {:?}", res);
