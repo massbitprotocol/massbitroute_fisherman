@@ -111,6 +111,12 @@ pub enum JobDetail {
     Benchmark(JobBenchmark),
 }
 
+impl Default for JobDetail {
+    fn default() -> Self {
+        JobDetail::HttpRequest(JobHttpRequest::default())
+    }
+}
+
 impl JobDetail {
     pub fn get_job_name(&self) -> String {
         match self {

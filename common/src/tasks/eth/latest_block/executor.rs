@@ -34,23 +34,14 @@ impl LatestBlockExecutor {
         job: &Job,
     ) -> Result<LatestBlockResponse, CallLatestBlockError> {
         //Get job detail
-        let job_detail = match job
-            .job_detail
-            .as_ref()
-            .ok_or(CallLatestBlockError::GetBodyError(
-                "No job detail".to_string(),
-            ))? {
-            JobDetail::LatestBlock(job_detail) => Ok(job_detail),
-            _ => Err(CallLatestBlockError::GetBodyError(
+        let job_detail = if let JobDetail::LatestBlock(job_detail) = job.job_detail.clone() {
+            Ok(job_detail)
+        } else {
+            Err(CallLatestBlockError::GetBodyError(
                 "Wrong job detail type".to_string(),
-            )),
+            ))
         }?;
 
-        match &job.job_detail {
-            Some(JobDetail::LatestBlock(_latest_block)) => {}
-            None => {}
-            _ => {}
-        }
         // Measure response_duration
         let mut builder = self
             .client
@@ -158,11 +149,7 @@ impl LatestBlockExecutor {
 #[async_trait]
 impl TaskExecutor for LatestBlockExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
-        let job_detail = match job
-            .job_detail
-            .as_ref()
-            .ok_or(Error::msg("No job detail".to_string()))?
-        {
+        let job_detail = match job.job_detail.clone() {
             JobDetail::LatestBlock(job_detail) => Ok(job_detail),
             _ => Err(Error::msg("Wrong job detail type".to_string())),
         }?;
@@ -197,8 +184,8 @@ impl TaskExecutor for LatestBlockExecutor {
         Ok(())
     }
     fn can_apply(&self, job: &Job) -> bool {
-        let appliable = match job.job_detail.as_ref() {
-            Some(JobDetail::LatestBlock(_)) => true,
+        let appliable = match job.job_detail {
+            JobDetail::LatestBlock(_) => true,
             _ => false,
         };
         trace!(

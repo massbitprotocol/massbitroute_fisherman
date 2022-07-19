@@ -77,8 +77,8 @@ impl TaskExecutor for PingExecutor {
         Ok(())
     }
     fn can_apply(&self, job: &Job) -> bool {
-        return match job.job_detail.as_ref() {
-            Some(JobDetail::Ping(_)) => true,
+        return match job.job_detail {
+            JobDetail::Ping(_) => true,
             _ => false,
         };
     }
