@@ -7,7 +7,7 @@ use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
-use common::tasks::TaskConfigTrait;
+use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
@@ -31,8 +31,10 @@ impl HttpRequestGenerator {
         String::from("HttpRequest")
     }
     pub fn new(config_dir: &str, phase: &JobRole) -> Self {
-        let path = format!("{}/http_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
+        //let path = format!("{}/http_request.json", config_dir);
+        //let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
+        let path = format!("{}/http_request", config_dir);
+        let task_configs = HttpRequestJobConfig::read_configs(path.as_str(), phase);
         HttpRequestGenerator {
             //root_config: configs,
             task_configs,
