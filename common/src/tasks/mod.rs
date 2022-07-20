@@ -10,8 +10,9 @@ pub mod websocket_request;
 
 use crate::job_manage::JobRole;
 use crate::ComponentInfo;
-use anyhow::anyhow;
+use anyhow::{anyhow, Error};
 use handlebars::Handlebars;
+use log::debug;
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -29,23 +30,53 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
             panic!("Error {:?}. Path not found {}", err, config_path);
         });
         if md.is_dir() {
-            //Self::read_config_dir(config_path, phase)
-            vec![]
+            Self::read_config_dir(config_path, phase)
         } else {
-            let json_content = std::fs::read_to_string(config_path).unwrap_or_default();
-            let config_value: Option<Value> = serde_json::from_str(json_content.as_str()).ok();
-            if config_value.is_none() {
-                return Vec::new();
-            }
-            let config_value = config_value.unwrap();
-            Self::parse_root_value(config_value, phase)
+            let configs = std::fs::read_to_string(config_path)
+                .ok()
+                .and_then(|json_content| {
+                    let value: Option<Value> = serde_json::from_str(json_content.as_str()).ok();
+                    value.map(|config_value| Self::parse_root_value(config_value, phase))
+                });
+            configs.unwrap_or_default()
         }
     }
-    /*
-    fn read_config_dir(config_path: &str, phase: &JobRole) -> Vec<T> {
 
+    fn read_config_dir(config_path: &str, phase: &JobRole) -> Vec<T> {
+        //First read default config if exists
+        let default_config =
+            std::fs::read_to_string(format!("{}/{}.json", config_path, DEFAULT_KEY))
+                .map_err(|err| anyhow!("{:?}", &err))
+                .and_then(|content| {
+                    let config: Result<Map<String, Value>, Error> =
+                        serde_json::from_str(content.as_str()).map_err(|err| anyhow!("{:?}", &err));
+                    config
+                })
+                .ok();
+        let paths = std::fs::read_dir(config_path).unwrap();
+        let mut results = Vec::default();
+        for path in paths {
+            let config_path = path.unwrap().path();
+            debug!("Parse config from path: {}", config_path.display());
+            if !config_path.ends_with(DEFAULT_KEY) {
+                let configs = std::fs::read_to_string(config_path)
+                    .ok()
+                    //.map_err(|err| anyhow!("{:?}", &err))
+                    .and_then(|json_content| {
+                        let config: Option<Value> =
+                            serde_json::from_str(json_content.as_str()).ok();
+                        //    .map_err(|err| anyhow!("{:?}", &err));
+                        config
+                    })
+                    .and_then(|json_value| Self::parse_value(json_value, &default_config, phase));
+
+                if let Some(mut configs) = configs {
+                    results.append(&mut configs);
+                }
+            }
+        }
+        results
     }
-    */
     fn parse_root_value(config_value: Value, phase: &JobRole) -> Vec<T> {
         let def_config: Option<Map<String, Value>> = config_value
             .get(DEFAULT_KEY)
@@ -63,7 +94,25 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
         }
         Vec::new()
     }
-
+    fn parse_value(
+        config_value: Value,
+        default_config: &Option<Map<String, Value>>,
+        phase: &JobRole,
+    ) -> Option<Vec<T>> {
+        if config_value.is_object() {
+            Self::parse_object_config(config_value.as_object().unwrap(), default_config, phase)
+                .ok()
+                .map(|config| vec![config])
+        } else if config_value.is_array() {
+            Some(Self::parse_array_config(
+                config_value.as_array().unwrap(),
+                default_config,
+                phase,
+            ))
+        } else {
+            None
+        }
+    }
     fn parse_object_config(
         config: &Map<String, Value>,
         default: &Option<Map<String, Value>>,
