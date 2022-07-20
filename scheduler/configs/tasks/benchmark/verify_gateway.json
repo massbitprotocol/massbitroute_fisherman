@@ -1,0 +1,16 @@
+{
+  "name": "VerifyGateway",
+  "provider_types": ["gateway"],
+  "url_template":"http://{{provider.ip}}/",
+  "dependencies": {
+    "HttpRequest": [
+      "RoundTripTime"
+    ]
+  },
+  "body": {
+    "jsonrpc": "2.0",
+    "method": "eth_getBlockByNumber",
+    "params": ["latest",false],
+    "id": 1
+  }
+}

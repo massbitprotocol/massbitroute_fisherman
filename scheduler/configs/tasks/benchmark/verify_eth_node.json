@@ -1,0 +1,15 @@
+{
+  "name": "VerifyEthNode",
+  "provider_types": ["node"],
+  "dependencies": {
+    "HttpRequest": [
+      "RoundTripTime"
+    ]
+  },
+  "body": {
+    "jsonrpc": "2.0",
+    "method": "eth_getBlockByNumber",
+    "params": ["latest",false],
+    "id": 1
+  }
+}
