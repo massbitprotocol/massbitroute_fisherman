@@ -244,7 +244,7 @@ impl VerificationReportProcessor {
                     &DOMAIN,
                 );
                 report.set_report_data_short(
-                    false,
+                    JudgmentsResult::Pass == judg_result,
                     &provider_task.provider_id,
                     &provider_task.provider_type,
                 );
