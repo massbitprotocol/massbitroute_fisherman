@@ -2,7 +2,7 @@ use crate::component::ChainInfo;
 use crate::job_manage::JobRole;
 use crate::jobs::AssignmentConfig;
 use crate::models::{ResponseConfig, ResponseValues};
-use crate::tasks::LoadConfigs;
+use crate::tasks::{LoadConfigs, TaskConfigTrait};
 use crate::{ComponentInfo, Timestamp};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
@@ -164,11 +164,11 @@ impl JobWebsocketConfig {
     }
 }
 
-impl JobWebsocketConfig {
-    pub fn match_phase(&self, phase: &JobRole) -> bool {
+impl TaskConfigTrait for JobWebsocketConfig {
+    fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
-    pub fn match_blockchain(&self, blockchain: &String) -> bool {
+    fn match_blockchain(&self, blockchain: &String) -> bool {
         let blockchain = blockchain.to_lowercase();
         if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
         {
@@ -181,7 +181,7 @@ impl JobWebsocketConfig {
         }
         true
     }
-    pub fn match_network(&self, network: &String) -> bool {
+    fn match_network(&self, network: &String) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
             log::trace!(
@@ -193,7 +193,7 @@ impl JobWebsocketConfig {
         }
         true
     }
-    pub fn match_provider_type(&self, provider_type: &String) -> bool {
+    fn match_provider_type(&self, provider_type: &String) -> bool {
         let provider_type = provider_type.to_lowercase();
         if !self.provider_types.contains(&String::from("*"))
             && !self.provider_types.contains(&provider_type)
@@ -207,7 +207,7 @@ impl JobWebsocketConfig {
         }
         true
     }
-    pub fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
+    fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
         if !self.active {
             return false;
         }
@@ -226,6 +226,9 @@ impl JobWebsocketConfig {
         }
         true
     }
+}
+
+impl JobWebsocketConfig {
     pub fn generate_header(
         &self,
         handlebars: &Handlebars,

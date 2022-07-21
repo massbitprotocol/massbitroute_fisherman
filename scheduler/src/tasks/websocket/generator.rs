@@ -8,7 +8,7 @@ use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::tasks::websocket_request::{JobWebsocket, JobWebsocketConfig};
-use common::tasks::LoadConfigs;
+use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
