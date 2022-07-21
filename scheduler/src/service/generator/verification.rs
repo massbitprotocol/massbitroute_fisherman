@@ -36,7 +36,7 @@ pub struct VerificationJobGenerator {
     pub db_conn: Arc<DatabaseConnection>,
     pub plan_service: Arc<PlanService>,
     pub providers: Arc<ProviderStorage>,
-    pub worker_infos: Arc<Mutex<WorkerInfoStorage>>,
+    pub worker_infos: Arc<WorkerInfoStorage>,
     pub tasks: Vec<Arc<dyn TaskApplicant>>,
     pub job_service: Arc<JobService>,
     pub assignments: Arc<Mutex<JobAssignmentBuffer>>,
@@ -96,12 +96,13 @@ impl VerificationJobGenerator {
             );
             let mut total_assignment_buffer = JobAssignmentBuffer::default();
             for provider_plan in providers.iter() {
+                debug!("match workers for provider {}", &provider_plan.provider);
                 if let Ok(matched_workers) = self
                     .worker_infos
-                    .lock()
-                    .await
                     .match_workers(&provider_plan.provider)
+                    .await
                 {
+                    debug!("matched workers {:?}", &matched_workers);
                     let plan_task = WaitingProviderPlanTask {
                         provider_plan: provider_plan.clone(),
                         tasks: self.tasks.clone(),
@@ -146,12 +147,16 @@ impl VerificationJobGenerator {
         let mut waiting_tasks = Vec::new();
         for item in self.waiting_tasks.iter() {
             let provider_plan = item.provider_plan.clone();
+            debug!(
+                "match workers for waiting provider's task {}",
+                &provider_plan.provider
+            );
             if let Ok(matched_workers) = self
                 .worker_infos
-                .lock()
-                .await
                 .match_workers(&provider_plan.provider)
+                .await
             {
+                debug!("matched workers {:?}", &matched_workers);
                 let waiting_task = self
                     .generate_provider_plan_jobs(item, &matched_workers, &mut assignment_buffer)
                     .await;

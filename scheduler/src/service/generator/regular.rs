@@ -25,7 +25,7 @@ pub struct RegularJobGenerator {
     pub db_conn: Arc<DatabaseConnection>,
     pub plan_service: Arc<PlanService>,
     pub providers: Arc<ProviderStorage>,
-    pub worker_infos: Arc<Mutex<WorkerInfoStorage>>,
+    pub worker_infos: Arc<WorkerInfoStorage>,
     pub tasks: Vec<Arc<dyn TaskApplicant>>,
     pub job_service: Arc<JobService>,
     pub assignments: Arc<Mutex<JobAssignmentBuffer>>,
@@ -144,9 +144,8 @@ impl RegularJobGenerator {
         let mut assignment_buffer = JobAssignmentBuffer::default();
         let matched_workers = self
             .worker_infos
-            .lock()
-            .await
             .match_workers(provider)
+            .await
             .unwrap_or(MatchedWorkers::default());
 
         for task in self.tasks.iter() {
