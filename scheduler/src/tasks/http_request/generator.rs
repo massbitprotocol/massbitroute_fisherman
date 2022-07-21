@@ -35,6 +35,7 @@ impl HttpRequestGenerator {
         //let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         let path = format!("{}/http_request", config_dir);
         let task_configs = HttpRequestJobConfig::read_configs(path.as_str(), phase);
+        debug!("HttpRequestGenerator task_configs: {:#?}", task_configs);
         HttpRequestGenerator {
             //root_config: configs,
             task_configs,
@@ -209,6 +210,8 @@ impl TaskApplicant for HttpRequestGenerator {
         log::trace!("Generated jobs {:?}", &assignment_buffer);
         Ok(assignment_buffer)
     }
+
+    // Not use because assignment_config
     fn assign_jobs(
         &self,
         _plan: &PlanModel,

@@ -221,7 +221,7 @@ pub mod tests {
         let provider_storage = Arc::new(ProviderStorage::default());
 
         log::debug!("Init with {:?} workers", all_workers.len());
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(all_workers));
 
         //let (tx, mut rx) = mpsc::channel(1024);
         //Scanner for update provider list from portal

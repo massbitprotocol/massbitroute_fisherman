@@ -232,7 +232,7 @@ pub mod tests {
     };
 
     #[tokio::test]
-    async fn test_main_judgment_regular() -> Result<(), Error> {
+    async fn test_main_judgment_verify_and_regular() -> Result<(), Error> {
         load_env();
         //init_logging();
         let db_conn = mock_db_connection();
@@ -244,7 +244,7 @@ pub mod tests {
             "provider_id".to_string(),
             ComponentType::Node,
             "Benchmark".to_string(),
-            "Benchmark".to_string(),
+            "VerifyEthNode".to_string(),
         );
         let task_latest_block = ProviderTask::new(
             "provider_id".to_string(),

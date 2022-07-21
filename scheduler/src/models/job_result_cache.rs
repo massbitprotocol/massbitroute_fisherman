@@ -1,10 +1,12 @@
 use crate::models::component::ProviderPlan;
+use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::CONFIG;
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::{ComponentId, JobId, PlanId, Timestamp};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, DerefMut};
@@ -36,7 +38,10 @@ impl PlanTaskResultKey {
 }
 #[derive(Clone, Debug, Default)]
 pub struct JobResultCache {
+    // Cache for generate Regular Job
     pub result_cache_map: HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>,
+
+    // Cache for generate Verification
     pub task_judg_result: HashMap<ComponentId, HashMap<PlanTaskResultKey, JudgmentsResult>>,
 }
 
@@ -49,6 +54,34 @@ impl JobResultCache {
             .iter()
             .fold(0, |count, (_key, map)| count + map.len())
     }
+    pub fn get_plan_judge_result(
+        &self,
+        provider_id: &ComponentId,
+        plan_id: &PlanId,
+    ) -> HashMap<PlanTaskResultKey, JudgmentsResult> {
+        let map = self.task_judg_result.get(provider_id);
+        debug!(
+            "map: {:?}, provider_id: {}, plan_id:{}, self.task_judg_result: {:?}",
+            map, provider_id, plan_id, self.task_judg_result
+        );
+        return match map {
+            None => HashMap::new(),
+            Some(map) => {
+                let results = map
+                    .iter()
+                    .filter_map(|(key, value)| {
+                        if key.plan_id == *plan_id {
+                            Some((key.clone(), value.clone()))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                results
+            }
+        };
+    }
+
     pub fn get_judg_result(
         &self,
         provider_plan: Arc<ProviderPlan>,
