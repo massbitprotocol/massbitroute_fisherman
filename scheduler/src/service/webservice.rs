@@ -18,15 +18,10 @@ impl WebService {
     pub async fn register_worker(
         &self,
         worker_info: WorkerInfo,
-        scheduler_state: Arc<Mutex<SchedulerState>>,
+        scheduler_state: Arc<SchedulerState>,
     ) -> Result<impl Reply, Rejection> {
         log::debug!("Handle register worker request from {:?}", &worker_info);
-        match scheduler_state
-            .lock()
-            .await
-            .register_worker(worker_info)
-            .await
-        {
+        match scheduler_state.register_worker(worker_info).await {
             Ok(result) => Ok(warp::reply::json(&result)),
             Err(_err) => {
                 let result = WorkerRegisterResult {
@@ -40,7 +35,7 @@ impl WebService {
     pub async fn pause_worker(
         &self,
         worker_info: WorkerInfo,
-        _scheduler_state: Arc<Mutex<SchedulerState>>,
+        _scheduler_state: Arc<SchedulerState>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
         Ok(warp::reply::json(&json!({ "error": "Not implemented" })))
@@ -48,7 +43,7 @@ impl WebService {
     pub async fn resume_worker(
         &self,
         worker_info: WorkerInfo,
-        _scheduler_state: Arc<Mutex<SchedulerState>>,
+        _scheduler_state: Arc<SchedulerState>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
         Ok(warp::reply::json(&json!({ "error": "Not implemented" })))
@@ -56,7 +51,7 @@ impl WebService {
     pub async fn stop_worker(
         &self,
         worker_info: WorkerInfo,
-        _scheduler_state: Arc<Mutex<SchedulerState>>,
+        _scheduler_state: Arc<SchedulerState>,
     ) -> Result<impl Reply, Rejection> {
         print!("Handle register worker request from {:?}", &worker_info);
         Ok(warp::reply::json(&json!({ "error": "Not implemented" })))
@@ -64,10 +59,10 @@ impl WebService {
     pub async fn node_verify(
         &self,
         node_info: ComponentInfo,
-        scheduler_state: Arc<Mutex<SchedulerState>>,
+        scheduler_state: Arc<SchedulerState>,
     ) -> Result<impl Reply, Rejection> {
         log::info!("Handle node verify request from {:?}", &node_info);
-        scheduler_state.lock().await.verify_node(node_info).await;
+        scheduler_state.verify_node(node_info).await;
         Ok(warp::reply::json(&json!({ "success": true })))
     }
 }
