@@ -1,5 +1,5 @@
 use crate::models::job_result::{ProviderTask, StoredJobResult};
-use crate::models::job_result_cache::JobResultCache;
+use crate::models::job_result_cache::{JobResultCache, PlanTaskResultKey};
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
@@ -11,7 +11,7 @@ use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
-use log::{debug, info};
+use log::{debug, info, trace, warn};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -212,23 +212,63 @@ impl VerificationReportProcessor {
             "Plan result {:?} found for provider {:?} with plan {:?} and job_results {:?}",
             &plan_results, &provider_task, &plan.plan_id, &results
         );
-        self.result_cache
-            .lock()
-            .await
-            .update_plan_results(plan, &plan_results, plan_jobs);
+
+        {
+            let mut result_cache = self.result_cache.lock().await;
+
+            // Check if the plan already conclude
+            let map = result_cache.get_plan_judge_result(&plan.provider_id, &plan.plan_id);
+            trace!("get_plan_judge_result map {:?}", map);
+            let last_result = Self::combine_results(&map, plan_jobs);
+            if last_result.is_concluded() {
+                info!(
+                    "Plan {:?} provider {:?}, already conclude: {:?}!",
+                    plan.plan_id, plan.provider_id, last_result
+                );
+                return;
+            }
+
+            // Else continue process
+            result_cache.update_plan_results(plan, &plan_results, plan_jobs);
+        }
         //Handle plan result
         let mut final_result = JudgmentsResult::Pass;
-        for (_job_id, plan_result) in plan_results {
-            if final_result == JudgmentsResult::Pass {
+        for (_, plan_result) in plan_results {
+            if plan_result != JudgmentsResult::Pass {
                 final_result = plan_result;
-            }
-            if final_result != JudgmentsResult::Pass {
                 break;
             }
         }
+
         self.report_judgment_result(&provider_task, plan, final_result)
             .await;
     }
+
+    fn combine_results(
+        results: &HashMap<PlanTaskResultKey, JudgmentsResult>,
+        plan_jobs: &Vec<Job>,
+    ) -> JudgmentsResult {
+        if results.is_empty() {
+            return JudgmentsResult::Unfinished;
+        }
+        // Check if all job report
+        for job in plan_jobs {
+            if !results
+                .iter()
+                .any(|(key, _)| key.task_type == job.job_type && key.task_name == job.job_name)
+            {
+                return JudgmentsResult::Unfinished;
+            }
+        }
+        //Handle plan result
+        for (_, plan_result) in results.iter() {
+            if plan_result != &JudgmentsResult::Pass {
+                return plan_result.clone();
+            }
+        }
+        JudgmentsResult::Pass
+    }
+
     pub async fn report_judgment_result(
         &self,
         provider_task: &ProviderTask,

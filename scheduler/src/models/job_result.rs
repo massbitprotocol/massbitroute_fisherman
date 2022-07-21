@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct ProviderTask {
     pub provider_id: String,
     pub provider_type: ComponentType,
-    pub task_type: String, //HttpRequest, Command
+    pub task_type: String, //HttpRequest, Benchmark
     pub task_name: String, //RoundTripTime, LatestBlock
 }
 

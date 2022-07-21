@@ -58,7 +58,7 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
         for path in paths {
             let config_path = path.unwrap().path();
             debug!("Parse config from path: {}", config_path.display());
-            if !config_path.ends_with(DEFAULT_KEY) {
+            if !config_path.ends_with(format!("{}.json", DEFAULT_KEY)) {
                 let configs = std::fs::read_to_string(config_path)
                     .ok()
                     //.map_err(|err| anyhow!("{:?}", &err))

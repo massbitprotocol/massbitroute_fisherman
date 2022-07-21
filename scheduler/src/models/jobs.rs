@@ -29,13 +29,13 @@ impl JobAssignmentBuffer {
         match assignment_config {
             None => {
                 //without config, assign job for one random nearby worker
-                let worker = if workers.nearby_workers.len() > 0 {
+                let worker = if !workers.nearby_workers.is_empty() {
                     let ind = rng.gen_range(0..workers.nearby_workers.len());
                     workers.get_nearby_worker(ind)
-                } else if workers.measured_workers.len() > 0 {
+                } else if !workers.measured_workers.is_empty() {
                     let ind = rng.gen_range(0..workers.measured_workers.len());
                     workers.get_best_worker(ind)
-                } else if workers.remain_workers.len() > 0 {
+                } else if !workers.remain_workers.is_empty() {
                     workers.get_random_worker()
                 } else {
                     warn!("No workers found for component {:?}", job.component_id);
@@ -85,10 +85,9 @@ impl JobAssignmentBuffer {
                     worker.get_url("")
                 )
             }
-            return;
         } else if let Some(val) = config.worker_number {
             if let Some(true) = config.nearby_only {
-                if workers.nearby_workers.len() > 0 {
+                if !workers.nearby_workers.is_empty() {
                     for _i in 0..val {
                         let ind = rng.gen_range(0..workers.nearby_workers.len());
                         let worker = workers.get_nearby_worker(ind).unwrap();
@@ -97,7 +96,7 @@ impl JobAssignmentBuffer {
                     }
                 }
             } else if let Some(true) = config.by_distance {
-                if workers.measured_workers.len() > 0 {
+                if !workers.measured_workers.is_empty() {
                     for _i in 0..val {
                         let ind = rng.gen_range(0..workers.measured_workers.len());
                         let worker = workers.get_best_worker(ind).unwrap();
