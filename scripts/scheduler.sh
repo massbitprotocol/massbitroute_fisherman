@@ -2,22 +2,24 @@ sudo apt update -y
 sudo apt install build-essential pkg-config libssl-dev supervisor curl nginx -y
 sudo apt install software-properties-common
 sudo mkdir /opt/fishman
-sudo cp /home/viettai/scheduler /opt/fishman/
+sudo cp /home/scheduler /opt/fishman/
 #-------------------------------------------
 # Setup scheduler
 #-------------------------------------------
 
-echo '#!/bin/bash
+# echo '#!/bin/bash
 
-export RUST_LOG=info
-export RUST_LOG_TYPE=console
-export DATABASE_URL=postgres://fisherman:FishermanCodelight123@35.193.163.173:5432/massbit-fisherman
-export DOMAIN=massbitroute.net
-export URL_GATEWAYS_LIST=https://portal.massbitroute.net/mbr/gateway/list/verify
-export URL_NODES_LIST=https://portal.massbitroute.net/mbr/node/list/verify
+# export RUST_LOG=info
+# export RUST_LOG_TYPE=console
+# export DATABASE_URL=postgres://fisherman:FishermanCodelight123@35.193.163.173:5432/massbit-fisherman
+# export DOMAIN=massbitroute.net
+# export URL_GATEWAYS_LIST=https://portal.massbitroute.net/mbr/gateway/list/verify
+# export URL_NODES_LIST=https://portal.massbitroute.net/mbr/node/list/verify
 
-/opt/fishman/scheduler
-' | sudo tee /opt/fishman/run.sh
+# /opt/fishman/scheduler
+# ' | sudo tee /opt/fishman/run.sh
+
+cp run-scheduler.sh /opt/fishman/run.sh
 
 #-------------------------------------------
 #  Set up supervisor
