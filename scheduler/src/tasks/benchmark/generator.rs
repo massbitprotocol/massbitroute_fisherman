@@ -2,8 +2,10 @@
  * Check from any gateway can connection to any node
  */
 
+use crate::models::job_result_cache::{PlanTaskResultKey, TaskKey};
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::TaskDependency;
+use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
 use anyhow::{anyhow, Error};
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
@@ -137,8 +139,8 @@ impl BenchmarkGenerator {
         String::from("Benchmark")
     }
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
-        let configs: Vec<BenchmarkConfig> =
-            BenchmarkConfig::read_configs(format!("{}/benchmark.json", config_dir).as_str(), role);
+        let path = format!("{}/benchmark", config_dir);
+        let configs: Vec<BenchmarkConfig> = BenchmarkConfig::read_configs(path.as_str(), role);
         log::debug!("Benchmark config {:?}", &configs);
         BenchmarkGenerator {
             configs,
@@ -203,26 +205,55 @@ impl BenchmarkGenerator {
     }
 }
 impl TaskApplicant for BenchmarkGenerator {
-    fn get_name(&self) -> String {
+    fn get_type(&self) -> String {
         String::from("Benchmark")
     }
-    //Fixme: Improve task dependency
-    fn get_task_dependencies(&self) -> TaskDependency {
-        let mut task_dependencies = TaskDependency::default();
+    fn get_task_names(&self) -> Vec<String> {
+        self.configs
+            .iter()
+            .map(|config| config.name.clone())
+            .collect()
+    }
+    fn has_all_dependent_results(
+        &self,
+        plan_id: &PlanId,
+        results: &HashMap<TaskKey, JudgmentsResult>,
+    ) -> bool {
         for config in self.configs.iter() {
             if let Some(dependencies) = config.dependencies.as_ref() {
                 for (key, values) in dependencies {
-                    let hash_set = task_dependencies
-                        .entry(key.clone())
-                        .or_insert(HashSet::default());
                     for value in values {
-                        hash_set.insert(value.clone());
+                        let result_key = TaskKey {
+                            task_type: key.clone(),
+                            task_name: value.clone(),
+                        };
+                        let has_result = results.contains_key(&result_key);
+                        if !has_result {
+                            return false;
+                        }
                     }
                 }
             }
         }
-        task_dependencies
+        true
     }
+    //Fixme: Improve task dependency
+    // fn get_task_dependencies(&self) -> TaskDependency {
+    //     let mut task_dependencies = TaskDependency::default();
+    //     for config in self.configs.iter() {
+    //         if let Some(dependencies) = config.dependencies.as_ref() {
+    //             for (key, values) in dependencies {
+    //                 let hash_set = task_dependencies
+    //                     .entry(key.clone())
+    //                     .or_insert(HashSet::default());
+    //                 for value in values {
+    //                     hash_set.insert(value.clone());
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     task_dependencies
+    // }
     fn can_apply(&self, _component: &ComponentInfo) -> bool {
         true
     }
@@ -232,6 +263,7 @@ impl TaskApplicant for BenchmarkGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
+        task_results: &HashMap<String, JudgmentsResult>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
         let mut assignment_buffer = JobAssignmentBuffer::default();
         log::debug!("Task benchmark apply for component {:?}", component);

@@ -25,7 +25,7 @@ pub struct VerificationReportProcessor {
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
     result_service: Arc<JobResultService>,
-    result_cache: Arc<Mutex<JobResultCache>>,
+    result_cache: Arc<JobResultCache>,
     judgment: MainJudgment,
     active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
 }
@@ -36,7 +36,7 @@ impl VerificationReportProcessor {
         plan_service: Arc<PlanService>,
         job_service: Arc<JobService>,
         result_service: Arc<JobResultService>,
-        result_cache: Arc<Mutex<JobResultCache>>,
+        result_cache: Arc<JobResultCache>,
         judgment: MainJudgment,
     ) -> Self {
         VerificationReportProcessor {
@@ -213,24 +213,25 @@ impl VerificationReportProcessor {
             &plan_results, &provider_task, &plan.plan_id, &results
         );
 
-        {
-            let mut result_cache = self.result_cache.lock().await;
-
-            // Check if the plan already conclude
-            let map = result_cache.get_plan_judge_result(&plan.provider_id, &plan.plan_id);
-            trace!("get_plan_judge_result map {:?}", map);
-            let last_result = Self::combine_results(&map, plan_jobs);
-            if last_result.is_concluded() {
-                info!(
-                    "Plan {:?} provider {:?}, already conclude: {:?}!",
-                    plan.plan_id, plan.provider_id, last_result
-                );
-                return;
-            }
-
-            // Else continue process
-            result_cache.update_plan_results(plan, &plan_results, plan_jobs);
+        // Check if the plan already conclude
+        let map = self
+            .result_cache
+            .get_plan_judge_result(&plan.provider_id, &plan.plan_id)
+            .await;
+        trace!("get_plan_judge_result map {:?}", map);
+        let last_result = Self::combine_results(&map, plan_jobs);
+        if last_result.is_concluded() {
+            info!(
+                "Plan {:?} provider {:?}, already conclude: {:?}!",
+                plan.plan_id, plan.provider_id, last_result
+            );
+            return;
         }
+
+        // Else continue process
+        self.result_cache
+            .update_plan_results(plan, &plan_results, plan_jobs);
+
         //Handle plan result
         let mut final_result = JudgmentsResult::Pass;
         for (_, plan_result) in plan_results {

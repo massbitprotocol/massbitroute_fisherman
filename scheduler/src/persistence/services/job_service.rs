@@ -23,7 +23,7 @@ impl JobService {
             .map(|job| jobs::ActiveModel::from(job))
             .collect::<Vec<jobs::ActiveModel>>();
         let length = records.len();
-        debug!("save_jobs records:{:?}", records);
+        debug!("save_jobs records:{:?}", length);
 
         match jobs::Entity::insert_many(records)
             .exec(self.db.as_ref())

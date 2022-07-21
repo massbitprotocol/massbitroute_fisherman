@@ -489,7 +489,7 @@ mod tests {
         );
 
         info!("Init http service ");
-        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+        let result_cache = Arc::new(JobResultCache::default());
         let job_service = Arc::new(JobService::new(arc_conn.clone()));
         let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
         let processor_state = ProcessorState::new(

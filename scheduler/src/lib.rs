@@ -19,6 +19,7 @@ pub mod tasks;
 pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds
 pub const JUDGMENT_PERIOD: u64 = 10;
+pub const RESULT_CACHE_MAX_LENGTH: usize = 10;
 lazy_static! {
     pub static ref COMPONENT_NAME: String = String::from("[Scheduler]");
     pub static ref SCHEDULER_ENDPOINT: String =

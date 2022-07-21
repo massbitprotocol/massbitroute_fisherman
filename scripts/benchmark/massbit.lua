@@ -28,7 +28,7 @@ end
 
 function response(status, headers, body)
     print(status)
-    print(body)
+    -- print(body)
 end
 
 function done(summary, latency, requests)

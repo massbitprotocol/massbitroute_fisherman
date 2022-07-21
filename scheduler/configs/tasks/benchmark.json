@@ -35,6 +35,7 @@
     {
       "name": "VerifyEthNode",
       "provider_types": ["node"],
+      "blockchains": ["eth"],
       "dependencies": {
         "HttpRequest": [
           "RoundTripTime"

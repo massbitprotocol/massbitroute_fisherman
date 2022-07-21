@@ -48,7 +48,7 @@ pub struct ProcessorServiceBuilder {
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
     result_service: Arc<JobResultService>,
-    result_cache: Arc<Mutex<JobResultCache>>,
+    result_cache: Arc<JobResultCache>,
 }
 
 impl ProcessorServiceBuilder {
@@ -64,7 +64,7 @@ impl ProcessorServiceBuilder {
         self.result_service = result_service;
         self
     }
-    pub fn with_result_cache(mut self, result_cache: Arc<Mutex<JobResultCache>>) -> Self {
+    pub fn with_result_cache(mut self, result_cache: Arc<JobResultCache>) -> Self {
         self.result_cache = result_cache;
         self
     }

@@ -28,7 +28,7 @@ pub struct ProcessorState {
 impl ProcessorState {
     pub fn new(
         connection: Arc<DatabaseConnection>,
-        result_cache: Arc<Mutex<JobResultCache>>,
+        result_cache: Arc<JobResultCache>,
         plan_service: Arc<PlanService>,
         job_service: Arc<JobService>,
         result_service: Arc<JobResultService>,
