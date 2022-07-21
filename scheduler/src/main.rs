@@ -73,7 +73,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let scheduler_service = SchedulerServiceBuilder::default().build();
     let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
-    let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+    let result_cache = Arc::new(JobResultCache::default());
     let processor_service = ProcessorServiceBuilder::default()
         .with_plan_service(plan_service.clone())
         .with_result_service(result_service.clone())

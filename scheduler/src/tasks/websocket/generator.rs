@@ -1,5 +1,6 @@
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
+use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
 use anyhow::{anyhow, Error};
@@ -109,7 +110,7 @@ impl WebsocketGenerator {
     }
 }
 impl TaskApplicant for WebsocketGenerator {
-    fn get_name(&self) -> String {
+    fn get_type(&self) -> String {
         String::from("Websocket")
     }
     fn can_apply(&self, _component: &ComponentInfo) -> bool {
@@ -121,6 +122,7 @@ impl TaskApplicant for WebsocketGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
+        _task_results: &HashMap<String, JudgmentsResult>,
     ) -> Result<JobAssignmentBuffer, Error> {
         let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);

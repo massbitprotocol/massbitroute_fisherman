@@ -1,5 +1,5 @@
 use crate::models::component::ProviderPlan;
-use crate::models::job_result_cache::JobResultCache;
+use crate::models::job_result_cache::{JobResultCache, TaskKey};
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
@@ -24,7 +24,8 @@ use log::{debug, warn};
 
 use sea_orm::{DatabaseConnection, TransactionTrait};
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::iter::Map;
 
 use std::sync::Arc;
 
@@ -40,7 +41,7 @@ pub struct VerificationJobGenerator {
     pub tasks: Vec<Arc<dyn TaskApplicant>>,
     pub job_service: Arc<JobService>,
     pub assignments: Arc<Mutex<JobAssignmentBuffer>>,
-    pub result_cache: Arc<Mutex<JobResultCache>>,
+    pub result_cache: Arc<JobResultCache>,
     pub processing_plans: Vec<Arc<ProviderPlan>>,
     pub waiting_tasks: Vec<WaitingProviderPlanTask>,
 }
@@ -205,38 +206,42 @@ impl VerificationJobGenerator {
             if !task.can_apply(&provider_plan.provider) {
                 log::debug!(
                     "Task {} cannot apply for component {}",
-                    task.get_name(),
+                    task.get_type(),
                     &provider_plan.provider
                 );
                 continue;
             }
-            if self
-                .check_task_dependencies(
-                    provider_plan.clone(),
-                    task.get_name().as_str(),
-                    task.get_task_dependencies(),
-                )
-                .await
-            {
-                log::debug!("Generate jobs for task {}", task.get_name());
-                if let Ok(mut applied_jobs) = task.apply(
-                    &provider_plan.plan.plan_id,
-                    &provider_plan.provider,
-                    JobRole::Verification,
-                    &matched_workers,
-                ) {
-                    //Todo: Improve this, don't create redundant jobs
-                    if applied_jobs.jobs.len() > 0 {
-                        applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
-                    }
-                    if applied_jobs.jobs.len() > 0 {
-                        assignment_buffer.append(applied_jobs);
-                    }
-                } else {
-                }
-            } else {
+            let map_results = self
+                .result_cache
+                .get_provider_judg_result(&provider_plan.provider.id, &provider_plan.plan.plan_id)
+                .await;
+            //Check if some dependent task' results is missing
+            if !task.has_all_dependent_results(&provider_plan.plan.plan_id, &map_results) {
                 waiting_task.add_task(task.clone());
-                log::debug!("Task {} is not ready for job generation", task.get_name());
+                log::debug!(
+                    "Some SubTask {} is not ready for job generation",
+                    task.get_type()
+                );
+            }
+            let sub_task_results = map_results
+                .iter()
+                .map(|(key, value)| (key.task_name.clone(), value.clone()))
+                .collect::<HashMap<String, JudgmentsResult>>();
+            log::debug!("Generate jobs for task {}", task.get_type());
+            if let Ok(mut applied_jobs) = task.apply(
+                &provider_plan.plan.plan_id,
+                &provider_plan.provider,
+                JobRole::Verification,
+                &matched_workers,
+                &sub_task_results,
+            ) {
+                //Todo: Improve this, don't create redundant jobs
+                if applied_jobs.jobs.len() > 0 {
+                    applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
+                }
+                if applied_jobs.jobs.len() > 0 {
+                    assignment_buffer.append(applied_jobs);
+                }
             }
         }
         waiting_task
@@ -266,40 +271,40 @@ impl VerificationJobGenerator {
      * true: task ready for generation
      * false: task must is in waiting state
      */
-    async fn check_task_dependencies(
-        &self,
-        provider_plan: Arc<ProviderPlan>,
-        current_task_type: &str,
-        task_dependencies: TaskDependency,
-    ) -> bool {
-        //No dependencies
-        log::debug!(
-            "Check task dependencies for {:?} with dependencies {:?}",
-            current_task_type,
-            &task_dependencies
-        );
-        if task_dependencies.is_empty() {
-            return true;
-        }
-        for (task_type, task_names) in task_dependencies {
-            for name in task_names {
-                let task_result = self
-                    .result_cache
-                    .lock()
-                    .await
-                    .get_judg_result(provider_plan.clone(), &task_type, &name)
-                    .unwrap_or(JudgmentsResult::Unfinished);
-                if task_result != JudgmentsResult::Pass {
-                    debug!(
-                        "Task {}.{} is not passed while try to generate task {}",
-                        &name, &task_type, current_task_type
-                    );
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
+    // async fn check_task_dependencies(
+    //     &self,
+    //     provider_plan: Arc<ProviderPlan>,
+    //     current_task_type: &str,
+    //     task_dependencies: TaskDependency,
+    // ) -> bool {
+    //     //No dependencies
+    //     log::debug!(
+    //         "Check task dependencies for {:?} with dependencies {:?}",
+    //         current_task_type,
+    //         &task_dependencies
+    //     );
+    //     if task_dependencies.is_empty() {
+    //         return true;
+    //     }
+    //     for (task_type, task_names) in task_dependencies {
+    //         for name in task_names {
+    //             let task_result = self
+    //                 .result_cache
+    //                 .lock()
+    //                 .await
+    //                 .get_judg_result(provider_plan.clone(), &task_type, &name)
+    //                 .unwrap_or(JudgmentsResult::Unfinished);
+    //             if task_result != JudgmentsResult::Pass {
+    //                 debug!(
+    //                     "Task {}.{} is not passed while try to generate task {}",
+    //                     &name, &task_type, current_task_type
+    //                 );
+    //                 return false;
+    //             }
+    //         }
+    //     }
+    //     return true;
+    // }
     pub async fn store_jobs(&self, jobs: Vec<Job>) -> Result<(), anyhow::Error> {
         let mut gen_plans = HashSet::<String>::default();
         for job in jobs.iter() {

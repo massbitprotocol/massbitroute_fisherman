@@ -58,7 +58,7 @@ impl JobGenerator {
         worker_infos: Arc<WorkerInfoStorage>,
         job_service: Arc<JobService>,
         assignments: Arc<Mutex<JobAssignmentBuffer>>,
-        result_cache: Arc<Mutex<JobResultCache>>,
+        result_cache: Arc<JobResultCache>,
     ) -> Self {
         //Load config
         let config_dir = CONFIG_DIR.as_str();
@@ -121,8 +121,7 @@ impl JobGenerator {
             .await
             .unwrap_or_default();
         {
-            let mut lock = regular.result_cache.lock().await;
-            lock.init_cache(assignments);
+            regular.result_cache.init_cache(assignments);
         }
 
         // Run Regular task

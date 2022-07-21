@@ -25,7 +25,7 @@ pub struct VerificationReportProcessor {
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
     result_service: Arc<JobResultService>,
-    result_cache: Arc<Mutex<JobResultCache>>,
+    result_cache: Arc<JobResultCache>,
     judgment: MainJudgment,
     active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
 }
@@ -36,7 +36,7 @@ impl VerificationReportProcessor {
         plan_service: Arc<PlanService>,
         job_service: Arc<JobService>,
         result_service: Arc<JobResultService>,
-        result_cache: Arc<Mutex<JobResultCache>>,
+        result_cache: Arc<JobResultCache>,
         judgment: MainJudgment,
     ) -> Self {
         VerificationReportProcessor {
@@ -213,9 +213,8 @@ impl VerificationReportProcessor {
             &plan_results, &provider_task, &plan.plan_id, &results
         );
         self.result_cache
-            .lock()
-            .await
-            .update_plan_results(plan, &plan_results, plan_jobs);
+            .update_plan_results(plan, &plan_results, plan_jobs)
+            .await;
         //Handle plan result
         let mut final_result = JudgmentsResult::Pass;
         for (_job_id, plan_result) in plan_results {

@@ -1,7 +1,7 @@
 {
-  "name": "VerifyEthNode",
+  "name": "VerifyDotNode",
   "provider_types": ["node"],
-  "blockchains": ["eth"],
+  "blockchains": ["dot"],
   "dependencies": {
     "HttpRequest": [
       "RoundTripTime"
@@ -9,8 +9,8 @@
   },
   "body": {
     "jsonrpc": "2.0",
-    "method": "eth_getBlockByNumber",
-    "params": ["latest",false],
+    "method": "chain_getBlock",
+    "params": [],
     "id": 1
   }
 }
