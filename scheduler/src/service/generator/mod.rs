@@ -55,7 +55,7 @@ impl JobGenerator {
         db_conn: Arc<DatabaseConnection>,
         plan_service: Arc<PlanService>,
         providers: Arc<ProviderStorage>,
-        worker_infos: Arc<Mutex<WorkerInfoStorage>>,
+        worker_infos: Arc<WorkerInfoStorage>,
         job_service: Arc<JobService>,
         assignments: Arc<Mutex<JobAssignmentBuffer>>,
         result_cache: Arc<Mutex<JobResultCache>>,

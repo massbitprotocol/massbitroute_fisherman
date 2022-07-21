@@ -15,7 +15,7 @@ pub struct ProviderScanner {
     url_list_nodes: String,
     url_list_gateways: String,
     providers: Arc<ProviderStorage>,
-    workers: Arc<Mutex<WorkerInfoStorage>>,
+    workers: Arc<WorkerInfoStorage>,
     provider_service: Arc<ProviderService>,
     client: Client,
 }
@@ -27,7 +27,7 @@ impl ProviderScanner {
         url_list_nodes: String,
         url_list_gateways: String,
         providers: Arc<ProviderStorage>,
-        workers: Arc<Mutex<WorkerInfoStorage>>,
+        workers: Arc<WorkerInfoStorage>,
         provider_service: Arc<ProviderService>,
     ) -> Self {
         ProviderScanner {
@@ -47,10 +47,11 @@ impl ProviderScanner {
 
     pub async fn run(mut self) {
         loop {
-            //info!("Get new providers");
+            debug!("Get new providers");
             self.update_providers().await;
             //Update provider map
-            self.get_provider_map().await;
+            self.reload_provider_map().await;
+            debug!("Sleep for {} seconds", CONFIG.update_provider_list_interval);
             sleep(Duration::from_secs(
                 CONFIG.update_provider_list_interval as u64,
             ))
@@ -146,10 +147,11 @@ impl ProviderScanner {
     /*
      * Get provider map from database
      */
-    pub async fn get_provider_map(&mut self) {
+    pub async fn reload_provider_map(&self) {
         let map = self.provider_service.get_provider_maps().await;
         if map.len() > 0 {
-            self.workers.lock().await.set_map_worker_provider(map);
+            debug!("Waiting for setting map worker providers {:?}", &map);
+            self.workers.set_map_worker_provider(map).await;
         }
     }
 }

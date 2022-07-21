@@ -28,7 +28,7 @@ pub struct ServerBuilder {
     access_control: AccessControl,
     scheduler_service: WebService,
     processor_service: ProcessorService,
-    scheduler_state: Arc<Mutex<SchedulerState>>,
+    scheduler_state: Arc<SchedulerState>,
     processor_state: Arc<ProcessorState>,
 }
 
@@ -37,7 +37,7 @@ pub struct SchedulerServer {
     access_control: AccessControl,
     scheduler_service: Arc<WebService>,
     processor_service: Arc<ProcessorService>,
-    scheduler_state: Arc<Mutex<SchedulerState>>,
+    scheduler_state: Arc<SchedulerState>,
     processor_state: Arc<ProcessorState>,
 }
 
@@ -132,7 +132,7 @@ impl SchedulerServer {
     fn create_route_worker_register(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "register")
             .and(SchedulerServer::log_headers())
@@ -152,7 +152,7 @@ impl SchedulerServer {
     fn create_route_worker_pause(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "pause")
             .and(SchedulerServer::log_headers())
@@ -168,7 +168,7 @@ impl SchedulerServer {
     fn create_route_worker_resume(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "resume")
             .and(SchedulerServer::log_headers())
@@ -184,7 +184,7 @@ impl SchedulerServer {
     fn create_route_worker_stop(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "stop")
             .and(SchedulerServer::log_headers())
@@ -200,7 +200,7 @@ impl SchedulerServer {
     fn create_route_node_verify(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("provider" / "verify")
             .and(SchedulerServer::log_headers())
@@ -286,7 +286,7 @@ impl ServerBuilder {
         self
     }
     pub fn with_scheduler_state(mut self, scheduler_state: SchedulerState) -> Self {
-        self.scheduler_state = Arc::new(Mutex::new(scheduler_state));
+        self.scheduler_state = Arc::new(scheduler_state);
         self
     }
     pub fn with_processor_state(mut self, processor_state: ProcessorState) -> Self {
@@ -346,6 +346,7 @@ mod tests {
     use std::env;
 
     use crate::models::job_result_cache::JobResultCache;
+    use futures_util::AsyncBufReadExt;
     use serde_json::json;
     use std::time::Duration;
     use test_util::helper::load_env;
