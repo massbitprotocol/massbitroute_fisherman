@@ -8,6 +8,7 @@ use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::tasks::websocket_request::{JobWebsocket, JobWebsocketConfig};
+use common::tasks::LoadConfigs;
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
@@ -31,8 +32,10 @@ impl WebsocketGenerator {
         String::from("Websocket")
     }
     pub fn new(config_dir: &str, phase: &JobRole) -> Self {
-        let path = format!("{}/websocket.json", config_dir);
-        let task_configs = JobWebsocketConfig::read_config(path.as_str(), phase);
+        // let path = format!("{}/websocket.json", config_dir);
+        // let task_configs = JobWebsocketConfig::read_config(path.as_str(), phase);
+        let path = format!("{}/websocket", config_dir);
+        let task_configs = JobWebsocketConfig::read_configs(path.as_str(), phase);
         WebsocketGenerator {
             //root_config: configs,
             task_configs,

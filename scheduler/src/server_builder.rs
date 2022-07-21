@@ -405,7 +405,7 @@ mod tests {
         let scheduler_service = SchedulerServiceBuilder::default().build();
         let processor_service = ProcessorServiceBuilder::default().build();
         let access_control = AccessControl::default();
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(vec![])));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
         let provider_storage = Arc::new(ProviderStorage::default());
 
         let scheduler_state = SchedulerState::new(
@@ -475,7 +475,7 @@ mod tests {
         let scheduler_service = SchedulerServiceBuilder::default().build();
         let processor_service = ProcessorServiceBuilder::default().build();
         let access_control = AccessControl::default();
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(vec![])));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
         let provider_storage = Arc::new(ProviderStorage::default());
 
         let scheduler_state = SchedulerState::new(
@@ -487,7 +487,7 @@ mod tests {
         );
 
         info!("Init http service ");
-        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+        let result_cache = Arc::new(JobResultCache::default());
         let job_service = Arc::new(JobService::new(arc_conn.clone()));
         let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
         let processor_state = ProcessorState::new(

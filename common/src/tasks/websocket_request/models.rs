@@ -2,6 +2,7 @@ use crate::component::ChainInfo;
 use crate::job_manage::JobRole;
 use crate::jobs::AssignmentConfig;
 use crate::models::{ResponseConfig, ResponseValues};
+use crate::tasks::LoadConfigs;
 use crate::{ComponentInfo, Timestamp};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
@@ -127,6 +128,8 @@ impl fmt::Display for JobWebsocketConfig {
         )
     }
 }
+
+impl LoadConfigs<JobWebsocketConfig> for JobWebsocketConfig {}
 impl JobWebsocketConfig {
     pub fn read_config(path: &str, phase: &JobRole) -> Vec<JobWebsocketConfig> {
         let json_content = std::fs::read_to_string(path).unwrap_or_default();

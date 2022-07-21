@@ -180,10 +180,10 @@ pub mod tests {
         // Keep the list of node and gateway
         let provider_storage = Arc::new(ProviderStorage::default());
         log::debug!("Init with {:?} workers", all_workers.len());
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(all_workers));
         // Keep the list of assignment Job
         let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
-        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+        let result_cache = Arc::new(JobResultCache::default());
 
         let job_generator = JobGenerator::new(
             arc_conn.clone(),
@@ -274,10 +274,10 @@ pub mod tests {
         // Keep the list of node and gateway
         let provider_storage = Arc::new(ProviderStorage::default());
         log::debug!("Init with {:?} workers", all_workers.len());
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(all_workers));
         // Keep the list of assignment Job
         let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
-        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+        let result_cache = Arc::new(JobResultCache::default());
 
         let job_generator = JobGenerator::new(
             arc_conn.clone(),
@@ -366,10 +366,10 @@ pub mod tests {
         // Keep the list of node and gateway
         let provider_storage = Arc::new(ProviderStorage::default());
         log::debug!("Init with {:?} workers", all_workers.len());
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(all_workers));
         // Keep the list of assignment Job
         let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
-        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+        let result_cache = Arc::new(JobResultCache::default());
 
         let job_generator = JobGenerator::new(
             arc_conn.clone(),
