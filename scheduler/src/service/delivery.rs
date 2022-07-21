@@ -14,17 +14,17 @@ use tokio::time::sleep;
 #[derive(Default)]
 pub struct JobDelivery {
     assignment_buffer: Arc<Mutex<JobAssignmentBuffer>>,
-    worker_infos: Arc<Mutex<WorkerInfoStorage>>,
+    //worker_infos: Arc<WorkerInfoStorage>,
     worker_pool: HashMap<WorkerId, Arc<Worker>>,
 }
 
 impl JobDelivery {
     pub fn new(
-        worker_infos: Arc<Mutex<WorkerInfoStorage>>,
+        //worker_infos: Arc<WorkerInfoStorage>,
         assignment_buffer: Arc<Mutex<JobAssignmentBuffer>>,
     ) -> Self {
         JobDelivery {
-            worker_infos,
+            //worker_infos,
             assignment_buffer,
             worker_pool: HashMap::default(),
         }
