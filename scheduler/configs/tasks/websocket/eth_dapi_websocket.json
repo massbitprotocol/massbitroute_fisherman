@@ -1,0 +1,21 @@
+{
+  "name": "EthDapiWebsocket",
+  "active": false,
+  "blockchains": ["eth"],
+  "provider_types": ["gateway"],
+  "url_template": "wss://e6944c6e-e83f-4b0f-9353-e18e6d630bed-ws.eth-mainnet.massbitroute.net/rph2lZHHRHEYQfhrbQIMbg/",
+  "body": {
+    "jsonrpc": "2.0",
+    "method": "eth_getBlockByNumber",
+    "params": ["latest",true],
+    "id": 1
+  },
+  "response" : {
+    "response_type" : "json",
+    "values" : {
+      "hash": ["result", "hash"],
+      "number": ["result", "number"],
+      "timestamp": ["result", "timestamp"]
+    }
+  }
+}

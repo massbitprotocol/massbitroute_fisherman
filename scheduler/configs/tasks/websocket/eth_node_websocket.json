@@ -1,7 +1,8 @@
 {
-  "name": "EthWebsocket",
+  "name": "EthNodeWebsocket",
+  "active": true,
   "blockchains": ["eth"],
-  "provider_types": ["*"],
+  "provider_types": ["node"],
   "body": {
     "jsonrpc": "2.0",
     "method": "eth_getBlockByNumber",

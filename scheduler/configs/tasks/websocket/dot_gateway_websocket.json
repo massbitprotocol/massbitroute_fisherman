@@ -1,7 +1,8 @@
 {
-  "name": "DotWebsocket",
+  "name": "DotNodeWebsocket",
+  "active": false,
   "blockchains": ["dot"],
-  "provider_types": ["*"],
+  "provider_types": ["node"],
   "body": {
     "jsonrpc": "2.0",
     "method": "chain_getBlock",

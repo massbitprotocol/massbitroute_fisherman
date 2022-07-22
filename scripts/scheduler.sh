@@ -33,7 +33,7 @@ stopasgroup=true' | sudo tee /etc/supervisor/conf.d/scheduler.conf
 
 echo 'server {
     server_name scheduler.fishman.massbitroute.net;
-    listen 443;
+    listen 443 ssl;
     ssl_certificate /opt/ssl/live/fishman.massbitroute.net/fullchain.pem;
     ssl_certificate_key /opt/ssl/live/fishman.massbitroute.net/privkey.pem;
     location / {
