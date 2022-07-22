@@ -18,7 +18,7 @@ use common::jobs::Job;
 use common::tasks::{LoadConfig, TaskConfigTrait};
 use common::util::{get_current_time, warning_if_error};
 use common::workers::MatchedWorkers;
-use common::Timestamp;
+use common::{PlanId, Timestamp};
 
 use log::{debug, warn};
 
@@ -27,6 +27,7 @@ use sea_orm::{DatabaseConnection, TransactionTrait};
 use std::collections::{HashMap, HashSet};
 use std::iter::Map;
 
+use futures_util::task;
 use std::sync::Arc;
 
 use crate::tasks::benchmark::generator::BenchmarkConfig;
@@ -50,9 +51,61 @@ pub struct VerificationJobGenerator {
  * Struct for store dependent task, waiting for others' results
  */
 #[derive(Clone)]
+pub struct SubTasks {
+    task: Arc<dyn TaskApplicant>,
+    //Interested sub task in self.task
+    sub_tasks: Vec<String>,
+}
+
+impl SubTasks {
+    pub fn new(task: Arc<dyn TaskApplicant>, sub_tasks: Vec<String>) -> Self {
+        Self { task, sub_tasks }
+    }
+    pub fn is_empty(&self) -> bool {
+        self.sub_tasks.is_empty()
+    }
+    pub fn match_sub_task(
+        &self,
+        provider: &ComponentInfo,
+        phase: &JobRole,
+        task_result: &HashMap<TaskKey, JudgmentsResult>,
+    ) -> Vec<String> {
+        let mut result = Vec::<String>::new();
+        let all_match_sub_tasks = self.task.match_sub_task(provider, phase);
+        for sub_task in self.sub_tasks.iter() {
+            if !all_match_sub_tasks.contains(sub_task) {
+                continue;
+            }
+            let task_dependencies = self.task.get_task_dependencies(sub_task);
+            let mut received_result_counter = 0;
+            for dep_task in task_dependencies.iter() {
+                if task_result.contains_key(dep_task) {
+                    received_result_counter = received_result_counter + 1;
+                }
+            }
+            debug!(
+                "match sub_task for task {} with sub_tasks {:?} and dependencies {:?}, results {:?}",
+                self.task.get_type(),
+                self.sub_tasks,
+                &task_dependencies,
+                task_result
+            );
+            //Received all dependencies results
+            if received_result_counter == task_dependencies.len() {
+                result.push(sub_task.clone());
+            }
+        }
+
+        result
+    }
+    pub fn add_sub_task(&mut self, sub_task: &String) {
+        self.sub_tasks.push(sub_task.clone())
+    }
+}
+#[derive(Clone)]
 pub struct WaitingProviderPlanTask {
     provider_plan: Arc<ProviderPlan>,
-    tasks: Vec<Arc<dyn TaskApplicant>>,
+    tasks: Vec<SubTasks>,
 }
 
 impl WaitingProviderPlanTask {
@@ -62,8 +115,8 @@ impl WaitingProviderPlanTask {
             tasks: Vec::new(),
         }
     }
-    pub fn add_task(&mut self, task: Arc<dyn TaskApplicant>) {
-        self.tasks.push(task);
+    pub fn add_task(&mut self, sub_tasks: SubTasks) {
+        self.tasks.push(sub_tasks);
     }
     pub fn is_empty(&self) -> bool {
         self.tasks.is_empty()
@@ -104,10 +157,15 @@ impl VerificationJobGenerator {
                     .await
                 {
                     debug!("matched workers {:?}", &matched_workers);
-                    let plan_task = WaitingProviderPlanTask {
-                        provider_plan: provider_plan.clone(),
-                        tasks: self.tasks.clone(),
-                    };
+                    //Init new full task with matches sub_tasks and consider it as waiting task
+                    let mut plan_task = WaitingProviderPlanTask::new(provider_plan.clone());
+                    for task in self.tasks.iter() {
+                        let matched_subtasks =
+                            task.match_sub_task(&provider_plan.provider, &JobRole::Verification);
+                        if matched_subtasks.len() > 0 {
+                            plan_task.add_task(SubTasks::new(task.clone(), matched_subtasks));
+                        };
+                    }
                     let waiting_task = self
                         .generate_provider_plan_jobs(
                             &plan_task,
@@ -202,53 +260,83 @@ impl VerificationJobGenerator {
     ) -> WaitingProviderPlanTask {
         let provider_plan = plan_task.provider_plan.clone();
         let mut waiting_task = WaitingProviderPlanTask::new(provider_plan.clone());
-        for task in plan_task.tasks.iter() {
-            if !task.can_apply(&provider_plan.provider) {
+        let map_results = self
+            .result_cache
+            .get_provider_judg_result(&provider_plan.provider.id, &provider_plan.plan.plan_id)
+            .await;
+        for sub_tasks in plan_task.tasks.iter() {
+            //Get sub_tasks which's dependencies results have received
+            let matched_tasks = sub_tasks.match_sub_task(
+                &provider_plan.provider,
+                &JobRole::Verification,
+                &map_results,
+            );
+            let remain_tasks: Vec<String> = sub_tasks
+                .sub_tasks
+                .iter()
+                .filter(|task| !matched_tasks.contains(task))
+                .map(|task| task.clone())
+                .collect();
+            if remain_tasks.len() > 0 {
+                waiting_task.add_task(SubTasks::new(sub_tasks.task.clone(), remain_tasks));
+            }
+            if matched_tasks.is_empty() {
                 log::debug!(
-                    "Task {} cannot apply for component {}",
-                    task.get_type(),
+                    "Task {:?} cannot apply for component {}",
+                    sub_tasks.task.get_type(),
                     &provider_plan.provider
                 );
                 continue;
             }
-            let map_results = self
-                .result_cache
-                .get_provider_judg_result(&provider_plan.provider.id, &provider_plan.plan.plan_id)
-                .await;
-            //Check if some dependent task' results is missing
-            if !task.has_all_dependent_results(&provider_plan.plan.plan_id, &map_results) {
-                waiting_task.add_task(task.clone());
-                log::debug!(
-                    "Some SubTask {} is not ready for job generation",
-                    task.get_type()
-                );
-            }
-            let sub_task_results = map_results
-                .iter()
-                .map(|(key, value)| (key.task_name.clone(), value.clone()))
-                .collect::<HashMap<String, JudgmentsResult>>();
-            log::debug!("Generate jobs for task {}", task.get_type());
-            if let Ok(mut applied_jobs) = task.apply(
+            log::debug!("Generate jobs for task {}", sub_tasks.task.get_type());
+            //Generate job for task base on received results
+            if let Ok(mut applied_jobs) = sub_tasks.task.apply(
                 &provider_plan.plan.plan_id,
                 &provider_plan.provider,
                 JobRole::Verification,
                 &matched_workers,
-                &sub_task_results,
+                &matched_tasks,
             ) {
-                //Todo: Improve this, don't create redundant jobs
-                if applied_jobs.jobs.len() > 0 {
-                    applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
-                }
+                // //Todo: Improve this, don't create redundant jobs
+                // if applied_jobs.jobs.len() > 0 {
+                //     applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
+                // }
                 if applied_jobs.jobs.len() > 0 {
                     assignment_buffer.append(applied_jobs);
                 }
             }
+            // //Check if some dependent task' results is missing
+            // if !task.has_all_dependent_results(&provider_plan.plan.plan_id, &map_results) {
+            //     waiting_task.add_task(task.clone());
+            //     log::debug!(
+            //         "Some SubTask {} is not ready for job generation",
+            //         task.get_type()
+            //     );
+            // }
+            //
+            // log::debug!("Generate jobs for task {}", task.get_type());
+            // if let Ok(mut applied_jobs) = task.apply(
+            //     &provider_plan.plan.plan_id,
+            //     &provider_plan.provider,
+            //     JobRole::Verification,
+            //     &matched_workers,
+            //     &sub_task_results,
+            // ) {
+            //     //Todo: Improve this, don't create redundant jobs
+            //     if applied_jobs.jobs.len() > 0 {
+            //         applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
+            //     }
+            //     if applied_jobs.jobs.len() > 0 {
+            //         assignment_buffer.append(applied_jobs);
+            //     }
+            // }
         }
         waiting_task
     }
     async fn clean_expired_plan(&self, _plans: Vec<Arc<ProviderPlan>>) {
         //Todo: Implementation
     }
+    /*
     async fn remote_duplicated_jobs(
         &self,
         assignment_buffer: JobAssignmentBuffer,
@@ -263,6 +351,7 @@ impl VerificationJobGenerator {
             .get_exist_jobs(plan_id, task_type);
         assignment_buffer.remove_redundant_jobs(&exist_tasks)
     }
+     */
     /*
      * Check if task is not generated for current plan,
      * Dependencies already have results

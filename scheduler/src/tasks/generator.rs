@@ -19,28 +19,41 @@ use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::sync::Arc;
 
 pub trait TaskApplicant: Sync + Send {
     fn get_type(&self) -> String;
-    fn get_task_names(&self) -> Vec<String> {
+    // fn get_task_names(&self) -> Vec<String> {
+    //     Vec::default()
+    // }
+    // fn has_all_dependent_results(
+    //     &self,
+    //     _plan_id: &PlanId,
+    //     _results: &HashMap<TaskKey, JudgmentsResult>,
+    // ) -> bool {
+    //     true
+    // }
+    /*
+     * return sub_task
+     */
+    fn get_task_dependencies(&self, sub_task: &String) -> Vec<TaskKey> {
         Vec::default()
     }
-    fn has_all_dependent_results(
-        &self,
-        _plan_id: &PlanId,
-        _results: &HashMap<TaskKey, JudgmentsResult>,
-    ) -> bool {
-        true
-    }
-    fn can_apply(&self, component: &ComponentInfo) -> bool;
+    /*
+     * Get all suitable sub task for input component
+     */
+    fn match_sub_task(&self, component: &ComponentInfo, phase: &JobRole) -> Vec<String>;
+    /*
+
+    */
     fn apply(
         &self,
         plan: &PlanId,
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-        task_results: &HashMap<String, JudgmentsResult>,
+        sub_tasks: &Vec<String>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error>;
     fn apply_with_cache(
         &self,
@@ -56,7 +69,8 @@ pub trait TaskApplicant: Sync + Send {
             .map(|val| val.clone())
             .unwrap_or_default();
         if get_current_time() - timestamp > CONFIG.generate_new_regular_timeout * 1000 {
-            self.apply(plan, component, phase, workers, &HashMap::default())
+            let matched_sub_tasks = self.match_sub_task(component, &phase);
+            self.apply(plan, component, phase, workers, &matched_sub_tasks)
         } else {
             Ok(JobAssignmentBuffer::default())
         }

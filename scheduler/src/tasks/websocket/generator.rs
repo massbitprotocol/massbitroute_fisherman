@@ -116,8 +116,8 @@ impl TaskApplicant for WebsocketGenerator {
     fn get_type(&self) -> String {
         String::from("Websocket")
     }
-    fn can_apply(&self, _component: &ComponentInfo) -> bool {
-        true
+    fn match_sub_task(&self, _component: &ComponentInfo, _phase: &JobRole) -> Vec<String> {
+        vec!["Websocket".to_string()]
     }
     fn apply(
         &self,
@@ -125,7 +125,7 @@ impl TaskApplicant for WebsocketGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-        _task_results: &HashMap<String, JudgmentsResult>,
+        sub_tasks: &Vec<String>,
     ) -> Result<JobAssignmentBuffer, Error> {
         let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
@@ -135,7 +135,8 @@ impl TaskApplicant for WebsocketGenerator {
             &context
         );
         for config in self.task_configs.iter().filter(|config| {
-            config.match_phase(&phase)
+            sub_tasks.contains(&config.name)
+                && config.match_phase(&phase)
                 && config.match_blockchain(&component.blockchain)
                 && config.match_network(&component.network)
                 && config.match_provider_type(&component.component_type.to_string())

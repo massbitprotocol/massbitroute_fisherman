@@ -118,8 +118,17 @@ impl TaskApplicant for HttpRequestGenerator {
     fn get_type(&self) -> String {
         String::from("HttpRequest")
     }
-    fn can_apply(&self, _component: &ComponentInfo) -> bool {
-        true
+    fn match_sub_task(&self, component: &ComponentInfo, phase: &JobRole) -> Vec<String> {
+        self.task_configs
+            .iter()
+            .filter(|config| {
+                config.match_phase(&phase)
+                    && config.match_blockchain(&component.blockchain)
+                    && config.match_network(&component.network)
+                    && config.match_provider_type(&component.component_type.to_string())
+            })
+            .map(|config| config.name.clone())
+            .collect()
     }
     fn apply(
         &self,
@@ -127,7 +136,7 @@ impl TaskApplicant for HttpRequestGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-        _task_results: &HashMap<String, JudgmentsResult>,
+        sub_tasks: &Vec<String>,
     ) -> Result<JobAssignmentBuffer, Error> {
         let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
@@ -137,7 +146,8 @@ impl TaskApplicant for HttpRequestGenerator {
             &context
         );
         for config in self.task_configs.iter().filter(|config| {
-            config.match_phase(&phase)
+            sub_tasks.contains(&config.name)
+                && config.match_phase(&phase)
                 && config.match_blockchain(&component.blockchain)
                 && config.match_network(&component.network)
                 && config.match_provider_type(&component.component_type.to_string())

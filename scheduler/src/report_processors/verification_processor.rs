@@ -230,7 +230,8 @@ impl VerificationReportProcessor {
 
         // Else continue process
         self.result_cache
-            .update_plan_results(plan, &plan_results, plan_jobs);
+            .update_plan_results(plan, &plan_results, plan_jobs)
+            .await;
 
         //Handle plan result
         let mut final_result = JudgmentsResult::Pass;

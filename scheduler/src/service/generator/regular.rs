@@ -148,7 +148,8 @@ impl RegularJobGenerator {
             .unwrap_or(MatchedWorkers::default());
 
         for task in self.tasks.iter() {
-            if !task.can_apply(provider) {
+            let matched_sub_tasks = task.match_sub_task(provider, &JobRole::Regular);
+            if matched_sub_tasks.is_empty() {
                 continue;
             }
             let task_type = task.get_type();

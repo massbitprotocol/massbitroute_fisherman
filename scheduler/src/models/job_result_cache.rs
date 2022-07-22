@@ -41,6 +41,7 @@ impl PlanTaskResultKey {
 #[derive(Debug, Default)]
 pub struct JobResultCache {
     pub result_cache_map: Mutex<HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>>,
+    //Fixme: Check size of this cache. There is no clean up function
     pub task_judg_result: Mutex<HashMap<ComponentId, HashMap<PlanTaskResultKey, JudgmentsResult>>>,
 }
 
@@ -128,6 +129,7 @@ impl JobResultCache {
         plan_id: &PlanId,
     ) -> HashMap<TaskKey, JudgmentsResult> {
         let cache_judg_result = self.task_judg_result.lock().await;
+        debug!("Cache judg result {:?}", &cache_judg_result);
         cache_judg_result
             .get(provider_id)
             .map(|res| {
@@ -202,6 +204,7 @@ impl JobResultCache {
                 results.insert(key.clone(), judgment_result.clone());
             }
         }
+        debug!("Extend task_judg_result {:?}", results);
         self.task_judg_result
             .lock()
             .await

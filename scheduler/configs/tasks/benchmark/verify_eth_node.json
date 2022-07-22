@@ -12,5 +12,11 @@
     "method": "eth_getBlockByNumber",
     "params": ["latest",false],
     "id": 1
+  },
+  "assignment": {
+    "broadcast": false,
+    "worker_number": 2,
+    "nearby_only": false,
+    "by_distance": true
   }
 }

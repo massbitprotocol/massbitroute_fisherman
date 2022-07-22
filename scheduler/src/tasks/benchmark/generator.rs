@@ -208,54 +208,69 @@ impl TaskApplicant for BenchmarkGenerator {
     fn get_type(&self) -> String {
         String::from("Benchmark")
     }
-    fn get_task_names(&self) -> Vec<String> {
-        self.configs
-            .iter()
-            .map(|config| config.name.clone())
-            .collect()
-    }
-    fn has_all_dependent_results(
-        &self,
-        plan_id: &PlanId,
-        results: &HashMap<TaskKey, JudgmentsResult>,
-    ) -> bool {
-        for config in self.configs.iter() {
-            if let Some(dependencies) = config.dependencies.as_ref() {
-                for (key, values) in dependencies {
-                    for value in values {
-                        let result_key = TaskKey {
-                            task_type: key.clone(),
-                            task_name: value.clone(),
-                        };
-                        let has_result = results.contains_key(&result_key);
-                        if !has_result {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        true
-    }
-    //Fixme: Improve task dependency
-    // fn get_task_dependencies(&self) -> TaskDependency {
-    //     let mut task_dependencies = TaskDependency::default();
+    // fn get_task_names(&self) -> Vec<String> {
+    //     self.configs
+    //         .iter()
+    //         .map(|config| config.name.clone())
+    //         .collect()
+    // }
+    // fn has_all_dependent_results(
+    //     &self,
+    //     plan_id: &PlanId,
+    //     results: &HashMap<TaskKey, JudgmentsResult>,
+    // ) -> bool {
     //     for config in self.configs.iter() {
     //         if let Some(dependencies) = config.dependencies.as_ref() {
     //             for (key, values) in dependencies {
-    //                 let hash_set = task_dependencies
-    //                     .entry(key.clone())
-    //                     .or_insert(HashSet::default());
     //                 for value in values {
-    //                     hash_set.insert(value.clone());
+    //                     let result_key = TaskKey {
+    //                         task_type: key.clone(),
+    //                         task_name: value.clone(),
+    //                     };
+    //                     let has_result = results.contains_key(&result_key);
+    //                     if !has_result {
+    //                         return false;
+    //                     }
     //                 }
     //             }
     //         }
     //     }
-    //     task_dependencies
+    //     true
     // }
-    fn can_apply(&self, _component: &ComponentInfo) -> bool {
-        true
+    /*
+     * Get all task dependencies in form sub_task_name => Vec<{task_type}.{task_name}>
+     */
+    fn get_task_dependencies(&self, sub_task: &String) -> Vec<TaskKey> {
+        let mut task_dependencies = Vec::default();
+        for config in self.configs.iter() {
+            if config.name.as_str() == sub_task.as_str() {
+                if let Some(dependencies) = config.dependencies.as_ref() {
+                    for (task_type, names) in dependencies {
+                        for name in names {
+                            let task_key = TaskKey {
+                                task_type: task_type.clone(),
+                                task_name: name.clone(),
+                            };
+                            task_dependencies.push(task_key)
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        task_dependencies
+    }
+    fn match_sub_task(&self, component: &ComponentInfo, phase: &JobRole) -> Vec<String> {
+        self.configs
+            .iter()
+            .filter(|config| {
+                config.match_phase(&phase)
+                    && config.match_blockchain(&component.blockchain)
+                    && config.match_network(&component.network)
+                    && config.match_provider_type(&component.component_type.to_string())
+            })
+            .map(|config| config.name.clone())
+            .collect()
     }
     fn apply(
         &self,
@@ -263,10 +278,14 @@ impl TaskApplicant for BenchmarkGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-        task_results: &HashMap<String, JudgmentsResult>,
+        sub_tasks: &Vec<String>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
         let mut assignment_buffer = JobAssignmentBuffer::default();
-        log::debug!("Task benchmark apply for component {:?}", component);
+        log::debug!(
+            "Task benchmark apply for component {:?} with sub_tasks {:?}",
+            component,
+            sub_tasks
+        );
         log::debug!("Workers {:?}", workers);
         let context = Self::create_context(component);
         log::debug!(
@@ -275,7 +294,8 @@ impl TaskApplicant for BenchmarkGenerator {
             &context
         );
         for config in self.configs.iter().filter(|config| {
-            config.match_phase(&phase)
+            sub_tasks.contains(&config.name)
+                && config.match_phase(&phase)
                 && config.match_blockchain(&component.blockchain)
                 && config.match_network(&component.network)
                 && config.match_provider_type(&component.component_type.to_string())
