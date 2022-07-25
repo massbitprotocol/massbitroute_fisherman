@@ -3,9 +3,6 @@
   "provider_types": ["node"],
   "blockchains": ["dot"],
   "dependencies": {
-    "HttpRequest": [
-      "RoundTripTime"
-    ]
   },
   "body": {
     "jsonrpc": "2.0",

@@ -4,9 +4,6 @@
   "url_template":"http://{{provider.ip}}/_test_20k",
   "http_method": "GET",
   "dependencies": {
-    "HttpRequest": [
-      "RoundTripTime"
-    ]
   },
   "body": {}
 }
