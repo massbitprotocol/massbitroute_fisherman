@@ -532,7 +532,11 @@ mod tests {
 
         let client = Client::new();
         let url = format!("http://localhost:{}/report", local_port);
-        let resp = client.post(url).body(body).send().await?.text().await?;
+        let resp = client.post(url).body(body).send().await;
+        info!("send resp: {:?}", resp);
+        let resp = resp?.text().await;
+        info!("text resp: {:?}", resp);
+        let resp = resp?;
         info!("res: {:#?}", resp);
 
         let resp: SimpleResponse = serde_json::from_str(&resp)?;

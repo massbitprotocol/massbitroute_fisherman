@@ -103,13 +103,12 @@ impl ProcessorState {
     pub async fn process_verification_results(
         &self,
         job_results: Vec<JobResult>,
-    ) -> Result<HashMap<String, StoredJobResult>, anyhow::Error> {
-        let stored_results = HashMap::<String, StoredJobResult>::new();
+    ) -> Result<(), anyhow::Error> {
         let connection = self.connection.clone();
         let _res = self
             .verification_processor
             .process_jobs(job_results, connection)
             .await;
-        Ok(stored_results)
+        Ok(())
     }
 }

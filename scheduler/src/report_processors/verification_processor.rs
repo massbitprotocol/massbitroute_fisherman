@@ -11,7 +11,7 @@ use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
 use common::{ComponentId, JobId, PlanId, DOMAIN};
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -70,23 +70,12 @@ impl ReportProcessor for VerificationReportProcessor {
         &self,
         reports: Vec<JobResult>,
         _db_connection: Arc<DatabaseConnection>,
-    ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
-        log::debug!("Verification process report jobs: {:?}", &reports);
-        for adapter in self.report_adapters.iter() {
-            log::info!(
-                "With Adapter {} append {} results",
-                adapter.get_name(),
-                reports.len()
-            );
-            adapter.append_job_results(&reports).await;
-        }
-        let stored_results = Vec::<StoredJobResult>::new();
+    ) -> Result<(), anyhow::Error> {
+        // Separate the results by ProviderTask
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
-        //let mut provider_ids = HashSet::<ComponentId>::new();
         let mut plan_ids = HashSet::<PlanId>::new();
-        let mut job_ids = HashSet::<JobId>::new();
+
         for report in reports {
-            //provider_ids.insert(report.provider_id.clone());
             plan_ids.insert(report.plan_id.clone());
             let key = ProviderTask::new(
                 report.provider_id.clone(),
@@ -94,15 +83,15 @@ impl ReportProcessor for VerificationReportProcessor {
                 report.result_detail.get_name(),
                 report.job_name.clone(),
             );
-            job_ids.insert(report.job_id.clone());
             provider_task_results
                 .entry(key)
-                .or_insert(Vec::default())
+                .or_insert_with(Vec::default)
                 .push(report);
         }
-        if job_ids.is_empty() {
-            return Ok(Vec::default());
+        if plan_ids.is_empty() {
+            return Ok(());
         }
+
         //Discard timeout plan
         let active_plans = self.get_active_plans(&plan_ids).await.unwrap_or_default();
         debug!("Active plans {:?}", &active_plans);
@@ -130,7 +119,7 @@ impl ReportProcessor for VerificationReportProcessor {
 
         //Filter by active plan
         let mut active_provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
-        for (key, results) in provider_task_results {
+        for (provider_task, results) in provider_task_results {
             //Filter by active plan
             let active_results = results
                 .into_iter()
@@ -139,29 +128,49 @@ impl ReportProcessor for VerificationReportProcessor {
                     map_plan_jobs.get(&result.plan_id).is_some()
                 })
                 .collect::<Vec<JobResult>>();
-            if active_results.len() > 0 {
-                active_provider_task_results.insert(key, active_results);
+            if !active_results.is_empty() {
+                active_provider_task_results.insert(provider_task, active_results);
             }
         }
         debug!("Active task results {:?}", &active_provider_task_results);
-        for (key, results) in active_provider_task_results.iter() {
-            log::debug!("Process results {:?} for task {:?}", results, key);
-            for adapter in self.report_adapters.iter() {
-                adapter.append_job_results(results).await;
-            }
+
+        // Get active report for s
+        let mut active_reports = vec![];
+        for job_results in active_provider_task_results.values() {
+            active_reports.extend_from_slice(job_results);
         }
-        for (provider_task, job_results) in active_provider_task_results {
-            //After filter this unwrap is safe;
-            let plan_entity = active_plans.get(&provider_task.provider_id).unwrap();
-            if let Some(plan_jobs) = map_plan_jobs.get(&plan_entity.plan_id) {
-                self.judg_provider_results(provider_task, plan_entity, job_results, plan_jobs)
-                    .await;
-            } else {
-                debug!("Missing jobs of plan {}", &plan_entity.plan_id);
-            };
+        // Write db
+        debug!("Verify process report active jobs: {:?}", &active_reports);
+
+        for adapter in self.report_adapters.iter() {
+            log::info!(
+                "With Adapter {} append {} results",
+                adapter.get_name(),
+                active_reports.len()
+            );
+            adapter
+                .append_job_results(&active_reports)
+                .await
+                .expect("Cannot append job results");
         }
 
-        Ok(stored_results)
+        for (provider_task, active_results) in active_provider_task_results {
+            if let Some(plan_entity) = active_plans.get(&provider_task.provider_id) {
+                if let Some(plan_jobs) = map_plan_jobs.get(&plan_entity.plan_id) {
+                    self.judg_provider_results(
+                        provider_task,
+                        plan_entity,
+                        active_results,
+                        plan_jobs,
+                    )
+                    .await;
+                } else {
+                    debug!("Missing jobs of plan {}", &plan_entity.plan_id);
+                };
+            }
+        }
+
+        Ok(())
     }
 }
 

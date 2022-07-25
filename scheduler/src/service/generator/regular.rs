@@ -38,11 +38,7 @@ impl RegularJobGenerator {
         for job in jobs.iter() {
             gen_plans.insert(job.plan_id.clone());
         }
-        warn!(
-            "update_plans_as_generated {}: {:?}",
-            gen_plans.len(),
-            gen_plans
-        );
+        info!("store_jobs update {} generated plans", gen_plans.len(),);
         let tnx = self.db_conn.begin().await?;
         let res = self.job_service.save_jobs(&jobs).await;
         warning_if_error("save_jobs return error", res);
@@ -92,11 +88,7 @@ impl RegularJobGenerator {
         } = total_assignment_buffer;
         //info!("There is {} components", components.len());
         info!("There is {} gen_jobs", jobs.len(),);
-        info!(
-            "There is {} job_assignments {:?}",
-            list_assignments.len(),
-            list_assignments
-        );
+        info!("There is {} job_assignments", list_assignments.len(),);
 
         if list_assignments.len() > 0 {
             let res = self
