@@ -59,7 +59,7 @@ impl WorkerInfoStorage {
     //     })
     // }
     pub async fn get_workers(&self) -> Vec<Arc<Worker>> {
-        debug!("Lock and clone all worker refs");
+        //debug!("Lock and clone all worker refs");
         self.workers
             .lock()
             .await

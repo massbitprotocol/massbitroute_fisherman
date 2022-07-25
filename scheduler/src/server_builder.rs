@@ -181,22 +181,22 @@ impl SchedulerServer {
                 async move { clone_service.resume_worker(worker_info, clone_state).await }
             })
     }
-    fn create_route_worker_stop(
-        &self,
-        service: Arc<WebService>,
-        state: Arc<SchedulerState>,
-    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path!("worker" / "stop")
-            .and(SchedulerServer::log_headers())
-            .and(warp::post())
-            .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |worker_info: WorkerInfo| {
-                info!("#### Received request body {:?} ####", &worker_info);
-                let clone_service = service.clone();
-                let clone_state = state.clone();
-                async move { clone_service.stop_worker(worker_info, clone_state).await }
-            })
-    }
+    // fn create_route_worker_stop(
+    //     &self,
+    //     service: Arc<WebService>,
+    //     state: Arc<Mutex<SchedulerState>>,
+    // ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    //     warp::path!("worker" / "stop")
+    //         .and(SchedulerServer::log_headers())
+    //         .and(warp::post())
+    //         .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
+    //         .and_then(move |worker_info: WorkerInfo| {
+    //             info!("#### Received request body {:?} ####", &worker_info);
+    //             let clone_service = service.clone();
+    //             let clone_state = state.clone();
+    //             async move { clone_service.stop_worker(worker_info, clone_state).await }
+    //         })
+    // }
     fn create_route_node_verify(
         &self,
         service: Arc<WebService>,
@@ -233,14 +233,16 @@ impl SchedulerServer {
                     PROCESS_THREAD_COUNT.fetch_add(1, Ordering::Relaxed);
                     let job_results_len = job_results.len();
                     let now = Instant::now();
+                    let thread_id = PROCESS_THREAD_COUNT.load(Ordering::Relaxed);
                     info!(
-                        "** Start {}th process {} job results **",
-                        PROCESS_THREAD_COUNT.load(Ordering::Relaxed),
+                        "** Start {}th thread to process {} job results **",
+                        thread_id,
                         job_results_len
                     );
                     let res = clone_service.process_report(job_results, clone_state).await;
                     info!(
-                        "** Finished process {} job results in {:.2?} with res: {:?} **",
+                        "** Finished {}th thread to process {} job results in {:.2?} with res: {:?} **",
+                        thread_id,
                         job_results_len,
                         now.elapsed(),
                         res
@@ -405,7 +407,7 @@ mod tests {
         let scheduler_service = SchedulerServiceBuilder::default().build();
         let processor_service = ProcessorServiceBuilder::default().build();
         let access_control = AccessControl::default();
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(vec![])));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
         let provider_storage = Arc::new(ProviderStorage::default());
 
         let scheduler_state = SchedulerState::new(
@@ -475,7 +477,7 @@ mod tests {
         let scheduler_service = SchedulerServiceBuilder::default().build();
         let processor_service = ProcessorServiceBuilder::default().build();
         let access_control = AccessControl::default();
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(vec![])));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
         let provider_storage = Arc::new(ProviderStorage::default());
 
         let scheduler_state = SchedulerState::new(
@@ -487,7 +489,7 @@ mod tests {
         );
 
         info!("Init http service ");
-        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+        let result_cache = Arc::new(JobResultCache::default());
         let job_service = Arc::new(JobService::new(arc_conn.clone()));
         let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
         let processor_state = ProcessorState::new(
@@ -530,7 +532,11 @@ mod tests {
 
         let client = Client::new();
         let url = format!("http://localhost:{}/report", local_port);
-        let resp = client.post(url).body(body).send().await?.text().await?;
+        let resp = client.post(url).body(body).send().await;
+        info!("send resp: {:?}", resp);
+        let resp = resp?.text().await;
+        info!("text resp: {:?}", resp);
+        let resp = resp?;
         info!("res: {:#?}", resp);
 
         let resp: SimpleResponse = serde_json::from_str(&resp)?;

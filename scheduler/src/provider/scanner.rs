@@ -150,7 +150,7 @@ impl ProviderScanner {
     pub async fn reload_provider_map(&self) {
         let map = self.provider_service.get_provider_maps().await;
         if map.len() > 0 {
-            debug!("Waiting for setting map worker providers {:?}", &map);
+            trace!("Waiting for setting map {} worker providers", &map.len());
             self.workers.set_map_worker_provider(map).await;
         }
     }
@@ -221,7 +221,7 @@ pub mod tests {
         let provider_storage = Arc::new(ProviderStorage::default());
 
         log::debug!("Init with {:?} workers", all_workers.len());
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(all_workers));
 
         //let (tx, mut rx) = mpsc::channel(1024);
         //Scanner for update provider list from portal

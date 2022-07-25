@@ -25,7 +25,7 @@ pub trait ReportProcessor: Sync + Send {
         &self,
         report: Vec<JobResult>,
         db_connection: Arc<DatabaseConnection>,
-    ) -> Result<Vec<StoredJobResult>, anyhow::Error>;
+    ) -> Result<(), anyhow::Error>;
 }
 
 // pub fn get_verification_processor(

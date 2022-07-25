@@ -1,5 +1,6 @@
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
+use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
 use anyhow::{anyhow, Error};
@@ -35,6 +36,7 @@ impl HttpRequestGenerator {
         //let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         let path = format!("{}/http_request", config_dir);
         let task_configs = HttpRequestJobConfig::read_configs(path.as_str(), phase);
+        debug!("HttpRequestGenerator task_configs: {:#?}", task_configs);
         HttpRequestGenerator {
             //root_config: configs,
             task_configs,
@@ -113,7 +115,7 @@ impl HttpRequestGenerator {
     }
 }
 impl TaskApplicant for HttpRequestGenerator {
-    fn get_name(&self) -> String {
+    fn get_type(&self) -> String {
         String::from("HttpRequest")
     }
     fn can_apply(&self, _component: &ComponentInfo) -> bool {
@@ -125,6 +127,7 @@ impl TaskApplicant for HttpRequestGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
+        _task_results: &HashMap<String, JudgmentsResult>,
     ) -> Result<JobAssignmentBuffer, Error> {
         let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
@@ -196,7 +199,7 @@ impl TaskApplicant for HttpRequestGenerator {
             debug!(
                 "time_to_timeout: {}. Generate task {}.{} for {} with config {}",
                 time_pass_timeout,
-                self.get_name(),
+                self.get_type(),
                 &config.name,
                 component,
                 config
@@ -209,6 +212,8 @@ impl TaskApplicant for HttpRequestGenerator {
         log::trace!("Generated jobs {:?}", &assignment_buffer);
         Ok(assignment_buffer)
     }
+
+    // Not use because assignment_config
     fn assign_jobs(
         &self,
         _plan: &PlanModel,

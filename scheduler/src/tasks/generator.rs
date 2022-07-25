@@ -2,9 +2,11 @@
  * Each Task description can apply to node/gateway to generate a list of jobs.
  * If task is not suitable then result is empty
  */
+use crate::models::job_result_cache::{PlanTaskResultKey, TaskKey};
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::TaskDependency;
 use crate::persistence::PlanModel;
+use crate::service::judgment::JudgmentsResult;
 use crate::tasks::benchmark::generator::BenchmarkGenerator;
 use crate::tasks::websocket::generator::WebsocketGenerator;
 use crate::tasks::*;
@@ -20,9 +22,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub trait TaskApplicant: Sync + Send {
-    fn get_name(&self) -> String;
-    fn get_task_dependencies(&self) -> TaskDependency {
-        TaskDependency::default()
+    fn get_type(&self) -> String;
+    fn get_task_names(&self) -> Vec<String> {
+        Vec::default()
+    }
+    fn has_all_dependent_results(
+        &self,
+        _plan_id: &PlanId,
+        _results: &HashMap<TaskKey, JudgmentsResult>,
+    ) -> bool {
+        true
     }
     fn can_apply(&self, component: &ComponentInfo) -> bool;
     fn apply(
@@ -31,6 +40,7 @@ pub trait TaskApplicant: Sync + Send {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
+        task_results: &HashMap<String, JudgmentsResult>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error>;
     fn apply_with_cache(
         &self,
@@ -40,13 +50,13 @@ pub trait TaskApplicant: Sync + Send {
         workers: &MatchedWorkers,
         latest_update: HashMap<String, Timestamp>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
-        let task_name = self.get_name();
+        let task_name = self.get_type();
         let timestamp = latest_update
             .get(&task_name)
             .map(|val| val.clone())
             .unwrap_or_default();
         if get_current_time() - timestamp > CONFIG.generate_new_regular_timeout * 1000 {
-            self.apply(plan, component, phase, workers)
+            self.apply(plan, component, phase, workers, &HashMap::default())
         } else {
             Ok(JobAssignmentBuffer::default())
         }
