@@ -289,10 +289,11 @@ impl TaskApplicant for BenchmarkGenerator {
                 assignment_buffer.assign_job(job, workers, &config.assignment);
             }
         }
-        log::debug!(
-            "Generated {:?} jobs and {:?} assignments.",
+        debug!(
+            "Generated {} benchmark jobs and {} assignments: {:?}.",
             &assignment_buffer.jobs.len(),
-            &assignment_buffer.list_assignments.len()
+            &assignment_buffer.list_assignments.len(),
+            &assignment_buffer.list_assignments
         );
 
         Ok(assignment_buffer)

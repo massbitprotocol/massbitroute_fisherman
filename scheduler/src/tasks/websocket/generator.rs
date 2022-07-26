@@ -150,7 +150,7 @@ impl TaskApplicant for WebsocketGenerator {
             }
         }
         log::debug!(
-            "Generated {:?} jobs and {:?} assignments.",
+            "Generated {:?} websocket jobs and {:?} assignments.",
             &assignment_buffer.jobs.len(),
             &assignment_buffer.list_assignments.len()
         );

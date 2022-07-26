@@ -2,7 +2,7 @@ use crate::persistence::ProviderMapModel;
 use common::component::{ComponentInfo, Zone};
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{ComponentId, WorkerId};
-use log::debug;
+use log::{debug, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -18,16 +18,6 @@ pub struct WorkerInfoStorage {
 
 impl WorkerInfoStorage {
     pub fn new(workers: Vec<WorkerInfo>) -> Self {
-        // let mut workers = Vec<Arc<Worker>>::default();
-        // for worker_info in workers.into_iter() {
-        //     let zone = worker_info.zone.clone();
-        //     let worker = Arc::new(Worker::new(worker_info));
-        //     if let Some(vec) = map.get_mut(&zone) {
-        //         vec.push(worker);
-        //     } else {
-        //         map.insert(zone, vec![worker]);
-        //     }
-        // }
         WorkerInfoStorage {
             workers: Mutex::new(
                 workers
@@ -39,25 +29,24 @@ impl WorkerInfoStorage {
         }
     }
     pub async fn add_worker(&self, info: WorkerInfo) {
-        let worker = Arc::new(Worker::new(info));
-        self.workers.lock().await.push(worker);
-        // let zone = info.zone.clone();
-        // let worker = Arc::new(Worker::new(info));
-        // let mut zone_workers = self.map_zone_workers.lock().await;
-        // if let Some(vec) = zone_workers.get_mut(&zone) {
-        //     vec.push(worker);
-        // } else {
-        //     zone_workers.insert(zone, vec![worker]);
-        // }
+        let mut workers = self.workers.lock().await;
+        if !workers
+            .iter()
+            .any(|worker| worker.worker_info.worker_id == info.worker_id)
+        {
+            workers.push(Arc::new(Worker::new(info)));
+        }
     }
-    // pub fn get_worker_by_zone_id(&self, zone: &Zone, worker_id: &WorkerId) -> Option<Arc<Worker>> {
-    //     self.workers.get(zone).and_then(|workers| {
-    //         workers
-    //             .iter()
-    //             .find(|w| w.get_id().as_str() == worker_id.as_str())
-    //             .map(|r| r.clone())
-    //     })
-    // }
+    pub async fn remove_workers(&self, worker_ids: &[&WorkerId]) {
+        let mut workers = self.workers.lock().await;
+        info!(
+            "Worker list before remove: {:?}, worker_ids:{:?}",
+            workers, worker_ids
+        );
+        workers.retain(|worker| !worker_ids.contains(&&worker.worker_info.worker_id));
+        info!("Worker list after remove: {:?}", workers);
+    }
+
     pub async fn get_workers(&self) -> Vec<Arc<Worker>> {
         //debug!("Lock and clone all worker refs");
         self.workers

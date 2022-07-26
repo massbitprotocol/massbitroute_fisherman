@@ -66,6 +66,8 @@ lazy_static! {
         env::var("WORKER_PATH_JOBS_UPDATE").unwrap_or_else(|_| String::from("jobs_update"));
     pub static ref WORKER_PATH_JOB_UPDATE: String =
         env::var("WORKER_PATH_GET_STATE").unwrap_or_else(|_| String::from("get_state"));
-    pub static ref IS_TEST_MODE: bool =
-        env::var("IS_TEST_MODE").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_TEST_MODE, e.g. true");
+    pub static ref IS_VERIFY_REPORT: bool =
+        env::var("IS_VERIFY_REPORT").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_VERIFY_REPORT, e.g. true");
+    pub static ref IS_REGULAR_REPORT: bool =
+        env::var("IS_REGULAR_REPORT").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_REGULAR_REPORT, e.g. true");
 }

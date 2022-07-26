@@ -204,7 +204,12 @@ impl From<&JobBenchmarkResult> for job_result_benchmarks::ActiveModel {
                 .get(&99)
                 .map(|val| val.clone())
                 .unwrap_or(0_f32) as f64),
-            ..Default::default()
+            execution_timestamp: Set(result.response_timestamp),
+            recorded_timestamp: Set(result.response_timestamp),
+            error_code: Set(result.response.error_code as i32),
+            message: Set(result.response.message.to_owned()),
+            response_duration: NotSet,
+            id: NotSet,
         }
     }
 }

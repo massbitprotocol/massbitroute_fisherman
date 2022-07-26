@@ -2,7 +2,7 @@ use common::logger::init_logger;
 //use diesel::r2d2::ConnectionManager;
 //use diesel::{r2d2, PgConnection};
 //use diesel_migrations::embed_migrations;
-use futures_util::future::join4;
+use futures_util::future::join5;
 use log::info;
 use scheduler::models::jobs::JobAssignmentBuffer;
 use scheduler::models::providers::ProviderStorage;
@@ -23,6 +23,7 @@ use scheduler::persistence::services::plan_service::PlanService;
 use scheduler::persistence::services::provider_service::ProviderService;
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
+use scheduler::service::check_worker_health::WorkerHealthService;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task;
@@ -107,6 +108,12 @@ async fn main() -> Result<(), anyhow::Error> {
         provider_storage.clone(),
     );
     let mut job_delivery = JobDelivery::new(assigment_buffer.clone());
+
+    // Check worker status task
+    let worker_health = WorkerHealthService::new(worker_infos, result_cache.clone());
+
+    // Spawn tasks
+    let task_worker_health = task::spawn(async move { worker_health.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
     let task_job_generator = task::spawn(async move { job_generator.run().await });
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
@@ -126,11 +133,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
     let task_serve = server.serve();
-    let _res = join4(
+
+    // Run all spawn task
+    let _res = join5(
         task_provider_scanner,
         task_job_generator,
         task_job_delivery,
         task_serve,
+        task_worker_health,
     )
     .await;
 
