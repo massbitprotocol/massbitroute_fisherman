@@ -152,7 +152,7 @@ impl TaskApplicant for HttpRequestGenerator {
             }
         }
         log::debug!(
-            "Generated {:?} jobs and {:?} assignments.",
+            "Generated {:?} http-request jobs and {:?} assignments.",
             &assignment_buffer.jobs.len(),
             &assignment_buffer.list_assignments.len()
         );

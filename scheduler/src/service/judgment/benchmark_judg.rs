@@ -119,7 +119,7 @@ pub struct BenchmarkJudgment {
 impl BenchmarkJudgment {
     pub fn new(config_dir: &str, result_service: Arc<JobResultService>) -> Self {
         let task_configs: Vec<BenchmarkConfig> = BenchmarkConfig::read_configs(
-            format!("{}/benchmark.json", config_dir).as_str(),
+            format!("{}/benchmark", config_dir).as_str(),
             &JobRole::Verification,
         );
         BenchmarkJudgment {

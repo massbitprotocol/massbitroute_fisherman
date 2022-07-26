@@ -5,7 +5,7 @@ use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::{JudgmentsResult, MainJudgment};
 use crate::service::report_portal::StoreReport;
-use crate::{CONFIG, IS_TEST_MODE, PORTAL_AUTHORIZATION};
+use crate::{CONFIG, IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
 use async_trait::async_trait;
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
@@ -299,9 +299,12 @@ impl VerificationReportProcessor {
                     &provider_task.provider_type,
                 );
                 debug!("Send plan report to portal:{:?}", report);
-                if !*IS_TEST_MODE {
+                if !*IS_VERIFY_REPORT {
                     let res = report.send_data().await;
-                    info!("Send report to portal res: {:?}", res);
+                    info!(
+                        "report_judgment_result Send report to portal res: {:?}",
+                        res
+                    );
                 } else {
                     let result = json!({
                         "provider_id":provider_task.provider_id,

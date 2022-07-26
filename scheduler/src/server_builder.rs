@@ -48,7 +48,7 @@ pub struct DeployParam {
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct SimpleResponse {
-    success: bool,
+    pub success: bool,
 }
 
 impl SchedulerServer {
