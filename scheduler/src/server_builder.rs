@@ -351,7 +351,7 @@ mod tests {
     use futures_util::AsyncBufReadExt;
     use serde_json::json;
     use std::time::Duration;
-    use test_util::helper::load_env;
+    use test_util::helper::{load_env, mock_db_connection};
     use tokio::fs;
     use tokio::time::sleep;
 
@@ -399,7 +399,7 @@ mod tests {
         let callback_url = format!("http://127.0.0.1:{}/report", local_port);
         env::set_var("REPORT_CALLBACK", callback_url.clone());
         // Mock DB
-        let db_conn = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let db_conn = mock_db_connection();
         let arc_conn = Arc::new(db_conn);
         let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
         let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
@@ -462,6 +462,7 @@ mod tests {
         Ok(())
     }
 
+    #[ignore]
     #[tokio::test]
     async fn test_api_report_and_verification() -> Result<(), Error> {
         dotenv::from_filename(".env_test").ok();
@@ -469,7 +470,7 @@ mod tests {
         let local_port: &str = "3034";
         let socket_addr = format!("0.0.0.0:{}", local_port);
         // Mock DB
-        let db_conn = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let db_conn = mock_db_connection();
         let arc_conn = Arc::new(db_conn);
         let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
         let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
