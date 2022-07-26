@@ -161,7 +161,7 @@ pub mod tests {
     use tokio::task;
     use JobGeneratorTrait;
 
-    const TEST_TIMEOUT: u64 = 15;
+    const TEST_TIMEOUT: u64 = 30;
 
     #[tokio::test]
     async fn test_main_generator_verification_node() -> Result<(), Error> {
@@ -229,6 +229,16 @@ pub mod tests {
             "RoundTripTime".to_string(),
             "LatestBlock".to_string(),
             "LatestBlock".to_string(),
+            "VerifyEthNode".to_string(),
+            "VerifyEthNode".to_string(),
+            "VerifyEthNode".to_string(),
+            "VerifyEthNode".to_string(),
+            "VerifyEthNode".to_string(),
+            "VerifyDotNode".to_string(),
+            "VerifyDotNode".to_string(),
+            "VerifyDotNode".to_string(),
+            "VerifyDotNode".to_string(),
+            "VerifyDotNode".to_string(),
             "EthWebsocket".to_string(),
             "DotWebsocket".to_string(),
         ]);
@@ -246,7 +256,12 @@ pub mod tests {
                 for job_assign in lock.list_assignments.iter() {
                     job_names.add_item(job_assign.job.job_name.to_string());
                 }
-                if job_names.sum_len() == expect_len {
+                println!(
+                    "job_names.sum_len: {}, expect_len: {}",
+                    job_names.sum_len(),
+                    expect_len
+                );
+                if job_names.sum_len() >= expect_len {
                     break;
                 }
             }
@@ -323,6 +338,16 @@ pub mod tests {
             "RoundTripTime".to_string(),
             "EthWebsocket".to_string(),
             "DotWebsocket".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
+            "VerifyGateway".to_string(),
         ]);
         let expect_len = expect_job_names.sum_len();
         let mut job_names = CountItems::new(vec![]);
@@ -337,7 +362,7 @@ pub mod tests {
                 for job_assign in lock.list_assignments.iter() {
                     job_names.add_item(job_assign.job.job_name.to_string());
                 }
-                if job_names.sum_len() == expect_len {
+                if job_names.sum_len() >= expect_len {
                     println!("assigment_buffer: {:#?}", lock);
                     break;
                 }
@@ -426,7 +451,7 @@ pub mod tests {
                     job_names.add_item(job_assign.job.job_name.to_string());
                     info!("job_names: {:?}", job_names);
                 }
-                if job_names.sum_len() == expect_len {
+                if job_names.sum_len() >= expect_len {
                     println!("assigment_buffer: {:#?}", lock);
                     break;
                 }

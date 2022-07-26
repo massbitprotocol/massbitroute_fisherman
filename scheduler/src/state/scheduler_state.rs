@@ -11,6 +11,7 @@ use common::workers::{WorkerInfo, WorkerRegisterResult};
 
 use sea_orm::DatabaseConnection;
 
+use log::error;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -62,10 +63,10 @@ impl SchedulerState {
             })
         } else {
             let worker_id = worker_info.worker_id.clone();
-            self.worker_service
-                .clone()
-                .store_worker(&worker_info)
-                .await?;
+            let res = self.worker_service.clone().store_worker(&worker_info).await;
+            if res.is_err() {
+                error!("store_worker error: {:?}", res);
+            }
             self.worker_pool.add_worker(worker_info).await;
             Ok(WorkerRegisterResult {
                 worker_id,
