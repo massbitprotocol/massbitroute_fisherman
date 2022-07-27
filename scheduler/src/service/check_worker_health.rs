@@ -1,8 +1,9 @@
 use crate::models::job_result_cache::JobResultCache;
 use crate::models::workers::WorkerInfoStorage;
 
+use crate::server_builder::SimpleResponse;
 use crate::CONFIG;
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use common::util::get_current_time;
 use common::workers::Worker;
 use common::{Timestamp, WorkerId};
@@ -99,15 +100,13 @@ impl WorkerHealthService {
             if now - status.update_time > CONFIG.update_worker_list_interval
                 && status.health == WorkerHealth::Good
             {
-                if Self::ping_worker(&*status.worker.worker_info.worker_ip)
-                    .await
-                    .is_err()
-                {
+                let res = Self::ping_worker(&*status.worker.worker_info.url).await;
+                if res.is_err() {
                     status.update_time = now;
                     status.health = WorkerHealth::Bad;
                     warn!(
-                        "Worker heal is bad, remove worker {} {} from working list.",
-                        status.worker.worker_info.worker_id, status.worker.worker_info.url
+                        "Remove worker {} {} from working list, err {:?}.",
+                        status.worker.worker_info.worker_id, status.worker.worker_info.url, res
                     );
                     self.workers
                         .remove_workers(&[&status.worker.worker_info.worker_id])
@@ -119,13 +118,19 @@ impl WorkerHealthService {
             }
         }
     }
-    async fn ping_worker(ip: &str) -> Result<(), Error> {
-        let url = format!("https://{}/_rtt", ip);
+    async fn ping_worker(worker_url: &str) -> Result<(), Error> {
+        let url = format!("{}/ping", worker_url);
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_millis(2000))
+            .danger_accept_invalid_certs(true)
+            .timeout(Duration::from_millis(4000))
             .build()?;
-        let resp = client.get(url).send().await?.text().await?.parse::<u64>()?;
+        let resp = client.get(url).send().await?.text().await?;
+        let resp: SimpleResponse = serde_json::from_str(&resp)?;
+        let expect_resp = SimpleResponse { success: true };
         debug!("ping worker rtt: {:#?}", resp);
+        if resp != expect_resp {
+            return Err(anyhow!("Worker wrong response: {:?}", expect_resp));
+        }
         Ok(())
     }
 }
