@@ -212,6 +212,7 @@ impl VerificationReportProcessor {
         results: Vec<JobResult>,
         plan_jobs: &Vec<Job>,
     ) {
+        let mut message = "Result message: ".to_string();
         let plan_results = self
             .judgment
             .apply_for_verify(&provider_task, plan, &results, plan_jobs)
@@ -239,18 +240,19 @@ impl VerificationReportProcessor {
 
         // Else continue process
         self.result_cache
-            .update_plan_results(plan, &plan_results, plan_jobs);
+            .update_plan_results(plan, &plan_results, plan_jobs)
+            .await;
 
         //Handle plan result
         let mut final_result = JudgmentsResult::Pass;
-        for (_, plan_result) in plan_results {
+        for (job_id, plan_result) in plan_results {
+            message.push_str(&format!("{} {:?}; ", job_id, &plan_result));
             if plan_result != JudgmentsResult::Pass {
                 final_result = plan_result;
-                break;
             }
         }
 
-        self.report_judgment_result(&provider_task, plan, final_result)
+        self.report_judgment_result(&provider_task, plan, final_result, message)
             .await;
     }
 
@@ -284,6 +286,7 @@ impl VerificationReportProcessor {
         provider_task: &ProviderTask,
         plan: &PlanEntity,
         judg_result: JudgmentsResult,
+        message: String,
     ) {
         match judg_result {
             JudgmentsResult::Failed | JudgmentsResult::Pass | JudgmentsResult::Error => {
@@ -298,8 +301,11 @@ impl VerificationReportProcessor {
                     &provider_task.provider_id,
                     &provider_task.provider_type,
                 );
-                debug!("Send plan report to portal:{:?}", report);
-                if !*IS_VERIFY_REPORT {
+                info!(
+                    "Send plan report to portal with message {}: {:?}",
+                    message, report
+                );
+                if *IS_VERIFY_REPORT {
                     let res = report.send_data().await;
                     info!(
                         "report_judgment_result Send report to portal res: {:?}",
@@ -309,7 +315,8 @@ impl VerificationReportProcessor {
                     let result = json!({
                         "provider_id":provider_task.provider_id,
                         "plan_id":plan.plan_id,
-                        "result":judg_result
+                        "result":judg_result,
+                        "message":message
                     });
                     let res = report.write_data(result);
                     info!("Write report to file res: {:?}", res);

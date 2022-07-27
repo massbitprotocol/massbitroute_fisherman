@@ -196,7 +196,7 @@ impl MainJudgment {
                         &DOMAIN,
                     );
                     report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
-                    if !*IS_REGULAR_REPORT {
+                    if *IS_REGULAR_REPORT {
                         debug!("Send plan report to portal:{:?}", report);
                         let res = report.send_data().await;
                         info!("Send report to portal res: {:?}", res);
