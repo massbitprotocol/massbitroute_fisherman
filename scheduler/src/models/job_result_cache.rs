@@ -1,14 +1,18 @@
 use crate::models::component::ProviderPlan;
+use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
-use crate::CONFIG;
+use crate::{CONFIG, RESULT_CACHE_MAX_LENGTH};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::{ComponentId, JobId, PlanId, Timestamp};
+use futures_util::StreamExt;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 pub type TaskName = String;
 pub type TaskType = String;
@@ -34,22 +38,128 @@ impl PlanTaskResultKey {
         }
     }
 }
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct JobResultCache {
-    pub result_cache_map: HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>,
-    pub task_judg_result: HashMap<ComponentId, HashMap<PlanTaskResultKey, JudgmentsResult>>,
+    pub result_cache_map: Mutex<HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>>,
+    pub task_judg_result: Mutex<HashMap<ComponentId, HashMap<PlanTaskResultKey, JudgmentsResult>>>,
 }
 
 impl JobResultCache {
-    pub fn init_cache(&mut self, _assignments: HashMap<ComponentId, JobAssignment>) {
+    pub fn init_cache(&self, _assignments: HashMap<ComponentId, JobAssignment>) {
         //Todo: Init cache
     }
-    pub fn get_jobs_number(&self) -> usize {
-        self.result_cache_map
-            .iter()
-            .fold(0, |count, (_key, map)| count + map.len())
+    pub async fn append_results(
+        &self,
+        results: HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>,
+    ) -> Result<(), anyhow::Error> {
+        let mut cache_content = self.result_cache_map.lock().await;
+        for (provider_id, values) in results {
+            let mut result_cache = cache_content
+                .entry(provider_id)
+                .or_insert(HashMap::default());
+            for (key, task_result) in values {
+                match result_cache.get_mut(&key) {
+                    None => {
+                        result_cache.insert(key, task_result);
+                    }
+                    Some(current_value) => {
+                        let TaskResultCache {
+                            mut results,
+                            update_time,
+                        } = task_result;
+                        current_value.update_time = update_time;
+                        current_value.append(&mut results);
+                        while current_value.len() > RESULT_CACHE_MAX_LENGTH {
+                            current_value.pop_front();
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
-    pub fn get_judg_result(
+    pub async fn get_latest_update_task(
+        &self,
+        provider_id: &ComponentId,
+    ) -> HashMap<TaskKey, Timestamp> {
+        self.result_cache_map
+            .lock()
+            .await
+            .get(provider_id)
+            .map(|res| {
+                res.iter()
+                    .map(|(key, value)| (key.clone(), value.update_time.clone()))
+                    .collect::<HashMap<TaskKey, Timestamp>>()
+            })
+            .unwrap_or_default()
+    }
+    pub async fn get_plan_judge_result(
+        &self,
+        provider_id: &ComponentId,
+        plan_id: &PlanId,
+    ) -> HashMap<PlanTaskResultKey, JudgmentsResult> {
+        let result_content = self.task_judg_result.lock().await;
+        return match result_content.get(provider_id) {
+            None => HashMap::new(),
+            Some(map) => {
+                let results = map
+                    .iter()
+                    .filter_map(|(key, value)| {
+                        if key.plan_id == *plan_id {
+                            Some((key.clone(), value.clone()))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                results
+            }
+        };
+    }
+
+    // pub fn get_jobs_number(&self) -> usize {
+    //     self.result_cache_map
+    //         .iter()
+    //         .fold(0, |count, (_key, map)| count + map.len())
+    // }
+    pub async fn get_provider_judg_result(
+        &self,
+        provider_id: &ComponentId,
+        plan_id: &PlanId,
+    ) -> HashMap<TaskKey, JudgmentsResult> {
+        let cache_judg_result = self.task_judg_result.lock().await;
+        cache_judg_result
+            .get(provider_id)
+            .map(|res| {
+                res.iter()
+                    .filter(|(key, _)| key.plan_id.as_str() == plan_id.as_str())
+                    .map(|(key, value)| {
+                        (
+                            TaskKey {
+                                task_type: key.task_type.clone(),
+                                task_name: key.task_name.clone(),
+                            },
+                            value.clone(),
+                        )
+                    })
+                    .collect::<HashMap<TaskKey, JudgmentsResult>>()
+            })
+            .unwrap_or_default()
+        // .and_then(|res| {
+        //     res.iter(|(key, value)| {
+        //         (
+        //             TaskKey {
+        //                 task_type: key.task_type.clone(),
+        //                 task_name: key.task_name.clone(),
+        //             },
+        //             value.clone(0),
+        //         )
+        //     })
+        //     .collect::<HashMap<TaskKey, JudgmentsResult>>()
+        // })
+        // .unwrap_or_default()
+    }
+    pub async fn get_judg_result(
         &self,
         provider_plan: Arc<ProviderPlan>,
         task_type: &String,
@@ -61,12 +171,14 @@ impl JobResultCache {
             task_name.clone(),
         );
         self.task_judg_result
+            .lock()
+            .await
             .get(&provider_plan.plan.provider_id)
             .and_then(|map| map.get(&key))
             .map(|val| val.clone())
     }
-    pub fn update_plan_results(
-        &mut self,
+    pub async fn update_plan_results(
+        &self,
         plan: &PlanEntity,
         job_results: &HashMap<JobId, JudgmentsResult>,
         plan_jobs: &Vec<Job>,
@@ -84,14 +196,18 @@ impl JobResultCache {
                 )
             })
             .collect::<HashMap<JobId, PlanTaskResultKey>>();
+        let mut results = HashMap::new();
         for (job_id, judgment_result) in job_results.iter() {
             if let Some(key) = map_jobs.get(job_id) {
-                self.task_judg_result
-                    .entry(plan.provider_id.clone())
-                    .or_insert(HashMap::<PlanTaskResultKey, JudgmentsResult>::default())
-                    .insert(key.clone(), judgment_result.clone());
+                results.insert(key.clone(), judgment_result.clone());
             }
         }
+        self.task_judg_result
+            .lock()
+            .await
+            .entry(plan.provider_id.clone())
+            .or_insert(HashMap::default())
+            .extend(results);
     }
 }
 

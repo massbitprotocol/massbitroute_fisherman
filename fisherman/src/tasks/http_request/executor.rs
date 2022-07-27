@@ -80,7 +80,7 @@ impl HttpRequestExecutor {
                     message: "success".to_string(),
                 }),
                 Err(err) => {
-                    error!("{:?}", &err);
+                    error!("call_http_request parse_response error: {:?}", &err);
                     Ok(JobHttpResponse {
                         request_timestamp: request_time,
                         response_duration,

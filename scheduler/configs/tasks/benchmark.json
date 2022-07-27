@@ -1,5 +1,11 @@
 {
   "default": {
+    "name": "benchmark",
+    "active": true,
+    "phases": ["verification"],
+    "provider_types": ["*"],
+    "blockchains": ["*"],
+    "networks": ["*"],
     "benchmark_thread": 5,
     "benchmark_connection": 5,
     "benchmark_duration": 15000,
@@ -13,38 +19,45 @@
     "headers": {
       "Connection": "Close",
       "content-type":"application/json",
+      "Connection": "Close",
       "X-Api-Key": "{{provider.appKey}}",
       "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
     },
-    "body": {
-      "jsonrpc": "2.0",
-      "method": "eth_getBlockByNumber",
-      "params": ["latest",true],
-      "id": 1
-    },
+    "body": {},
     "assignment": {
       "broadcast": false,
-      "worker_number": 10,
+      "worker_number": 4,
       "nearby_only": false,
       "by_distance": true
-    }
+    },
+    "dependencies" : {}
   },
-  "verification": {
-    "dependencies": {
-      "HttpRequest": [
-        "RoundTripTime"
-      ]
+  "tasks": [
+    {
+      "name": "VerifyEthNode",
+      "provider_types": ["node"],
+      "blockchains": ["eth"],
+      "dependencies": {
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "eth_getBlockByNumber",
+        "params": ["latest",false],
+        "id": 1
+      }
+    },
+    {
+      "name": "RegularBenchmark",
+      "active": false,
+      "benchmark_thread": 5,
+      "benchmark_connection": 5,
+      "benchmark_duration": 15000,
+      "benchmark_rate": 10,
+      "script": "massbit.lua",
+      "histograms": [90,95,99,100],
+      "url_template":"http://{{provider.ip}}/",
+      "judge_histogram_percentile":  90,
+      "response_threshold": 500
     }
-  },
-  "regular": {
-    "benchmark_thread": 5,
-    "benchmark_connection": 5,
-    "benchmark_duration": 15000,
-    "benchmark_rate": 10,
-    "script": "massbit.lua",
-    "histograms": [90,95,99,100],
-    "url_template":"http://{{provider.ip}}/",
-    "judge_histogram_percentile":  90,
-    "response_threshold": 500
-  }
+  ]
 }

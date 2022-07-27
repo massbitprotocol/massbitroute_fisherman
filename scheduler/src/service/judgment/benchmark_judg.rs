@@ -5,12 +5,13 @@ use crate::tasks::benchmark::generator::BenchmarkConfig;
 use anyhow::Error;
 use async_trait::async_trait;
 use common::job_manage::{BenchmarkResponse, JobBenchmarkResult, JobResultDetail, JobRole};
-use common::jobs::{Job, JobResult};
+use common::jobs::{AssignmentConfig, Job, JobResult};
 use common::models::PlanEntity;
-use common::tasks::LoadConfig;
+use common::tasks::LoadConfigs;
 use common::WorkerId;
 use log::debug;
 use std::collections::HashMap;
+
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
@@ -53,10 +54,7 @@ impl ProviderBenchmarkResult {
         &mut self,
         benchmark_results: Vec<JobBenchmarkResult>,
         histogram_percentile: u32,
-    ) -> Option<BestBenchmarkResult> {
-        if benchmark_results.is_empty() {
-            return None;
-        }
+    ) -> BestBenchmarkResult {
         let first = benchmark_results.first().unwrap();
         let mut best_benchmark = BestBenchmarkResult::new(
             self.worker_benchmarks.len() + benchmark_results.len(),
@@ -85,7 +83,7 @@ impl ProviderBenchmarkResult {
         {
             self.best_benchmark = best_benchmark;
         }
-        Some(self.best_benchmark.clone())
+        self.best_benchmark.clone()
     }
 }
 impl BenchmarkResultCache {
@@ -94,10 +92,7 @@ impl BenchmarkResultCache {
         provider_task: &ProviderTask,
         results: &Vec<JobResult>,
         histogram_percentile: u32,
-    ) -> Option<BestBenchmarkResult> {
-        if results.is_empty() {
-            return None;
-        }
+    ) -> BestBenchmarkResult {
         let mut benchmark_results = Vec::default();
         for res in results.iter() {
             if let JobResultDetail::Benchmark(benchmark_result) = &res.result_detail {
@@ -108,7 +103,7 @@ impl BenchmarkResultCache {
 
         let res = provider_benchmark_result
             .entry(provider_task.clone())
-            .or_insert(ProviderBenchmarkResult::default())
+            .or_insert_with(ProviderBenchmarkResult::default)
             .add_results(benchmark_results, histogram_percentile);
         debug!("append_results res:{:?}", res);
         res
@@ -117,27 +112,26 @@ impl BenchmarkResultCache {
 #[derive(Debug)]
 pub struct BenchmarkJudgment {
     result_service: Arc<JobResultService>,
-    verification_config: BenchmarkConfig,
-    regular_config: BenchmarkConfig,
+    task_configs: Vec<BenchmarkConfig>,
     result_cache: BenchmarkResultCache,
 }
 
 impl BenchmarkJudgment {
     pub fn new(config_dir: &str, result_service: Arc<JobResultService>) -> Self {
-        let verification_config = BenchmarkConfig::load_config(
-            format!("{}/benchmark.json", config_dir).as_str(),
+        let task_configs: Vec<BenchmarkConfig> = BenchmarkConfig::read_configs(
+            format!("{}/benchmark", config_dir).as_str(),
             &JobRole::Verification,
-        );
-        let regular_config = BenchmarkConfig::load_config(
-            format!("{}/benchmark.json", config_dir).as_str(),
-            &JobRole::Regular,
         );
         BenchmarkJudgment {
             result_service,
-            verification_config,
-            regular_config,
+            task_configs,
             result_cache: BenchmarkResultCache::default(),
         }
+    }
+    fn get_config(&self, task_name: &str) -> Option<&BenchmarkConfig> {
+        self.task_configs
+            .iter()
+            .find(|config| config.name.as_str() == task_name)
     }
 }
 
@@ -148,7 +142,7 @@ impl ReportCheck for BenchmarkJudgment {
     }
 
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
-        return task.task_name.as_str() == "Benchmark";
+        return task.task_type.as_str() == "Benchmark";
     }
     async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
         //Todo: unimplement
@@ -200,25 +194,21 @@ impl ReportCheck for BenchmarkJudgment {
         &self,
         provider_task: &ProviderTask,
         results: &Vec<JobResult>,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
+    ) -> Result<JudgmentsResult, Error> {
         if results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);
         }
-        let phase = results.first().unwrap().phase.clone();
-        let config = match phase {
-            JobRole::Verification => &self.verification_config,
-            JobRole::Regular => &self.regular_config,
-        };
-        if let Some(best_benchmark) = self
-            .result_cache
-            .append_results(provider_task, results, config.judge_histogram_percentile)
-            .await
-        {
+        let phase = results.get(0).unwrap().phase.clone();
+        if let Some(config) = self.get_config(&provider_task.task_name) {
+            let best_benchmark = self
+                .result_cache
+                .append_results(provider_task, results, config.judge_histogram_percentile)
+                .await;
             debug!(
                 "Best benchmark result for provider {:?} is {:?}",
                 provider_task.provider_id, &best_benchmark
             );
-            if let Some(res) = best_benchmark
+            let mut judge_result = if let Some(res) = best_benchmark
                 .response
                 .histograms
                 .get(&config.judge_histogram_percentile)
@@ -228,11 +218,34 @@ impl ReportCheck for BenchmarkJudgment {
                     &config.judge_histogram_percentile, res, config.response_threshold
                 );
                 if *res < config.response_threshold as f32 {
-                    return Ok(JudgmentsResult::Pass);
+                    JudgmentsResult::Pass
+                } else {
+                    JudgmentsResult::Failed
                 }
-            }
+            } else {
+                JudgmentsResult::Error
+            };
+            // With verification process, need only one Pass result form all benchmark result to Pass the verification
+            if let BenchmarkConfig {
+                assignment:
+                    Some(AssignmentConfig {
+                        worker_number: Some(worker_number),
+                        ..
+                    }),
+                ..
+            } = config
+            {
+                if phase == JobRole::Verification
+                    && *worker_number < best_benchmark.result_count
+                    && judge_result != JudgmentsResult::Pass
+                {
+                    judge_result = JudgmentsResult::Unfinished;
+                }
+            };
+            Ok(judge_result)
+        } else {
+            Ok(JudgmentsResult::Error)
         }
-        Ok(JudgmentsResult::Failed)
     }
 }
 
@@ -262,7 +275,7 @@ pub mod tests {
             "provider_id".to_string(),
             ComponentType::Node,
             "Benchmark".to_string(),
-            "Benchmark".to_string(),
+            "VerifyEthNode".to_string(),
         );
         let task_rtt = ProviderTask::new(
             "provider_id".to_string(),

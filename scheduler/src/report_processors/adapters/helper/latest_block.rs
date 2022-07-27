@@ -154,8 +154,8 @@ impl LatestBlockCache {
         }
         let map_latest_values = self
             .latest_values
-            .entry(block_id.clone())
-            .or_insert(HashMap::default());
+            .entry(block_id)
+            .or_insert_with(HashMap::default);
         map_latest_values.insert(provider_id, latest_value);
     }
     pub fn get_cache_data_for_flushing(&mut self) -> Vec<ProviderLatestBlockModel> {

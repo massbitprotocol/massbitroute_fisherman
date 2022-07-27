@@ -33,7 +33,7 @@ pub struct StoreReport {
     pub provider_type: ComponentType,
     pub report_time: u128,
     pub status_detail: String,
-    pub report_type: JobRole,
+    pub report_type: String,
 
     pub request_rate: f32,
     pub transfer_rate: f32,
@@ -51,11 +51,16 @@ impl StoreReport {
         authorization: &String,
         domain: &String,
     ) -> StoreReport {
+        let report_type = match reporter_role {
+            JobRole::Verification => "Benchmark".to_string(),
+            JobRole::Regular => "ReportProvider".to_string(),
+        };
         StoreReport {
             reporter: reporter.clone(),
             reporter_role: reporter_role.clone(),
             authorization: authorization.clone(),
             domain: domain.clone(),
+            report_type,
             ..Default::default()
         }
     }
@@ -81,7 +86,7 @@ impl StoreReport {
     }
 
     fn get_url(&self) -> String {
-        match self.report_type {
+        match self.reporter_role {
             JobRole::Verification => {
                 format!(
                     "{}/{}",

@@ -28,7 +28,7 @@ pub struct ServerBuilder {
     access_control: AccessControl,
     scheduler_service: WebService,
     processor_service: ProcessorService,
-    scheduler_state: Arc<Mutex<SchedulerState>>,
+    scheduler_state: Arc<SchedulerState>,
     processor_state: Arc<ProcessorState>,
 }
 
@@ -37,7 +37,7 @@ pub struct SchedulerServer {
     access_control: AccessControl,
     scheduler_service: Arc<WebService>,
     processor_service: Arc<ProcessorService>,
-    scheduler_state: Arc<Mutex<SchedulerState>>,
+    scheduler_state: Arc<SchedulerState>,
     processor_state: Arc<ProcessorState>,
 }
 
@@ -48,7 +48,7 @@ pub struct DeployParam {
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct SimpleResponse {
-    success: bool,
+    pub success: bool,
 }
 
 impl SchedulerServer {
@@ -132,7 +132,7 @@ impl SchedulerServer {
     fn create_route_worker_register(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "register")
             .and(SchedulerServer::log_headers())
@@ -152,7 +152,7 @@ impl SchedulerServer {
     fn create_route_worker_pause(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "pause")
             .and(SchedulerServer::log_headers())
@@ -168,7 +168,7 @@ impl SchedulerServer {
     fn create_route_worker_resume(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("worker" / "resume")
             .and(SchedulerServer::log_headers())
@@ -181,26 +181,26 @@ impl SchedulerServer {
                 async move { clone_service.resume_worker(worker_info, clone_state).await }
             })
     }
-    fn create_route_worker_stop(
-        &self,
-        service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
-    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path!("worker" / "stop")
-            .and(SchedulerServer::log_headers())
-            .and(warp::post())
-            .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |worker_info: WorkerInfo| {
-                info!("#### Received request body {:?} ####", &worker_info);
-                let clone_service = service.clone();
-                let clone_state = state.clone();
-                async move { clone_service.stop_worker(worker_info, clone_state).await }
-            })
-    }
+    // fn create_route_worker_stop(
+    //     &self,
+    //     service: Arc<WebService>,
+    //     state: Arc<Mutex<SchedulerState>>,
+    // ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    //     warp::path!("worker" / "stop")
+    //         .and(SchedulerServer::log_headers())
+    //         .and(warp::post())
+    //         .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
+    //         .and_then(move |worker_info: WorkerInfo| {
+    //             info!("#### Received request body {:?} ####", &worker_info);
+    //             let clone_service = service.clone();
+    //             let clone_state = state.clone();
+    //             async move { clone_service.stop_worker(worker_info, clone_state).await }
+    //         })
+    // }
     fn create_route_node_verify(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<SchedulerState>>,
+        state: Arc<SchedulerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("provider" / "verify")
             .and(SchedulerServer::log_headers())
@@ -233,14 +233,16 @@ impl SchedulerServer {
                     PROCESS_THREAD_COUNT.fetch_add(1, Ordering::Relaxed);
                     let job_results_len = job_results.len();
                     let now = Instant::now();
+                    let thread_id = PROCESS_THREAD_COUNT.load(Ordering::Relaxed);
                     info!(
-                        "** Start {}th process {} job results **",
-                        PROCESS_THREAD_COUNT.load(Ordering::Relaxed),
+                        "** Start {}th thread to process {} job results **",
+                        thread_id,
                         job_results_len
                     );
                     let res = clone_service.process_report(job_results, clone_state).await;
                     info!(
-                        "** Finished process {} job results in {:.2?} with res: {:?} **",
+                        "** Finished {}th thread to process {} job results in {:.2?} with res: {:?} **",
+                        thread_id,
                         job_results_len,
                         now.elapsed(),
                         res
@@ -286,7 +288,7 @@ impl ServerBuilder {
         self
     }
     pub fn with_scheduler_state(mut self, scheduler_state: SchedulerState) -> Self {
-        self.scheduler_state = Arc::new(Mutex::new(scheduler_state));
+        self.scheduler_state = Arc::new(scheduler_state);
         self
     }
     pub fn with_processor_state(mut self, processor_state: ProcessorState) -> Self {
@@ -346,9 +348,10 @@ mod tests {
     use std::env;
 
     use crate::models::job_result_cache::JobResultCache;
+    use futures_util::AsyncBufReadExt;
     use serde_json::json;
     use std::time::Duration;
-    use test_util::helper::load_env;
+    use test_util::helper::{load_env, mock_db_connection};
     use tokio::fs;
     use tokio::time::sleep;
 
@@ -396,7 +399,7 @@ mod tests {
         let callback_url = format!("http://127.0.0.1:{}/report", local_port);
         env::set_var("REPORT_CALLBACK", callback_url.clone());
         // Mock DB
-        let db_conn = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let db_conn = mock_db_connection();
         let arc_conn = Arc::new(db_conn);
         let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
         let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
@@ -404,7 +407,7 @@ mod tests {
         let scheduler_service = SchedulerServiceBuilder::default().build();
         let processor_service = ProcessorServiceBuilder::default().build();
         let access_control = AccessControl::default();
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(vec![])));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
         let provider_storage = Arc::new(ProviderStorage::default());
 
         let scheduler_state = SchedulerState::new(
@@ -459,6 +462,7 @@ mod tests {
         Ok(())
     }
 
+    #[ignore]
     #[tokio::test]
     async fn test_api_report_and_verification() -> Result<(), Error> {
         dotenv::from_filename(".env_test").ok();
@@ -466,7 +470,7 @@ mod tests {
         let local_port: &str = "3034";
         let socket_addr = format!("0.0.0.0:{}", local_port);
         // Mock DB
-        let db_conn = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
+        let db_conn = mock_db_connection();
         let arc_conn = Arc::new(db_conn);
         let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
         let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
@@ -474,7 +478,7 @@ mod tests {
         let scheduler_service = SchedulerServiceBuilder::default().build();
         let processor_service = ProcessorServiceBuilder::default().build();
         let access_control = AccessControl::default();
-        let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(vec![])));
+        let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
         let provider_storage = Arc::new(ProviderStorage::default());
 
         let scheduler_state = SchedulerState::new(
@@ -486,7 +490,7 @@ mod tests {
         );
 
         info!("Init http service ");
-        let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+        let result_cache = Arc::new(JobResultCache::default());
         let job_service = Arc::new(JobService::new(arc_conn.clone()));
         let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
         let processor_state = ProcessorState::new(
@@ -529,7 +533,11 @@ mod tests {
 
         let client = Client::new();
         let url = format!("http://localhost:{}/report", local_port);
-        let resp = client.post(url).body(body).send().await?.text().await?;
+        let resp = client.post(url).body(body).send().await;
+        info!("send resp: {:?}", resp);
+        let resp = resp?.text().await;
+        info!("text resp: {:?}", resp);
+        let resp = resp?;
         info!("res: {:#?}", resp);
 
         let resp: SimpleResponse = serde_json::from_str(&resp)?;

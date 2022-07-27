@@ -7,14 +7,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-const RESULT_CACHE_MAX_LENGTH: usize = 10;
-
 pub struct ResultCacheAppender {
-    result_cache: Arc<Mutex<JobResultCache>>,
+    result_cache: Arc<JobResultCache>,
 }
 
 impl ResultCacheAppender {
-    pub fn new(result_cache: Arc<Mutex<JobResultCache>>) -> Self {
+    pub fn new(result_cache: Arc<JobResultCache>) -> Self {
         ResultCacheAppender { result_cache }
     }
 }
@@ -26,41 +24,27 @@ impl Appender for ResultCacheAppender {
         if results.is_empty() {
             return Ok(());
         }
+        log::debug!("Append {:?} results", results.len());
+        let mut result_cache = HashMap::default();
+        for result in results {
+            let component_id = &result.provider_id;
 
-        {
-            let mut result_cache = self.result_cache.lock().await;
-            for result in results {
-                let component_id = &result.provider_id;
+            let task_key = TaskKey {
+                task_type: result.result_detail.get_name(),
+                task_name: result.job_name.clone(),
+            };
 
-                let task_key = TaskKey {
-                    task_type: result.result_detail.get_name(),
-                    task_name: result.job_name.clone(),
-                };
-                log::debug!(
-                    "push result to component {:?}.{:?} {:?} {:?}",
-                    &result.provider_type,
-                    &result.provider_id,
-                    &task_key,
-                    &result
-                );
-                // Create new entry if need
-                let result_by_task = result_cache
-                    .result_cache_map
-                    .entry(component_id.clone())
-                    .or_insert(HashMap::new());
-                let task_result_cache = result_by_task
-                    .entry(task_key)
-                    .or_insert(TaskResultCache::new(get_current_time()));
-                // Store to cache
-                task_result_cache.push_back_cache(result.clone());
-
-                while task_result_cache.len() > RESULT_CACHE_MAX_LENGTH {
-                    task_result_cache.pop_front();
-                }
-            }
-            log::debug!("result_cache size {}", result_cache.result_cache_map.len());
+            // Create new entry if need
+            let result_by_task = result_cache
+                .entry(component_id.clone())
+                .or_insert(HashMap::new());
+            let task_result_cache = result_by_task
+                .entry(task_key)
+                .or_insert(TaskResultCache::new(get_current_time()));
+            // Store to cache
+            task_result_cache.push_back_cache(result.clone());
         }
-        Ok(())
+        self.result_cache.append_results(result_cache).await
     }
     fn get_name(&self) -> String {
         "ResultCacheAppender".to_string()

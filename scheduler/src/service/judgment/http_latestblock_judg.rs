@@ -11,7 +11,7 @@ use common::models::PlanEntity;
 use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
-use common::tasks::LoadConfig;
+use common::tasks::{LoadConfig, TaskConfigTrait};
 use common::{BlockChainType, ChainId, NetworkType, Timestamp};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
@@ -80,9 +80,9 @@ impl LatestBlockResultCache {
             &cache_key.blockchain, &result_value, &thresholds
         );
         match cache_key.blockchain.as_str() {
-            "eth" => self.check_latest_eth_block(cache_key, result_value, comparator, thresholds),
             "dot" => self.check_latest_dot_block(cache_key, result_value, comparator, thresholds),
-            _ => Ok(JudgmentsResult::Unfinished),
+            //Default use eth check
+            _ => self.check_latest_eth_block(cache_key, result_value, comparator, thresholds),
         }
     }
     fn check_latest_eth_block(

@@ -69,7 +69,7 @@ impl WorkerRegisterResult {
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerStateParam {}
-#[derive(Default, Debug, Deserialize, Serialize)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone)]
 pub struct Worker {
     pub worker_info: WorkerInfo,
 }

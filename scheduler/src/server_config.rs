@@ -12,6 +12,7 @@ pub struct Config {
     pub regular_plan_generate_interval: Timestamp,
     pub generate_new_regular_timeout: Timestamp,
     pub plan_expiry_time: Timestamp, //Expiry time in second
+    pub update_worker_list_interval: Timestamp, //time in second
 }
 
 impl Config {

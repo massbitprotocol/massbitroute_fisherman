@@ -18,6 +18,7 @@ mod test {
         let body = r###"{"id": "blockNumber", "jsonrpc": "2.0", "method": "eth_getBlockByNumber", "params": ["latest", false]}"###;
         let method = "POST";
         let header = HashMap::from([
+            ("Connection".to_string(), "Close".to_string()),
             ("Content-Type".to_string(), "application/json".to_string()),
             (
                 "X-Api-Key".to_string(),

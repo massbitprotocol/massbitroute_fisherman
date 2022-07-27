@@ -27,8 +27,8 @@ end
 
 
 function response(status, headers, body)
-    --print(status)
-    --print(body)
+    print(status)
+    -- print(body)
 end
 
 function done(summary, latency, requests)
