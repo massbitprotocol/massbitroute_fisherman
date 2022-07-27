@@ -45,9 +45,9 @@ impl ReportProcessor for RegularReportProcessor {
         &self,
         reports: Vec<JobResult>,
         _db_connection: Arc<DatabaseConnection>,
-    ) -> Result<Vec<StoredJobResult>, anyhow::Error> {
+    ) -> Result<(), anyhow::Error> {
         log::info!("Regular report process jobs");
-        let stored_results = Vec::<StoredJobResult>::new();
+        //let stored_results = Vec::<StoredJobResult>::new();
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
 
         for adapter in self.report_adapters.iter() {
@@ -78,6 +78,6 @@ impl ReportProcessor for RegularReportProcessor {
             }
         }
 
-        Ok(stored_results)
+        Ok(())
     }
 }

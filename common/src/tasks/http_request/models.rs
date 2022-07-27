@@ -1,13 +1,16 @@
 use crate::component::ChainInfo;
 use crate::job_manage::JobRole;
 use crate::jobs::{AssignmentConfig, Job};
+use crate::tasks::{LoadConfigs, TaskConfigTrait};
 use crate::{ComponentInfo, Timestamp};
 use handlebars::Handlebars;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Formatter;
+use std::fs::metadata;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
@@ -175,6 +178,8 @@ pub struct HttpResponseConfig {
     #[serde(default)]
     pub values: HashMap<String, Vec<Value>>, //Path to values
 }
+
+impl LoadConfigs<HttpRequestJobConfig> for HttpRequestJobConfig {}
 impl HttpRequestJobConfig {
     pub fn read_config(path: &str, phase: &JobRole) -> Vec<HttpRequestJobConfig> {
         let json_content = std::fs::read_to_string(path).unwrap_or_default();
@@ -203,16 +208,17 @@ impl HttpRequestJobConfig {
         }
         task_configs
     }
+
     //Todo: Implement Deep append
     pub fn append(target: &mut Map<String, Value>, source: &mut Map<String, Value>) {
         target.append(source);
     }
 }
-impl HttpRequestJobConfig {
-    pub fn match_phase(&self, phase: &JobRole) -> bool {
+impl TaskConfigTrait for HttpRequestJobConfig {
+    fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
-    pub fn match_blockchain(&self, blockchain: &String) -> bool {
+    fn match_blockchain(&self, blockchain: &String) -> bool {
         let blockchain = blockchain.to_lowercase();
         if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
         {
@@ -225,7 +231,7 @@ impl HttpRequestJobConfig {
         }
         true
     }
-    pub fn match_network(&self, network: &String) -> bool {
+    fn match_network(&self, network: &String) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
             log::trace!(
@@ -237,7 +243,7 @@ impl HttpRequestJobConfig {
         }
         true
     }
-    pub fn match_provider_type(&self, provider_type: &String) -> bool {
+    fn match_provider_type(&self, provider_type: &String) -> bool {
         let provider_type = provider_type.to_lowercase();
         if !self.provider_types.contains(&String::from("*"))
             && !self.provider_types.contains(&provider_type)
@@ -251,7 +257,7 @@ impl HttpRequestJobConfig {
         }
         true
     }
-    pub fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
+    fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool {
         if !self.active {
             return false;
         }
@@ -302,6 +308,9 @@ impl HttpRequestJobConfig {
          */
         true
     }
+}
+
+impl HttpRequestJobConfig {
     pub fn generate_header(
         &self,
         handlebars: &Handlebars,

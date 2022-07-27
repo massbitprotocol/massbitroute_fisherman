@@ -2,7 +2,7 @@ use common::logger::init_logger;
 //use diesel::r2d2::ConnectionManager;
 //use diesel::{r2d2, PgConnection};
 //use diesel_migrations::embed_migrations;
-use futures_util::future::join4;
+use futures_util::future::join5;
 use log::info;
 use scheduler::models::jobs::JobAssignmentBuffer;
 use scheduler::models::providers::ProviderStorage;
@@ -23,6 +23,7 @@ use scheduler::persistence::services::plan_service::PlanService;
 use scheduler::persistence::services::provider_service::ProviderService;
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
+use scheduler::service::check_worker_health::WorkerHealthService;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task;
@@ -68,12 +69,12 @@ async fn main() -> Result<(), anyhow::Error> {
     // Keep the list of node and gateway that need use for generate verify and regular Job
     let provider_storage = Arc::new(ProviderStorage::default());
     log::debug!("Init with {:?} workers", all_workers.len());
-    let worker_infos = Arc::new(Mutex::new(WorkerInfoStorage::new(all_workers)));
+    let worker_infos = Arc::new(WorkerInfoStorage::new(all_workers));
     let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
 
     let scheduler_service = SchedulerServiceBuilder::default().build();
     let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
-    let result_cache = Arc::new(Mutex::new(JobResultCache::default()));
+    let result_cache = Arc::new(JobResultCache::default());
     let processor_service = ProcessorServiceBuilder::default()
         .with_plan_service(plan_service.clone())
         .with_result_service(result_service.clone())
@@ -106,7 +107,13 @@ async fn main() -> Result<(), anyhow::Error> {
         worker_infos.clone(),
         provider_storage.clone(),
     );
-    let mut job_delivery = JobDelivery::new(worker_infos.clone(), assigment_buffer.clone());
+    let mut job_delivery = JobDelivery::new(assigment_buffer.clone());
+
+    // Check worker status task
+    let worker_health = WorkerHealthService::new(worker_infos, result_cache.clone());
+
+    // Spawn tasks
+    let task_worker_health = task::spawn(async move { worker_health.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
     let task_job_generator = task::spawn(async move { job_generator.run().await });
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
@@ -126,11 +133,14 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
     let task_serve = server.serve();
-    let _res = join4(
+
+    // Run all spawn task
+    let _res = join5(
         task_provider_scanner,
         task_job_generator,
         task_job_delivery,
         task_serve,
+        task_worker_health,
     )
     .await;
 

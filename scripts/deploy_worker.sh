@@ -4,7 +4,7 @@ cargo build --release
 if [ -z "$1" ]
 then
     #ZONES=( 'as' 'eu' 'na' 'sa' 'oc' 'af' )
-    ZONES=( 'as-1' 'as-2' 'eu-1' 'eu-2' 'na-1' 'na-2' 'na-3' 'na-4' 'oc-1' 'oc-2' )
+    ZONES=( 'as-1' 'as-2' 'eu-2' 'na-2' 'na-3' 'na-4' 'oc-1' )
 else
     ZONES=( "$1" )
 fi
@@ -21,5 +21,5 @@ do
   rsync -avz ./benchmark "worker-demo-$ZN:~/fisherman/"
 
   echo "Restart tmux session in zone $ZN"
-  ssh "worker-demo-$ZN" < update_bin_and_restart_service_worker.sh
+  ssh "worker-demo-$ZN" < script_restart_service_worker.sh
 done

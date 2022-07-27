@@ -3,7 +3,7 @@ use crate::persistence::services::job_result_service::JobResultService;
 
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::service::report_portal::StoreReport;
-use crate::{CONFIG, CONFIG_DIR, IS_TEST_MODE, PORTAL_AUTHORIZATION};
+use crate::{CONFIG, CONFIG_DIR, IS_REGULAR_REPORT, IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 
@@ -124,8 +124,8 @@ impl MainJudgment {
             match self.get_latest_judgment(plan, &job.job_id) {
                 Some(latest_result) => {
                     debug!(
-                        "Latest result of plan {:?}, job {:?} is {:?}",
-                        &plan.plan_id, &job.job_id, &latest_result
+                        "Latest result of plan {:?}, job {} {:?} is {:?}",
+                        &plan.plan_id, &job.job_name, &job.job_id, &latest_result
                     );
                     total_result.insert(job.job_id.clone(), latest_result);
                 }
@@ -196,7 +196,7 @@ impl MainJudgment {
                         &DOMAIN,
                     );
                     report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
-                    if !*IS_TEST_MODE {
+                    if !*IS_REGULAR_REPORT {
                         debug!("Send plan report to portal:{:?}", report);
                         let res = report.send_data().await;
                         info!("Send report to portal res: {:?}", res);
@@ -232,7 +232,7 @@ pub mod tests {
     };
 
     #[tokio::test]
-    async fn test_main_judgment_regular() -> Result<(), Error> {
+    async fn test_main_judgment_verify_and_regular() -> Result<(), Error> {
         load_env();
         //init_logging();
         let db_conn = mock_db_connection();
@@ -244,7 +244,7 @@ pub mod tests {
             "provider_id".to_string(),
             ComponentType::Node,
             "Benchmark".to_string(),
-            "Benchmark".to_string(),
+            "VerifyEthNode".to_string(),
         );
         let task_latest_block = ProviderTask::new(
             "provider_id".to_string(),

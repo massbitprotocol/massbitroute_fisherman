@@ -1,5 +1,6 @@
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
+use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
 use crate::CONFIG;
 use anyhow::{anyhow, Error};
@@ -7,6 +8,7 @@ use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::tasks::websocket_request::{JobWebsocket, JobWebsocketConfig};
+use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
@@ -30,8 +32,10 @@ impl WebsocketGenerator {
         String::from("Websocket")
     }
     pub fn new(config_dir: &str, phase: &JobRole) -> Self {
-        let path = format!("{}/websocket.json", config_dir);
-        let task_configs = JobWebsocketConfig::read_config(path.as_str(), phase);
+        // let path = format!("{}/websocket.json", config_dir);
+        // let task_configs = JobWebsocketConfig::read_config(path.as_str(), phase);
+        let path = format!("{}/websocket", config_dir);
+        let task_configs = JobWebsocketConfig::read_configs(path.as_str(), phase);
         WebsocketGenerator {
             //root_config: configs,
             task_configs,
@@ -109,7 +113,7 @@ impl WebsocketGenerator {
     }
 }
 impl TaskApplicant for WebsocketGenerator {
-    fn get_name(&self) -> String {
+    fn get_type(&self) -> String {
         String::from("Websocket")
     }
     fn can_apply(&self, _component: &ComponentInfo) -> bool {
@@ -121,6 +125,7 @@ impl TaskApplicant for WebsocketGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
+        _task_results: &HashMap<String, JudgmentsResult>,
     ) -> Result<JobAssignmentBuffer, Error> {
         let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
@@ -145,7 +150,7 @@ impl TaskApplicant for WebsocketGenerator {
             }
         }
         log::debug!(
-            "Generated {:?} jobs and {:?} assignments.",
+            "Generated {:?} websocket jobs and {:?} assignments.",
             &assignment_buffer.jobs.len(),
             &assignment_buffer.list_assignments.len()
         );

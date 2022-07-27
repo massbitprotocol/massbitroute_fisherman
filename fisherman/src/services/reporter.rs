@@ -42,7 +42,7 @@ impl JobResultReporter {
     }
     pub async fn send_results(&self, results: Vec<JobResult>) -> Result<(), anyhow::Error> {
         let call_back = self.result_callback.to_string();
-        trace!("Send {} results to: {}", results.len(), call_back);
+        info!("Send {} results to: {}", results.len(), call_back);
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         let body = serde_json::to_string(&results)?;
@@ -54,7 +54,7 @@ impl JobResultReporter {
             .body(body)
             .send()
             .await;
-        trace!("Send response: {:?}", result);
+        info!("Send response: {:?}", result);
         match result {
             Ok(_res) => Ok(()),
             Err(err) => Err(anyhow!(format!("{:?}", &err))),
