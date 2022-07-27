@@ -3,7 +3,7 @@ use anyhow::{anyhow, Error};
 use common::component::ComponentType;
 use common::job_manage::JobRole;
 use common::{ComponentId, Deserialize, Serialize};
-use log::debug;
+use log::{debug, info};
 use reqwest::Response;
 use serde_json::Value;
 use std::fs;
@@ -109,9 +109,9 @@ impl StoreReport {
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         // create body
         let body = self.create_body()?;
-        debug!("body send_data: {:?}", body);
         // get url
         let url = self.get_url();
+        info!("body send_data to {}: {:?}", url, body);
 
         let request_builder = client
             .post(url)
