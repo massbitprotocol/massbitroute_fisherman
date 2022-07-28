@@ -11,7 +11,7 @@
   "request_timeout": 3000,
   "headers": {},
   "repeat_number": 0,
-  "interval": 1000,
+  "interval": 30000,
   "body": "",
   "response" : {
     "response_type" : "text"

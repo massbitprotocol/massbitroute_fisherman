@@ -24,7 +24,7 @@
   "body": {},
   "assignment": {
     "broadcast": false,
-    "worker_number": 5,
+    "worker_number": 1,
     "nearby_only": true,
     "by_distance": false
   },

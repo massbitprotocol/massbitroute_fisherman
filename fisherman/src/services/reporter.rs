@@ -46,7 +46,7 @@ impl JobResultReporter {
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         let body = serde_json::to_string(&results)?;
-        info!("Body content: {}", body);
+        trace!("Body content: {}", body);
         info!("sending body len: {}", body.len());
         let result = client
             .post(call_back)

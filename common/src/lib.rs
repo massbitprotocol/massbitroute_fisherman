@@ -2,7 +2,7 @@ pub mod component;
 pub mod job_action;
 pub mod job_manage;
 pub mod jobs;
-pub mod logger;
+pub use logger;
 pub mod models;
 pub mod task_spawn;
 pub mod tasks;

@@ -3,8 +3,8 @@ cargo build --release
 
 if [ -z "$1" ]
 then
-    #ZONES=( 'as' 'eu' 'na' 'sa' 'oc' 'af' )
-    ZONES=( 'as-1' 'as-2' 'eu-2' 'na-2' 'na-3' 'na-4' 'oc-1' )
+    #ZONES=( 'as-1' 'as-2' 'eu-2' 'na-2' 'na-3' 'na-4' 'oc-1' )
+    ZONES=( 'as-1' 'eu-2' 'na-2' 'oc-1' )
 else
     ZONES=( "$1" )
 fi

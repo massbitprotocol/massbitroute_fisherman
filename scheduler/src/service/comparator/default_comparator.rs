@@ -10,8 +10,10 @@ impl LatestBlockDefaultComparator {
         let timestamp = values
             .get("number")
             .and_then(|val| val.as_str())
-            .and_then(|str| i64::from_str_radix(str, 16).ok())
-            .ok_or(anyhow!("Error parse block_number"));
+            .and_then(|string| {
+                i64::from_str_radix(string.strip_prefix("0x").unwrap_or(string), 16).ok()
+            })
+            .ok_or_else(|| anyhow!("Error parse block_number"));
         timestamp
     }
 }
