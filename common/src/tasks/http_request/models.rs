@@ -4,13 +4,13 @@ use crate::jobs::{AssignmentConfig, Job};
 use crate::tasks::{LoadConfigs, TaskConfigTrait};
 use crate::{ComponentInfo, Timestamp};
 use handlebars::Handlebars;
-use log::{debug, error};
+use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Formatter;
-use std::fs::metadata;
+
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 

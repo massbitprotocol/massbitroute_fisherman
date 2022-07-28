@@ -110,8 +110,10 @@ impl MainJudgment {
                     .await
                     .unwrap_or(JudgmentsResult::Failed);
                 info!(
-                    "Verify judgment result {:?} for provider {:?} with results {:?}",
-                    &currentjob_result, provider_task, results
+                    "Verify judgment {} result {:?} for provider {:?} with results {results:?}",
+                    judgment.get_name(),
+                    &currentjob_result,
+                    provider_task,
                 );
                 total_result.insert(job_id.clone(), currentjob_result.clone());
             };

@@ -26,5 +26,6 @@ dotenv = "0.15"
 regex = "1.5"
 bytesize = "1.1"
 wrap_wrk = {path="../wrap_wrk"}
+logger = {path="../logger"}
 handlebars = "4.3"
 rand = "0.8.5"

@@ -7,6 +7,7 @@ use crate::{
     DEFAULT_JOB_TIMEOUT, WORKER_ID,
 };
 use serde::{Deserialize, Serialize};
+use std::fmt::{Debug, Display, Formatter};
 
 use std::sync::Arc;
 use uuid::Uuid;
@@ -124,7 +125,7 @@ pub struct AssignmentConfig {
     pub by_distance: Option<bool>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct JobResult {
     pub plan_id: PlanId,
     pub job_id: JobId,
@@ -136,6 +137,31 @@ pub struct JobResult {
     pub result_detail: JobResultDetail,
     pub receive_timestamp: Timestamp, //time the worker received result
     pub chain_info: Option<ChainInfo>,
+}
+
+impl Debug for JobResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let result = match &self.result_detail {
+            JobResultDetail::HttpRequest(detail) => {
+                format!("{:?}", detail.response)
+            }
+            JobResultDetail::Websocket(detail) => {
+                format!(
+                    "{:?}, error_code: {}, message: {}",
+                    detail.detail, detail.error_code, detail.message
+                )
+            }
+            JobResultDetail::Benchmark(detail) => {
+                format!("{:?}", detail.response)
+            }
+            _ => Default::default(),
+        };
+        write!(
+            f,
+            "({}, phase:{:?},result {} , worker: {}, job_id:{})",
+            self.job_name, self.phase, result, self.worker_id, self.job_id
+        )
+    }
 }
 
 impl JobResult {
