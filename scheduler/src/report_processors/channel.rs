@@ -1,9 +1,9 @@
 pub struct ReportChannel {
-    name: String,
+    _name: String,
 }
 
 impl ReportChannel {
     pub fn new(name: String) -> Self {
-        ReportChannel { name }
+        ReportChannel { _name: name }
     }
 }

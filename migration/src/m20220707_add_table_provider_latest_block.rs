@@ -28,8 +28,8 @@ create table if not exists provider_latest_blocks
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        let SQLs = vec![SQL_PROVIDER_LATEST_BLOCK];
-        for sql in SQLs {
+        let sqls = vec![SQL_PROVIDER_LATEST_BLOCK];
+        for sql in sqls {
             let stmt = Statement::from_string(manager.get_database_backend(), sql.to_owned());
             manager.get_connection().execute(stmt).await.map(|_| ())?;
         }

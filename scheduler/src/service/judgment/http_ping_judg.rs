@@ -70,14 +70,14 @@ impl DerefMut for JudRoundTripTimeDatas {
 #[derive(Debug, Default, Clone)]
 pub struct JudRoundTripTimeData {
     response_duration: Timestamp,
-    receive_timestamp: Timestamp,
+    _receive_timestamp: Timestamp,
     success: bool,
 }
 
 impl JudRoundTripTimeData {
     fn new_false(receive_time: Timestamp) -> Self {
         JudRoundTripTimeData {
-            receive_timestamp: receive_time,
+            _receive_timestamp: receive_time,
             success: false,
             response_duration: Default::default(),
         }
@@ -103,7 +103,7 @@ impl HttpPingResultCache {
 
                         data = JudRoundTripTimeData {
                             response_duration,
-                            receive_timestamp: res.receive_timestamp,
+                            _receive_timestamp: res.receive_timestamp,
                             success: true,
                         };
                     }
@@ -124,30 +124,18 @@ impl HttpPingResultCache {
 }
 #[derive(Debug)]
 pub struct HttpPingJudgment {
-    verification_config: PingConfig,
-    regular_config: PingConfig,
     task_configs: Vec<HttpRequestJobConfig>,
-    result_service: Arc<JobResultService>,
+    _result_service: Arc<JobResultService>,
     result_cache: HttpPingResultCache,
 }
 
 impl HttpPingJudgment {
     pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
-        let verification_config = PingConfig::load_config(
-            format!("{}/ping.json", config_dir).as_str(),
-            &JobRole::Verification,
-        );
-        let regular_config = PingConfig::load_config(
-            format!("{}/ping.json", config_dir).as_str(),
-            &JobRole::Regular,
-        );
         let path = format!("{}/http_request.json", config_dir);
         let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
         HttpPingJudgment {
-            verification_config,
-            regular_config,
             task_configs,
-            result_service,
+            _result_service: result_service,
             result_cache: HttpPingResultCache::default(),
         }
     }

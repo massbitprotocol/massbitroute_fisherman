@@ -48,7 +48,7 @@ impl JudgmentsResult {
 }
 
 #[async_trait]
-pub trait ReportCheck: Sync + Send + Debug {
+pub trait ReportCheck: Sync + Send {
     fn get_name(&self) -> String;
     //fn can_apply(&self, job: &Job) -> bool;
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool;

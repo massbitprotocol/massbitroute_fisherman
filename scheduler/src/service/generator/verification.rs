@@ -1,5 +1,5 @@
 use crate::models::component::ProviderPlan;
-use crate::models::job_result_cache::{JobResultCache};
+use crate::models::job_result_cache::JobResultCache;
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
@@ -15,7 +15,6 @@ use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::Job;
 
-use common::tasks::{LoadConfig, TaskConfigTrait};
 use common::util::{get_current_time, warning_if_error};
 use common::workers::MatchedWorkers;
 use common::Timestamp;
@@ -26,9 +25,7 @@ use sea_orm::{DatabaseConnection, TransactionTrait};
 
 use std::collections::{HashMap, HashSet};
 
-
 use std::sync::Arc;
-
 
 use tokio::sync::Mutex;
 
@@ -246,7 +243,7 @@ impl VerificationJobGenerator {
         }
         waiting_task
     }
-    async fn clean_expired_plan(&self, _plans: Vec<Arc<ProviderPlan>>) {
+    async fn _clean_expired_plan(&self, _plans: Vec<Arc<ProviderPlan>>) {
         //Todo: Implementation
     }
     async fn remote_duplicated_jobs(
@@ -389,7 +386,7 @@ impl VerificationJobGenerator {
     }
     */
 
-    fn create_provider_plan(component: &ComponentInfo) -> ProviderPlan {
+    fn _create_provider_plan(component: &ComponentInfo) -> ProviderPlan {
         let plan_id = format!("{}-{}", JobRole::Regular.to_string(), component.id);
         let plan = PlanModel {
             id: Default::default(),

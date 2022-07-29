@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct WebsocketJudgment {
-    job_configs: Vec<JobWebsocketConfig>,
-    result_service: Arc<JobResultService>,
+    _job_configs: Vec<JobWebsocketConfig>,
+    _result_service: Arc<JobResultService>,
 }
 
 impl WebsocketJudgment {
@@ -21,8 +21,8 @@ impl WebsocketJudgment {
             phase,
         );
         WebsocketJudgment {
-            job_configs,
-            result_service,
+            _job_configs: job_configs,
+            _result_service: result_service,
         }
     }
 }
