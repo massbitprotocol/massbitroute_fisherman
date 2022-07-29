@@ -10,7 +10,7 @@ use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use common::job_manage::JobRole;
 use common::task_spawn;
 use futures_util::future::join;
-use log::info;
+use log::{error, info};
 pub use regular::RegularJobGenerator;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -138,7 +138,8 @@ impl JobGenerator {
             }
         });
 
-        join(verification_task, regular_task).await;
+        let res = join(verification_task, regular_task).await;
+        error!("Generator thread running error {res:?}");
     }
 }
 
@@ -148,15 +149,14 @@ pub mod tests {
 
     use anyhow::{anyhow, Error};
 
-    
     use crate::persistence::services::WorkerService;
     use crate::persistence::PlanModel;
-    
+
     use common::component::ComponentType;
     use log::info;
     use test_util::helper::{
-        load_env, mock_component_info, mock_db_connection,
-        mock_worker, ChainTypeForTest, CountItems,
+        load_env, mock_component_info, mock_db_connection, mock_worker, ChainTypeForTest,
+        CountItems,
     };
     use tokio::task;
     use JobGeneratorTrait;

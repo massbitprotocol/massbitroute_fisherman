@@ -13,12 +13,11 @@ use std::default::Default;
 
 use std::sync::Arc;
 
-
 #[derive(Default)]
 pub struct ProcessorService {
-    plan_service: Arc<PlanService>,
-    job_service: Arc<JobService>,
-    result_service: Arc<JobResultService>,
+    _plan_service: Arc<PlanService>,
+    _job_service: Arc<JobService>,
+    _result_service: Arc<JobResultService>,
 }
 
 impl ProcessorService {
@@ -71,9 +70,9 @@ impl ProcessorServiceBuilder {
 
     pub fn build(self) -> ProcessorService {
         ProcessorService {
-            plan_service: self.plan_service,
-            job_service: self.job_service,
-            result_service: self.result_service,
+            _plan_service: self.plan_service,
+            _job_service: self.job_service,
+            _result_service: self.result_service,
         }
     }
 }

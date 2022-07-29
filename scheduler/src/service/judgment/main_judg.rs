@@ -11,7 +11,6 @@ use common::models::PlanEntity;
 use common::{JobId, PlanId, DOMAIN};
 use log::{debug, info, warn};
 
-
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -19,7 +18,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Default)]
 pub struct MainJudgment {
-    result_service: Arc<JobResultService>,
+    _result_service: Arc<JobResultService>,
     judgments: Vec<Arc<dyn ReportCheck>>,
     judgment_result_cache: LatestJudgmentCache,
 }
@@ -55,7 +54,7 @@ impl MainJudgment {
     pub fn new(result_service: Arc<JobResultService>, phase: &JobRole) -> Self {
         let judgments = get_report_judgments(CONFIG_DIR.as_str(), result_service.clone(), phase);
         MainJudgment {
-            result_service,
+            _result_service: result_service,
             judgments,
             judgment_result_cache: Default::default(),
         }
@@ -220,17 +219,14 @@ impl MainJudgment {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    
+
     use anyhow::Error;
     use common::component::ComponentType;
     use common::util::get_current_time;
     use log::info;
-    
 
-    
     use test_util::helper::{
-        load_env, mock_db_connection, mock_job, mock_job_result, ChainTypeForTest,
-        JobName,
+        load_env, mock_db_connection, mock_job, mock_job_result, ChainTypeForTest, JobName,
     };
 
     #[tokio::test]

@@ -10,7 +10,7 @@ use common::jobs::JobResult;
 use log::debug;
 
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement, Value,
+     ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement, Value,
 };
 
 use common::util::warning_if_error;

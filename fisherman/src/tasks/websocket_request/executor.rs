@@ -22,12 +22,14 @@ use websocket::{Message, OwnedMessage};
 
 #[derive(Clone, Debug, Default)]
 pub struct WebsocketRequestExecutor {
-    worker_id: WorkerId,
+    _worker_id: WorkerId,
 }
 
 impl WebsocketRequestExecutor {
     pub fn new(worker_id: WorkerId) -> Self {
-        WebsocketRequestExecutor { worker_id }
+        WebsocketRequestExecutor {
+            _worker_id: worker_id,
+        }
     }
 
     pub async fn call_websocket_request(
@@ -50,7 +52,7 @@ impl WebsocketRequestExecutor {
                 .body
                 .as_ref()
                 .map(|body| Message::text(body.to_string()))
-                .unwrap_or(Message::ping(Vec::<u8>::default()));
+                .unwrap_or_else(|| Message::ping(Vec::<u8>::default()));
             let request_timestamp = get_current_time();
             //Try to connect
             let received_message = if request.url.starts_with("wss") {
@@ -80,7 +82,9 @@ impl WebsocketRequestExecutor {
                         OwnedMessage::Binary(_) => {}
                         OwnedMessage::Close(_) => {}
                         OwnedMessage::Ping(_) => {
-                            client.send_message(&Message::pong(vec![]));
+                            client
+                                .send_message(&Message::pong(vec![]))
+                                .map_err(|err| HttpRequestError::SendError(format!("{:?}", err)))?;
                         }
                         OwnedMessage::Pong(_) => {}
                     }
@@ -97,7 +101,9 @@ impl WebsocketRequestExecutor {
                         &request.url
                     ))
                 })?;
-                client.send_message(&message);
+                client
+                    .send_message(&message)
+                    .map_err(|err| HttpRequestError::SendError(format!("{:?}", err)))?;
                 let mut received_message = OwnedMessage::Ping(vec![]);
                 while let Ok(mess) = client.recv_message() {
                     match mess {
@@ -108,7 +114,9 @@ impl WebsocketRequestExecutor {
                         OwnedMessage::Binary(_) => {}
                         OwnedMessage::Close(_) => {}
                         OwnedMessage::Ping(_) => {
-                            client.send_message(&Message::pong(Vec::<u8>::default()));
+                            client
+                                .send_message(&Message::pong(Vec::<u8>::default()))
+                                .map_err(|err| HttpRequestError::SendError(format!("{:?}", err)))?;
                         }
                         OwnedMessage::Pong(_) => {}
                     }

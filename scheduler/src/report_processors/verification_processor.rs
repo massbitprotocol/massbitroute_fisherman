@@ -24,10 +24,10 @@ pub struct VerificationReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
-    result_service: Arc<JobResultService>,
+    _result_service: Arc<JobResultService>,
     result_cache: Arc<JobResultCache>,
     judgment: MainJudgment,
-    active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
+    _active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
 }
 
 impl VerificationReportProcessor {
@@ -43,10 +43,10 @@ impl VerificationReportProcessor {
             report_adapters,
             plan_service,
             job_service,
-            result_service,
+            _result_service: result_service,
             result_cache,
             judgment,
-            active_plans: Default::default(),
+            _active_plans: Default::default(),
         }
     }
     pub fn add_adapter(&mut self, adapter: Arc<dyn Appender>) {

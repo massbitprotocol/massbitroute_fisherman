@@ -6,7 +6,6 @@ use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::{ComponentId, JobId, PlanId, Timestamp};
-use futures_util::StreamExt;
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};

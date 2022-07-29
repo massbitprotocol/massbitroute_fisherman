@@ -110,7 +110,7 @@ impl RegularJobGenerator {
         Ok(())
     }
 
-    fn create_provider_plan(component: &ComponentInfo) -> ProviderPlan {
+    fn _create_provider_plan(component: &ComponentInfo) -> ProviderPlan {
         let plan_id = format!("{}-{}", JobRole::Regular.to_string(), component.id);
         let plan = PlanModel {
             id: Default::default(),

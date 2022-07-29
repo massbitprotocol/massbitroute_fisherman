@@ -47,8 +47,8 @@ impl ProviderScanner {
 
     pub async fn run(mut self) {
         loop {
-            debug!("Get new providers");
-            self.update_providers().await;
+            let res = self.update_providers().await;
+            debug!("Get new providers response: {res:?}");
             //Update provider map
             self.reload_provider_map().await;
             debug!("Sleep for {} seconds", CONFIG.update_provider_list_interval);
