@@ -2,24 +2,24 @@
  * Check from any gateway can connection to any node
  */
 
-use crate::models::job_result_cache::{PlanTaskResultKey, TaskKey};
+use crate::models::job_result_cache::{TaskKey};
 use crate::models::jobs::JobAssignmentBuffer;
-use crate::models::TaskDependency;
+
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use anyhow::{anyhow, Error};
-use common::component::{ChainInfo, ComponentInfo, ComponentType};
+
+use common::component::{ComponentInfo, ComponentType};
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
-use common::jobs::{AssignmentConfig, Job, JobAssignment};
-use common::tasks::{LoadConfig, LoadConfigs, TaskConfigTrait, TemplateRender};
+use common::jobs::{AssignmentConfig, Job};
+use common::tasks::{LoadConfigs, TaskConfigTrait, TemplateRender};
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
-use entity::plans::Model;
+
 use handlebars::Handlebars;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 #[derive(Clone, Debug, Default)]
 pub struct BenchmarkGenerator {
@@ -216,7 +216,7 @@ impl TaskApplicant for BenchmarkGenerator {
     }
     fn has_all_dependent_results(
         &self,
-        plan_id: &PlanId,
+        _plan_id: &PlanId,
         results: &HashMap<TaskKey, JudgmentsResult>,
     ) -> bool {
         for config in self.configs.iter() {
@@ -263,7 +263,7 @@ impl TaskApplicant for BenchmarkGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-        task_results: &HashMap<String, JudgmentsResult>,
+        _task_results: &HashMap<String, JudgmentsResult>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
         let mut assignment_buffer = JobAssignmentBuffer::default();
         log::debug!("Task benchmark apply for component {:?}", component);

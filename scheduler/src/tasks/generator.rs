@@ -2,9 +2,9 @@
  * Each Task description can apply to node/gateway to generate a list of jobs.
  * If task is not suitable then result is empty
  */
-use crate::models::job_result_cache::{PlanTaskResultKey, TaskKey};
+use crate::models::job_result_cache::{TaskKey};
 use crate::models::jobs::JobAssignmentBuffer;
-use crate::models::TaskDependency;
+
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::benchmark::generator::BenchmarkGenerator;
@@ -14,7 +14,7 @@ use crate::CONFIG;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
-use common::tasks::TaskConfigTrait;
+
 use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};

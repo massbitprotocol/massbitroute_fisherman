@@ -7,7 +7,7 @@ use crate::{
     DEFAULT_JOB_TIMEOUT, WORKER_ID,
 };
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Formatter};
 
 use std::sync::Arc;
 use uuid::Uuid;

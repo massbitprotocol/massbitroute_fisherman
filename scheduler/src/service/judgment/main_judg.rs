@@ -3,7 +3,7 @@ use crate::persistence::services::job_result_service::JobResultService;
 
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::service::report_portal::StoreReport;
-use crate::{CONFIG, CONFIG_DIR, IS_REGULAR_REPORT, IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
+use crate::{CONFIG_DIR, IS_REGULAR_REPORT, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 
@@ -11,7 +11,7 @@ use common::models::PlanEntity;
 use common::{JobId, PlanId, DOMAIN};
 use log::{debug, info, warn};
 
-use anyhow::Error;
+
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -220,16 +220,16 @@ impl MainJudgment {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::CONFIG_DIR;
+    
     use anyhow::Error;
     use common::component::ComponentType;
     use common::util::get_current_time;
     use log::info;
-    use sea_orm::{DatabaseBackend, MockDatabase};
+    
 
-    use test_util::helper::JobName::Benchmark;
+    
     use test_util::helper::{
-        init_logging, load_env, mock_db_connection, mock_job, mock_job_result, ChainTypeForTest,
+        load_env, mock_db_connection, mock_job, mock_job_result, ChainTypeForTest,
         JobName,
     };
 

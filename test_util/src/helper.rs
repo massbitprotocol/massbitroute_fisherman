@@ -151,7 +151,7 @@ pub fn mock_job_result(
 
     let job_result_detail = match job_name {
         JobName::Benchmark => {
-            let mut resp = BenchmarkResponse {
+            let resp = BenchmarkResponse {
                 histograms: HashMap::from([
                     (90, 300f32),
                     (95, 300f32),
@@ -196,7 +196,7 @@ pub fn mock_job_result(
             JobResultDetail::HttpRequest(JobHttpResult::new(job.clone(), resp))
         }
     };
-    let mut job_result = JobResult::new(job_result_detail, Some(chain_info), &job);
+    let job_result = JobResult::new(job_result_detail, Some(chain_info), &job);
     println!("job_result: {:?}", job_result);
     job_result
 }
