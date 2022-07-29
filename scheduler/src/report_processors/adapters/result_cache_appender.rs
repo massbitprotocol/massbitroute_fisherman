@@ -5,7 +5,7 @@ use common::jobs::JobResult;
 use common::util::get_current_time;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+
 
 pub struct ResultCacheAppender {
     result_cache: Arc<JobResultCache>,

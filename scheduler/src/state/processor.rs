@@ -1,4 +1,4 @@
-use crate::models::job_result::StoredJobResult;
+
 use crate::models::job_result_cache::JobResultCache;
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::report_processors::adapters::get_report_adapters;
@@ -11,9 +11,9 @@ use common::job_manage::JobRole;
 use common::jobs::JobResult;
 
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+
 use std::sync::Arc;
-use tokio::sync::Mutex;
+
 
 #[derive()]
 pub struct ProcessorState {

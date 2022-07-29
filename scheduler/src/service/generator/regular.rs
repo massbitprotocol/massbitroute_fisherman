@@ -1,5 +1,5 @@
 use crate::models::component::ProviderPlan;
-use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
+use crate::models::job_result_cache::{JobResultCache, TaskKey};
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;

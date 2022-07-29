@@ -10,7 +10,7 @@ use std::sync::Arc;
 pub use websocket_request::*;
 
 pub fn get_executors(worker_id: WorkerId, benchmark_wrk_path: &str) -> Vec<Arc<dyn TaskExecutor>> {
-    let mut result: Vec<Arc<dyn TaskExecutor>> = vec![
+    let result: Vec<Arc<dyn TaskExecutor>> = vec![
         Arc::new(HttpRequestExecutor::new(worker_id.clone())),
         Arc::new(PingExecutor::new(worker_id.clone())),
         Arc::new(BenchmarkExecutor::new(

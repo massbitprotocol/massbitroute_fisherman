@@ -1,8 +1,8 @@
 use crate::persistence::ProviderMapModel;
-use common::component::{ComponentInfo, Zone};
+use common::component::{ComponentInfo};
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{ComponentId, WorkerId};
-use log::{debug, info};
+use log::{info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -91,7 +91,7 @@ impl WorkerInfoStorage {
             .filter(|worker| worker.worker_info.zone == provider.zone)
             .map(|worker| worker.clone())
             .collect();
-        let mut distances = self.get_provider_distances(provider).await;
+        let distances = self.get_provider_distances(provider).await;
         let mut remain_workers = Vec::new();
         let mut measured_workers = Vec::new();
         for worker in all_workers.iter() {

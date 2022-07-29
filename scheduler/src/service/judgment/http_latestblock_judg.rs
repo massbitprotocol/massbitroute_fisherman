@@ -6,12 +6,12 @@ use anyhow::{anyhow, Error};
 use async_trait::async_trait;
 use common::component::ComponentType;
 use common::job_manage::{JobResultDetail, JobRole};
-use common::jobs::{Job, JobResult};
-use common::models::PlanEntity;
+use common::jobs::{JobResult};
+
 use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
-use common::tasks::{LoadConfig, TaskConfigTrait};
+use common::tasks::{TaskConfigTrait};
 use common::{BlockChainType, ChainId, NetworkType, Timestamp};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
@@ -308,7 +308,7 @@ pub mod tests {
     use crate::CONFIG_DIR;
 
     use test_util::helper::{
-        init_logging, load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
+        load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
     };
 
     #[tokio::test]

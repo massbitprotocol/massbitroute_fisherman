@@ -301,7 +301,7 @@ mod tests {
         let server = MockServer::start();
 
         // Create a mock on the server.
-        let hello_mock = server.mock(|when, then| {
+        let _hello_mock = server.mock(|when, then| {
             when.method(GET).path("/_rtt");
             then.status(200)
                 .header("content-type", "text/html; charset=UTF-8")

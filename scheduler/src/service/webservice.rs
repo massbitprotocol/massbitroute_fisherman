@@ -5,7 +5,7 @@ use common::workers::{WorkerInfo, WorkerRegisterResult};
 
 use serde_json::json;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+
 use warp::{Rejection, Reply};
 
 #[derive(Default)]

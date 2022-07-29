@@ -13,7 +13,7 @@ use sea_orm::DatabaseConnection;
 
 use log::error;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+
 
 #[derive(Clone, Default)]
 pub struct SchedulerState {
