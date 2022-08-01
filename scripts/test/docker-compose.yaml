@@ -3,9 +3,9 @@ networks:
   mbr_test_network:
     driver: bridge
     external: true
-      # ipam:
+    # ipam:
       # config:
-    #     - subnet: "172.24.24.0/16"
+      #     - subnet: "172.24.24.0/16"
 services:
   db:
     container_name: mbr_db
@@ -21,8 +21,8 @@ services:
       - APP_DB_PASS=postgres
       - APP_DB_NAME=massbit-user
       - FISHERMAN_DB_NAME=massbit-fisherman
-    ports:
-      - '5432:5432'
+      # ports:
+      # - '5432:5432'
     volumes:
       # - db-data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
@@ -83,7 +83,7 @@ services:
 
   mbr_portal_api:
     container_name: mbr_portal_api
-    image: massbit/massbitroute_portal:v0.1
+    image: massbit/massbitroute_portal:v0.1-dev
     # build: .
     depends_on:
       - "db"
@@ -119,7 +119,7 @@ services:
 
   mbr_portal_worker:
     container_name: mbr_portal_worker
-    image: massbit/massbitroute_portal:v0.1
+    image: massbit/massbitroute_portal:v0.1-dev
     # build: .
     depends_on:
       - "db"
@@ -127,8 +127,6 @@ services:
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.211"
-    ports:
-      - '30001:30001'
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.210"
       - "ns1.massbitroute.net:172.24.24.210"
@@ -153,9 +151,10 @@ services:
     environment:
       - MODE=worker
 
+
   mbr_portal_admin:
     container_name: mbr_portal_admin
-    image: massbit/massbitroute_portal:v0.1
+    image: massbit/massbitroute_portal:v0.1-dev
     # build: .
     depends_on:
       - "db"
@@ -226,7 +225,7 @@ services:
 
   fisherman_scheduler:
     container_name: mbr_fisherman_scheduler
-    image: massbit/massbitroute_fisherman:v0.1
+    image: massbit/massbitroute_fisherman:v0.1-dev
     # build: ../massbitroute_fisherman
     restart: always
     depends_on:
@@ -235,8 +234,8 @@ services:
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.204"
-    ports:
-      - '80:80'
+#    ports:
+#      - '80:80'
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.210"
       - "ns1.massbitroute.net:172.24.24.210"
@@ -276,46 +275,17 @@ services:
       - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
       - BENCHMARK_WRK_PATH=benchmark
 
-  massbitchain:
-    container_name: mbr_chain
-    image: massbit/massbitroute_chain:v0.1
-    # build: ../massbitchain
+  fisherman_worker_1:
+    container_name: mbr_fisherman_worker_1
+    image: massbit/massbitroute_fisherman:v0.1-dev
+    # build: ../massbitroute_fisherman
     restart: always
+    depends_on:
+      - "db"
+      - "mbr_portal_api"
     networks:
       mbr_test_network:
-        ipv4_address: "172.24.24.205"
-    ports:
-      - '9944:9944'
-
-  api:
-    privileged: true
-    restart: unless-stopped
-    networks:
-      mbr_test_network:
-        ipv4_address: "172.24.24.206"
-
-    image: massbit/massbitroute_api_dev:0.0.1-shamu-dev
-    # command: sed -i "s|export WHITELIST_PARTNERS=.*|export WHITELIST_PARTNERS=\"allow 172.24.24.201\"|g" /massbit/massbitroute/app/src/sites/services/api/env/api.env
-    command: "-n"
-    # build:
-    #   context: /massbit/massbitroute/app/src/sites/services/api
-    #   dockerfile: install/mbr/build/api/Dockerfile.dev
-    #   args:
-    #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu
-    container_name: mbr_api
-    # network_mode: "host"
-    # ports:
-    #   - "443:443"
-    volumes:
-      - ./api/logs:/massbit/massbitroute/app/src/sites/services/git/logs:rw
-      - ./api/vars:/massbit/massbitroute/app/src/sites/services/git/vars:rw
-      # - ./api/tmp:/massbit/massbitroute/app/src/sites/services/git/tmp:rw
-      - ./api/db:/massbit/massbitroute/app/src/sites/services/git/db:rw
-    environment:
-      - MBR_ENV=shamu
-      - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+        ipv4_address: "172.24.24.213"
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.210"
       - "ns1.massbitroute.net:172.24.24.210"
@@ -337,13 +307,113 @@ services:
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "api.ipapi.com:172.24.24.201"
+    environment:
+      - WORKER_IP=172.24.24.213
 
+  fisherman_worker_2:
+    container_name: mbr_fisherman_worker_2
+    image: massbit/massbitroute_fisherman:v0.1-dev
+    # build: ../massbitroute_fisherman
+    restart: always
+    depends_on:
+      - "db"
+      - "mbr_portal_api"
+    networks:
+      mbr_test_network:
+        ipv4_address: "172.24.24.214"
+    extra_hosts:
+      - "hostmaster.massbitroute.net:172.24.24.210"
+      - "ns1.massbitroute.net:172.24.24.210"
+      - "ns2.massbitroute.net:172.24.24.210"
+      - "api.massbitroute.net:172.24.24.206"
+      - "stat.mbr.massbitroute.net:172.24.24.208"
+      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "chain.massbitroute.net:172.24.24.205"
+      - "portal.massbitroute.net:172.24.24.201"
+      - "admin-api.massbitroute.net:172.24.24.200"
+      - "dapi.massbitroute.net:172.24.24.200"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+      - "api.ipapi.com:172.24.24.201"
+    environment:
+      - WORKER_IP=172.24.24.214
+
+
+  massbitchain:
+    container_name: mbr_chain
+    image: massbit/massbitroute_chain:v0.1
+    # build: ../massbitchain
+    restart: always
+    networks:
+      mbr_test_network:
+        ipv4_address: "172.24.24.205"
+    ports:
+        - '9944:9944'
+
+  api:
+    privileged: true
+    restart: unless-stopped
+    networks:
+      mbr_test_network:
+        ipv4_address: "172.24.24.206"
+   
+    image: massbit/massbitroute_api_dev:0.0.1-shamu-dev
+    # command: sed -i "s|export WHITELIST_PARTNERS=.*|export WHITELIST_PARTNERS=\"allow 172.24.24.201\"|g" /massbit/massbitroute/app/src/sites/services/api/env/api.env
+    command: "-n"
+    # build:
+    #   context: /massbit/massbitroute/app/src/sites/services/api
+    #   dockerfile: install/mbr/build/api/Dockerfile.dev
+    #   args:
+    #     VERSION: 0.0.1-shamu-dev
+    #     BRANCH: shamu     
+    container_name: mbr_api
+    # network_mode: "host"
+    # ports:
+    #   - "443:443"
+    volumes:
+      - ./api/logs:/massbit/massbitroute/app/src/sites/services/git/logs:rw
+      - ./api/vars:/massbit/massbitroute/app/src/sites/services/git/vars:rw
+      # - ./api/tmp:/massbit/massbitroute/app/src/sites/services/git/tmp:rw
+      - ./api/db:/massbit/massbitroute/app/src/sites/services/git/db:rw
+    environment:
+      - MBR_ENV=shamu
+      - BRANCH=shamu
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net  
+    extra_hosts:
+      - "hostmaster.massbitroute.net:172.24.24.210"
+      - "ns1.massbitroute.net:172.24.24.210"
+      - "ns2.massbitroute.net:172.24.24.210"
+      - "api.massbitroute.net:172.24.24.206"
+      - "stat.mbr.massbitroute.net:172.24.24.208"
+      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "chain.massbitroute.net:172.24.24.205"
+      - "portal.massbitroute.net:172.24.24.201"
+      - "admin-api.massbitroute.net:172.24.24.200"
+      - "dapi.massbitroute.net:172.24.24.200"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+      - "api.ipapi.com:172.24.24.201"
+        
   git:
     privileged: true
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.207"
-
+   
     restart: unless-stopped
     image: massbit/massbitroute_git_dev:0.0.1-shamu-dev
     command: "-n"
@@ -352,10 +422,10 @@ services:
     #   dockerfile: install/mbr/build/git/Dockerfile.dev
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu
-    container_name: mbr_git
+    #     BRANCH: shamu  
+    container_name: mbr_git    
     volumes:
-      - ./git/deploy:/massbit/massbitroute/app/src/sites/services/git/deploy:rw
+      - ./git/deploy:/massbit/massbitroute/app/src/sites/services/git/deploy:rw      
       - ./git/logs:/massbit/massbitroute/app/src/sites/services/git/logs:rw
       - ./git/vars:/massbit/massbitroute/app/src/sites/services/git/vars:rw
       # - ./git/tmp:/massbit/massbitroute/app/src/sites/services/git/tmp:rw
@@ -363,7 +433,7 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net  
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.210"
       - "ns1.massbitroute.net:172.24.24.210"
@@ -392,17 +462,17 @@ services:
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.210"
-
+   
     restart: unless-stopped
     image: massbit/massbitroute_gwman_dev:0.0.1-shamu-dev
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/gwman
-    #   dockerfile: install/mbr/build/gwman/Dockerfile.dev
+    #   dockerfile: install/mbr/build/gwman/Dockerfile.dev 
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu
-    container_name: mbr_gwman
+    #     BRANCH: shamu         
+    container_name: mbr_gwman  
     volumes:
       - ./gwman/logs:/massbit/massbitroute/app/src/sites/services/gwman/logs:rw
       - ./gwman/vars:/massbit/massbitroute/app/src/sites/services/gwman/vars:rw
@@ -410,7 +480,7 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net  
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.210"
       - "ns1.massbitroute.net:172.24.24.210"
@@ -447,8 +517,8 @@ services:
     #   dockerfile: install/mbr/build/stat/Dockerfile.dev
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu
-    container_name: mbr_stat
+    #     BRANCH: shamu      
+    container_name: mbr_stat    
     volumes:
       - ./stat/logs:/massbit/massbitroute/app/src/sites/services/stat/logs:rw
       - ./stat/vars:/massbit/massbitroute/app/src/sites/services/stat/vars:rw
@@ -457,7 +527,7 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net  
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.210"
       - "ns1.massbitroute.net:172.24.24.210"
@@ -492,10 +562,10 @@ services:
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/monitor
-    #   dockerfile: install/mbr/build/monitor/Dockerfile.dev
+    #   dockerfile: install/mbr/build/monitor/Dockerfile.dev  
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu
+    #     BRANCH: shamu      
     container_name: mbr_monitor
     volumes:
       - ./monitor/logs:/massbit/massbitroute/app/src/sites/services/monitor/logs:rw
@@ -505,7 +575,7 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net   
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.210"
       - "ns1.massbitroute.net:172.24.24.210"
