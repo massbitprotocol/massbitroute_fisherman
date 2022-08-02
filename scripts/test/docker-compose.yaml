@@ -315,6 +315,7 @@ services:
       - WORKER_ENDPOINT=https://172.24.24.204/__worker
       - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
       - BENCHMARK_WRK_PATH=benchmark
+      - ROLE=SCHEDULER
 
   fisherman_worker_1:
     container_name: mbr_fisherman_worker_1
@@ -351,6 +352,7 @@ services:
       - "staking.massbitroute.net:172.24.24.215"
     environment:
       - WORKER_IP=172.24.24.213
+      - ROLE=WORKER
 
   fisherman_worker_2:
     container_name: mbr_fisherman_worker_2

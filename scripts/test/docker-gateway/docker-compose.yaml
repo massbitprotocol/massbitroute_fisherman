@@ -27,7 +27,7 @@ services:
       - ./gateway/logs:/massbit/massbitroute/app/src/sites/services/gateway/logs:rw
     environment:
       - MBR_ENV=shamu
-      - INSTALL_CMD=https://portal.massbitroute.net/api/v1/gateway_install?id=338454f6-874c-4e01-86c3-810c64b78cbe&user_id=b1cf032d-5971-410a-90fe-9c454a4173f0&blockchain=eth&network=mainnet&zone=AS&app_key=gyMdXirORg-9GREGAXqqlg&portal_url=https://portal.massbitroute.net&env=keiko
+      - INSTALL_CMD=https://portal.massbitroute.net/api/v1/gateway_install?id=aad6dffd-f24c-48b3-9cbb-3f20b18dab4d&user_id=b1cf032d-5971-410a-90fe-9c454a4173f0&blockchain=eth&network=mainnet&zone=AS&app_key=EtVCfLF7pXww-mLmm72t2A&portal_url=https://portal.massbitroute.net&env=keiko
 
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.210"

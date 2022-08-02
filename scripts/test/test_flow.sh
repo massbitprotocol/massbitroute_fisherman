@@ -6,7 +6,20 @@ dataSource="http:\/\/34.81.232.186:8545"
 dataSourceWs="ws:\/\/34.81.232.186:8546"
 nodePrefix="$(echo $RANDOM | md5sum | head -c 5)"
 
-docker exec mbr_db bash -c 'bash /docker-entrypoint-initdb.d/clean_node.sh'
+docker-compose down
+
+#-------------------------------------------
+# Docker build
+#-------------------------------------------
+bash docker_build.sh
+
+#-------------------------------------------
+# Docker up
+#-------------------------------------------
+docker-compose up -d
+sleep 15
+bash 1_pre_config.sh
+docker exec mbr_db bash -c 'bash /docker-entrypoint-initdb.d/2_clean_node.sh'
 
 #-------------------------------------------
 # Log into Portal
@@ -101,17 +114,17 @@ while [[ "$node_status" != "approved" ]]; do
 done
 echo "Checking node approved status: Passed"
 
-#-------------------------------------------
-# Create docker gateway
-#-------------------------------------------
+##-------------------------------------------
+## Create docker gateway
+##-------------------------------------------
 
 cd ../docker-gateway
 docker-compose down
 docker-compose up -d
 
-#-------------------------------------------
-# Check if nodes are verified
-#-------------------------------------------
+##-------------------------------------------
+## Check if nodes are verified
+##-------------------------------------------
 while [[ "$gateway_status" != "approved" ]]; do
   echo "Checking node status: In Progress"
 
@@ -163,3 +176,44 @@ if [[ "$node_staking_response" != "success" ]]; then
   exit 1
 fi
 echo "Node staking: Passed"
+
+
+#-------------------------------------------
+# Turn off NODES/GW
+#-------------------------------------------
+echo "Turning off Node"
+docker-compose down
+cd ../docker-gateway
+echo "Turning off Gateway"
+docker-compose down
+
+while [[ "$node_status" != "investigate" ]]; do
+  echo "Checking node status: In Progress"
+
+  node_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/node/$NODE_ID" \
+    --header "Authorization: Bearer $bearer" | jq -r ". | .status")
+
+  echo "---------------------------------"
+  echo "Node status: $node_status"
+  echo "---------------------------------"
+  sleep 2
+done
+echo "Checking node reported status: investigate"
+
+
+##-------------------------------------------
+## Check if gateways are verified
+##-------------------------------------------
+while [[ "$gateway_status" != "investigate" ]]; do
+  echo "Checking gateway status: In Progress"
+
+  gateway_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/gateway/$GATEWAY_ID" \
+    --header "Authorization: Bearer $bearer" | jq -r ". | .status")
+
+
+  echo "---------------------------------"
+  echo "Gateway status: $gateway_status"
+  echo "---------------------------------"
+  sleep 2
+done
+echo "Checking gateway verified status: investigate"

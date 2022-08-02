@@ -46,13 +46,13 @@ WORKDIR /usr/local/bin
 
 COPY scheduler/configs /usr/local/bin/configs
 COPY scripts/benchmark /usr/local/bin/benchmark
-COPY scripts/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
-COPY scripts/run_scheduler_docker.sh scripts/run_worker_docker.sh /usr/local/bin/
+COPY scripts/build_docker/supervisor.conf /etc/supervisor/conf.d/fisherman-scheduler.conf
+COPY scripts/build_docker/run_scheduler_docker.sh scripts/build_docker/run_worker_docker.sh /usr/local/bin/
 
 # Copy application binary from builder image
 COPY --from=builder /usr/src/scheduler/target/release/scheduler /usr/local/bin
 COPY --from=builder /usr/src/fisherman/target/release/fisherman /usr/local/bin
-COPY scripts/services /etc/services
+COPY scripts/build_docker/services /etc/services
 RUN apt update && apt install supervisor -y
 EXPOSE 80
 

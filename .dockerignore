@@ -21,6 +21,9 @@ logs/
 
 #Docker build
 /scripts/
+!/scripts/benchmark
+!/scripts/build_docker
+
 /Cargo.lock
 /Dockerfile
 /.dockerignore
