@@ -2,12 +2,13 @@ use crate::models::job_result::ProviderTask;
 use crate::persistence::services::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 
+use crate::CONFIG_HTTP_REQUEST_DIR;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::{AssignmentConfig, JobResult};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpResponseDetail, JobHttpResult};
-use common::tasks::{LoadConfig, TaskConfigTrait};
+use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;
@@ -17,6 +18,7 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::default::Default;
 use std::ops::{Deref, DerefMut};
+use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -31,8 +33,6 @@ pub struct PingConfig {
     pub ping_number_for_decide: i32,
     pub assignment: Option<AssignmentConfig>,
 }
-
-impl LoadConfig<PingConfig> for PingConfig {}
 
 #[derive(Debug, Default)]
 pub struct HttpPingResultCache {
@@ -131,8 +131,10 @@ pub struct HttpPingJudgment {
 
 impl HttpPingJudgment {
     pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
-        let path = format!("{}/http_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
+        // let path = format!("{}/http_request", config_dir);
+        let path = Path::new(config_dir).join(&*CONFIG_HTTP_REQUEST_DIR);
+        //let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
+        let task_configs = HttpRequestJobConfig::read_configs(&path, phase);
         HttpPingJudgment {
             task_configs,
             _result_service: result_service,

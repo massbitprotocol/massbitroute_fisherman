@@ -18,6 +18,7 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::metadata;
+use std::path::Path;
 
 const DEFAULT_KEY: &str = "default";
 const TASKS_KEY: &str = "tasks";
@@ -25,9 +26,9 @@ const TASKS_KEY: &str = "tasks";
  * Load config from a directory of a single file
  */
 pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
-    fn read_configs(config_path: &str, phase: &JobRole) -> Vec<T> {
+    fn read_configs(config_path: &Path, phase: &JobRole) -> Vec<T> {
         let md = metadata(config_path).unwrap_or_else(|err| {
-            panic!("Error {:?}. Path not found {}", err, config_path);
+            panic!("Error {:?}. Path not found {:?}", err, config_path);
         });
         if md.is_dir() {
             Self::read_config_dir(config_path, phase)
@@ -42,10 +43,11 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
         }
     }
 
-    fn read_config_dir(config_path: &str, phase: &JobRole) -> Vec<T> {
+    fn read_config_dir(config_path: &Path, phase: &JobRole) -> Vec<T> {
         //First read default config if exists
         let default_config =
-            std::fs::read_to_string(format!("{}/{}.json", config_path, DEFAULT_KEY))
+            //std::fs::read_to_string(format!("{}/{}.json", config_path, DEFAULT_KEY))
+            std::fs::read_to_string(config_path.join(format!("{DEFAULT_KEY}.json")))
                 .map_err(|err| anyhow!("{:?}", &err))
                 .and_then(|content| {
                     let config: Result<Map<String, Value>, Error> =
@@ -154,61 +156,7 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
         target.append(&mut source.clone());
     }
 }
-pub trait LoadConfig<T: DeserializeOwned + Default + Debug> {
-    fn load_config(path: &str, role: &JobRole) -> T {
-        let json = std::fs::read_to_string(path).unwrap_or_else(|err| {
-            panic!("Error {:?}. Path not found {}", err, path);
-        });
-        let configs: Value = serde_json::from_str(&*json).unwrap_or_else(|err| {
-            panic!("{:?}", &err);
-        });
 
-        let phase_config_value = if let Some(phase_config) = configs.get(role.to_string()) {
-            if let Some(default_config) = configs.get(DEFAULT_KEY) {
-                let mut phase_object = phase_config.as_object().unwrap().clone();
-                Self::append(&mut phase_object, default_config.as_object().unwrap());
-                serde_json::Value::Object(phase_object)
-            } else {
-                phase_config.clone()
-            }
-        } else if let Some(default_config) = configs.get(DEFAULT_KEY) {
-            default_config.clone()
-        } else {
-            panic!("Please check default or {} config", role.to_string());
-        };
-        log::info!("Final phase config {:?}", phase_config_value);
-        match serde_json::from_value(phase_config_value) {
-            Ok(config) => config,
-            Err(err) => {
-                panic!("{:?}", &err);
-            }
-        }
-    }
-    //Todo: Implement Deep append
-    fn append(target: &mut Map<String, Value>, source: &Map<String, Value>) {
-        for (key, value) in source {
-            target.insert(key.clone(), value.clone());
-        }
-    }
-    /*
-    fn load_config(path: &str, role: &JobRole) -> T {
-        let json = std::fs::read_to_string(path).unwrap_or_else(|err| {
-            panic!("Error {:?}. Path not found {}", err, path);
-        });
-        let configs: Value = serde_json::from_str(&*json).unwrap();
-        let mut default_config: T =
-            serde_json::from_value(configs.get(DEFAULT_KEY).unwrap().clone()).unwrap();
-        if let Some(modify_config) = configs.get(role.to_string()) {
-            let modify_config: Result<T, _> = serde_json::from_value(modify_config.clone());
-            if let Ok(modify_config) = modify_config {
-                default_config = modify_config;
-            }
-        }
-        info!("Loaded config: {:#?} for role: {:?}", default_config, role);
-        default_config
-    }
-     */
-}
 pub trait TaskConfigTrait {
     fn match_phase(&self, phase: &JobRole) -> bool;
     fn match_blockchain(&self, blockchain: &String) -> bool;

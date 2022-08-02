@@ -11,7 +11,9 @@ use common::tasks::LoadConfigs;
 use common::WorkerId;
 use log::debug;
 use std::collections::HashMap;
+use std::path::Path;
 
+use crate::CONFIG_BENCHMARK_DIR;
 use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default)]
@@ -118,10 +120,10 @@ pub struct BenchmarkJudgment {
 
 impl BenchmarkJudgment {
     pub fn new(config_dir: &str, result_service: Arc<JobResultService>) -> Self {
-        let task_configs: Vec<BenchmarkConfig> = BenchmarkConfig::read_configs(
-            format!("{}/benchmark", config_dir).as_str(),
-            &JobRole::Verification,
-        );
+        let path = Path::new(config_dir).join(&*CONFIG_BENCHMARK_DIR);
+
+        let task_configs: Vec<BenchmarkConfig> =
+            BenchmarkConfig::read_configs(&path, &JobRole::Verification);
         BenchmarkJudgment {
             _result_service: result_service,
             task_configs,
