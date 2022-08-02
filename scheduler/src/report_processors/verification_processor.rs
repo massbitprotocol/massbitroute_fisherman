@@ -5,13 +5,13 @@ use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::{JudgmentsResult, MainJudgment};
 use crate::service::report_portal::StoreReport;
-use crate::{CONFIG, IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
+use crate::{IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
 use async_trait::async_trait;
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
-use common::{ComponentId, JobId, PlanId, DOMAIN};
-use log::{debug, error, info, trace, warn};
+use common::{ComponentId, PlanId, DOMAIN};
+use log::{debug, info, trace};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -24,10 +24,10 @@ pub struct VerificationReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
     plan_service: Arc<PlanService>,
     job_service: Arc<JobService>,
-    result_service: Arc<JobResultService>,
+    _result_service: Arc<JobResultService>,
     result_cache: Arc<JobResultCache>,
     judgment: MainJudgment,
-    active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
+    _active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
 }
 
 impl VerificationReportProcessor {
@@ -43,10 +43,10 @@ impl VerificationReportProcessor {
             report_adapters,
             plan_service,
             job_service,
-            result_service,
+            _result_service: result_service,
             result_cache,
             judgment,
-            active_plans: Default::default(),
+            _active_plans: Default::default(),
         }
     }
     pub fn add_adapter(&mut self, adapter: Arc<dyn Appender>) {

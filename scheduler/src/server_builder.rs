@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
-use tokio::sync::Mutex;
+
 use warp::http::{HeaderMap, Method};
 
 use crate::service::{ProcessorService, WebService};
@@ -334,16 +334,16 @@ mod tests {
     use crate::models::providers::ProviderStorage;
     use crate::models::workers::WorkerInfoStorage;
     use crate::persistence::services::{
-        get_sea_db_connection, JobResultService, JobService, PlanService, WorkerService,
+        JobResultService, JobService, PlanService, WorkerService,
     };
     use crate::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
-    use crate::{DATABASE_URL, SCHEDULER_ENDPOINT};
+    
     use anyhow::Error;
     use common::logger::init_logger;
     use common::task_spawn;
     use reqwest::Client;
     use sea_orm::{
-        entity::prelude::*, entity::*, tests_cfg::*, DatabaseBackend, MockDatabase, Transaction,
+        entity::prelude::*, DatabaseBackend, MockDatabase,
     };
     use std::env;
 
@@ -362,7 +362,7 @@ mod tests {
         let local_port: &str = "3032";
         let socket_addr = format!("0.0.0.0:{}", local_port);
         let db_conn = MockDatabase::new(DatabaseBackend::Postgres);
-        let arc_conn = Arc::new(db_conn);
+        let _arc_conn = Arc::new(db_conn);
 
         let scheduler_service = SchedulerServiceBuilder::default().build();
         let processor_service = ProcessorServiceBuilder::default().build();

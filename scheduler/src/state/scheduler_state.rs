@@ -13,11 +13,10 @@ use sea_orm::DatabaseConnection;
 
 use log::error;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct SchedulerState {
-    connection: Arc<DatabaseConnection>,
+    _connection: Arc<DatabaseConnection>,
     plan_service: Arc<PlanService>,
     worker_service: Arc<WorkerService>,
     worker_pool: Arc<WorkerInfoStorage>,
@@ -33,7 +32,7 @@ impl SchedulerState {
         providers: Arc<ProviderStorage>,
     ) -> SchedulerState {
         SchedulerState {
-            connection,
+            _connection: connection,
             plan_service,
             worker_service,
             worker_pool,

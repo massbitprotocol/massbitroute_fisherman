@@ -109,9 +109,9 @@ impl BenchmarkResultCache {
         res
     }
 }
-#[derive(Debug)]
+#[derive()]
 pub struct BenchmarkJudgment {
-    result_service: Arc<JobResultService>,
+    _result_service: Arc<JobResultService>,
     task_configs: Vec<BenchmarkConfig>,
     result_cache: BenchmarkResultCache,
 }
@@ -123,7 +123,7 @@ impl BenchmarkJudgment {
             &JobRole::Verification,
         );
         BenchmarkJudgment {
-            result_service,
+            _result_service: result_service,
             task_configs,
             result_cache: BenchmarkResultCache::default(),
         }
@@ -255,11 +255,9 @@ pub mod tests {
     use crate::CONFIG_DIR;
     use common::component::ComponentType;
     use log::info;
-    use sea_orm::{DatabaseBackend, MockDatabase};
 
-    use test_util::helper::JobName::Benchmark;
     use test_util::helper::{
-        init_logging, load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
+        load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
     };
 
     #[tokio::test]

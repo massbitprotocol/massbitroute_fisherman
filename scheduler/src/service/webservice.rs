@@ -5,7 +5,7 @@ use common::workers::{WorkerInfo, WorkerRegisterResult};
 
 use serde_json::json;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+
 use warp::{Rejection, Reply};
 
 #[derive(Default)]
@@ -62,7 +62,10 @@ impl WebService {
         scheduler_state: Arc<SchedulerState>,
     ) -> Result<impl Reply, Rejection> {
         log::info!("Handle node verify request from {:?}", &node_info);
-        scheduler_state.verify_node(node_info).await;
+        let res = scheduler_state.verify_node(node_info).await;
+        if res.is_err() {
+            return Ok(warp::reply::json(&json!({ "success": false })));
+        }
         Ok(warp::reply::json(&json!({ "success": true })))
     }
 }

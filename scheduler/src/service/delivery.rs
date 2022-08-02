@@ -1,5 +1,5 @@
 use crate::models::jobs::JobAssignmentBuffer;
-use crate::models::workers::WorkerInfoStorage;
+
 use crate::JOB_DELIVERY_PERIOD;
 use common::jobs::{Job, JobAssignment};
 use common::workers::Worker;

@@ -9,8 +9,8 @@ use lazy_static::lazy_static;
 use std::env;
 
 lazy_static! {
-    static ref RUST_LOG: String = env::var("RUST_LOG").unwrap_or(String::from("info")); // If not specified, assume logging level is INFO
-    static ref RUST_LOG_TYPE: String = env::var("RUST_LOG_TYPE").unwrap_or(String::from("console")); // If not specified, assume we're logging to console
+    static ref RUST_LOG: String = env::var("RUST_LOG").unwrap_or_else(|_| String::from("info")); // If not specified, assume logging level is INFO
+    static ref RUST_LOG_TYPE: String = env::var("RUST_LOG_TYPE").unwrap_or_else(|_| String::from("console")); // If not specified, assume we're logging to console
 }
 
 pub fn init_logger(file_name: &String) -> String {
@@ -26,5 +26,5 @@ pub fn init_logger(file_name: &String) -> String {
         return message(&RUST_LOG_TYPE, &RUST_LOG);
     }
 
-    return message(&Default::default(), &RUST_LOG); /* Not logging to anything. This should not reach */
+    message(&Default::default(), &RUST_LOG) /* Not logging to anything. This should not reach */
 }

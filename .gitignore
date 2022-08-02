@@ -15,3 +15,12 @@ logs/
 **/.env
 /scheduler/.env_test
 /scheduler/.env_deploy
+
+
+#Docker test
+/scripts/test/stat/
+/scripts/test/api/
+/scripts/test/git/
+/scripts/test/gwman/
+/scripts/test/migrations/
+/scripts/test/monitor/

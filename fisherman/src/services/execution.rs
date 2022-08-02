@@ -4,11 +4,11 @@ use crate::{
     BENCHMARK_WRK_PATH, JOB_EXECUTOR_PERIOD, MAX_THREAD_COUNTER, WAITING_TIME_FOR_EXECUTING_THREAD,
     WORKER_ID,
 };
-use anyhow::Error;
-use common::jobs::{Job, JobResult};
+
+use common::jobs::{JobResult};
 use common::tasks::executor::TaskExecutor;
 use common::util::warning_if_error;
-use log::{debug, trace, warn};
+use log::{debug, trace};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;

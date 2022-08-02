@@ -112,9 +112,9 @@ async fn try_register() -> Result<WorkerRegisterResult, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::task_spawn;
-    use futures::pin_mut;
-    use httpmock::prelude::{GET, POST};
+    
+    
+    use httpmock::prelude::{POST};
     use httpmock::MockServer;
     use std::env;
 
@@ -129,7 +129,7 @@ mod tests {
             MOCK_WORKER_ID, MOCK_REPORT_CALLBACK
         );
         // Create a mock on the server.
-        let hello_mock = server.mock(|when, then| {
+        let _hello_mock = server.mock(|when, then| {
             when.method(POST).path("/worker/register");
             then.status(200)
                 .header("content-type", "text/html; charset=UTF-8")

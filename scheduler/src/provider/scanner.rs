@@ -8,7 +8,7 @@ use log::{debug, error, trace};
 use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
+
 use tokio::time::sleep;
 
 pub struct ProviderScanner {
@@ -47,8 +47,8 @@ impl ProviderScanner {
 
     pub async fn run(mut self) {
         loop {
-            debug!("Get new providers");
-            self.update_providers().await;
+            let res = self.update_providers().await;
+            debug!("Get new providers response: {res:?}");
             //Update provider map
             self.reload_provider_map().await;
             debug!("Sleep for {} seconds", CONFIG.update_provider_list_interval);
@@ -168,7 +168,7 @@ pub mod tests {
     use log::info;
     use std::env;
     use std::time::Instant;
-    use test_util::helper::{init_logging, load_env, mock_db_connection};
+    use test_util::helper::{load_env, mock_db_connection};
 
     const TEST_TIMEOUT: u64 = 15;
 

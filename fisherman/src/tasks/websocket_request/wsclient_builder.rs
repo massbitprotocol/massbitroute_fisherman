@@ -1,7 +1,7 @@
 use crate::tasks::toanyhowerror;
-use anyhow::{anyhow, Error};
-use common::tasks::websocket_request::JobWebsocket;
-use http::Version;
+use anyhow::{Error};
+
+
 use hyper::buffer::BufReader;
 use hyper::header::{Authorization, Basic};
 pub use hyper::header::{
@@ -13,7 +13,7 @@ use hyper::status::StatusCode;
 use hyper::version::HttpVersion;
 use log::trace;
 use std::borrow::Cow;
-use std::fmt::Write;
+
 use std::net::TcpStream;
 use unicase::UniCase;
 use websocket::header::{WebSocketAccept, WebSocketKey, WebSocketVersion};
@@ -22,7 +22,7 @@ use websocket::result::{WSUrlErrorKind, WebSocketOtherError};
 use websocket::stream::Stream;
 use websocket::sync::Client;
 use websocket::url::{ParseError, Position, Url};
-use websocket::{ClientBuilder, WebSocketResult};
+
 
 #[derive(Clone, Debug)]
 pub struct WebSocketClientBuilder<'u> {
@@ -101,7 +101,7 @@ impl<'u> WebSocketClientBuilder<'u> {
         self.connect_on(ssl_stream)
     }
     pub fn connect_insecure(&mut self) -> Result<Client<TcpStream>, Error> {
-        let mut tcp_stream = self.establish_tcp()?;
+        let tcp_stream = self.establish_tcp()?;
         self.connect_on(tcp_stream)
     }
     pub fn connect_on<S>(&mut self, mut stream: S) -> Result<Client<S>, anyhow::Error>

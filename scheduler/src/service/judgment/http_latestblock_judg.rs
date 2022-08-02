@@ -6,12 +6,12 @@ use anyhow::{anyhow, Error};
 use async_trait::async_trait;
 use common::component::ComponentType;
 use common::job_manage::{JobResultDetail, JobRole};
-use common::jobs::{Job, JobResult};
-use common::models::PlanEntity;
+use common::jobs::JobResult;
+
 use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
-use common::tasks::{LoadConfig, TaskConfigTrait};
+use common::tasks::TaskConfigTrait;
 use common::{BlockChainType, ChainId, NetworkType, Timestamp};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
@@ -159,10 +159,10 @@ impl LatestBlockResultCache {
     }
 }
 
-#[derive(Debug)]
+#[derive()]
 pub struct HttpLatestBlockJudgment {
     task_configs: Vec<HttpRequestJobConfig>,
-    result_service: Arc<JobResultService>,
+    _result_service: Arc<JobResultService>,
     cache_values: LatestBlockResultCache,
     comparators: HashMap<ChainId, Arc<dyn Comparator>>,
 }
@@ -174,7 +174,7 @@ impl HttpLatestBlockJudgment {
         let comparators = get_comparators();
         HttpLatestBlockJudgment {
             task_configs,
-            result_service,
+            _result_service: result_service,
             cache_values: LatestBlockResultCache::default(),
             comparators,
         }
@@ -308,7 +308,7 @@ pub mod tests {
     use crate::CONFIG_DIR;
 
     use test_util::helper::{
-        init_logging, load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
+        load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
     };
 
     #[tokio::test]

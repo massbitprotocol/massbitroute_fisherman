@@ -216,17 +216,16 @@ mod tests {
     use common::logger::init_logger;
     use common::task_spawn;
     use reqwest::Client;
-    use std::env;
 
     use crate::models::job::JobBuffer;
-    use crate::services::{JobExecution, JobResultReporter, WebServiceBuilder};
-    use crate::WORKER_SERVICE_ENDPOINT;
+    use crate::services::WebServiceBuilder;
+
     use common::jobs::JobResult;
     use serde_json::json;
     use std::time::Duration;
     use test_util::helper::load_env;
     use tokio::sync::mpsc::{channel, Receiver, Sender};
-    use tokio::task;
+
     use tokio::time::sleep;
 
     #[tokio::test]
@@ -244,7 +243,6 @@ mod tests {
             "Successfully register worker {}, report_callback: {}",
             &worker_id, report_callback
         );
-        let (sender, receiver): (Sender<JobResult>, Receiver<JobResult>) = channel(1024);
         let job_buffer = Arc::new(Mutex::new(JobBuffer::new()));
         let service = WebServiceBuilder::new().build();
         let access_control = AccessControl::default();

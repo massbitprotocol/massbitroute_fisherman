@@ -131,7 +131,7 @@ impl StoreReport {
             match fs::create_dir_all(path) {
                 Ok(_) => {}
                 Err(err) => {
-                    anyhow!("{:?}", err);
+                    Err(anyhow!("{:?}", err))?;
                 }
             }
         }

@@ -10,7 +10,7 @@ use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use common::job_manage::JobRole;
 use common::task_spawn;
 use futures_util::future::join;
-use log::info;
+use log::{error, info};
 pub use regular::RegularJobGenerator;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -138,7 +138,8 @@ impl JobGenerator {
             }
         });
 
-        join(verification_task, regular_task).await;
+        let res = join(verification_task, regular_task).await;
+        error!("Generator thread running error {res:?}");
     }
 }
 
@@ -148,15 +149,14 @@ pub mod tests {
 
     use anyhow::{anyhow, Error};
 
-    use crate::persistence::services::provider_service::ProviderService;
     use crate::persistence::services::WorkerService;
     use crate::persistence::PlanModel;
-    use crate::SCHEDULER_ENDPOINT;
+
     use common::component::ComponentType;
     use log::info;
     use test_util::helper::{
-        init_logging, load_env, mock_component_info, mock_db_connection, mock_job, mock_job_result,
-        mock_worker, ChainTypeForTest, CountItems, JobName,
+        load_env, mock_component_info, mock_db_connection, mock_worker, ChainTypeForTest,
+        CountItems,
     };
     use tokio::task;
     use JobGeneratorTrait;
@@ -414,7 +414,7 @@ pub mod tests {
         let com_1 = mock_component_info("com_1", &ChainTypeForTest::Eth, &com_type);
         let com_2 = mock_component_info("com_2", &ChainTypeForTest::Dot, &com_type);
 
-        let plan_model = PlanModel {
+        let _plan_model = PlanModel {
             id: 0,
             plan_id: "".to_string(),
             provider_id: "".to_string(),

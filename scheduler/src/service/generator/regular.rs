@@ -1,5 +1,5 @@
 use crate::models::component::ProviderPlan;
-use crate::models::job_result_cache::{JobResultCache, TaskKey, TaskResultCache};
+use crate::models::job_result_cache::{JobResultCache, TaskKey};
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
@@ -110,7 +110,7 @@ impl RegularJobGenerator {
         Ok(())
     }
 
-    fn create_provider_plan(component: &ComponentInfo) -> ProviderPlan {
+    fn _create_provider_plan(component: &ComponentInfo) -> ProviderPlan {
         let plan_id = format!("{}-{}", JobRole::Regular.to_string(), component.id);
         let plan = PlanModel {
             id: Default::default(),

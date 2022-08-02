@@ -19,7 +19,7 @@
     "name": "RoundTripTime",
     "phases": ["regular"],
     "repeat_number": 1000000000,
-    "interval": 5000,
+    "interval": 60000,
     "url_template": "https://{{provider.ip}}/_rtt",
     "request_timeout": 3000,
     "thresholds": {

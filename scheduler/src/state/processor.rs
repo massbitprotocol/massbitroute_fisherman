@@ -1,4 +1,3 @@
-use crate::models::job_result::StoredJobResult;
 use crate::models::job_result_cache::JobResultCache;
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::report_processors::adapters::get_report_adapters;
@@ -11,18 +10,17 @@ use common::job_manage::JobRole;
 use common::jobs::JobResult;
 
 use sea_orm::DatabaseConnection;
-use std::collections::HashMap;
+
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive()]
 pub struct ProcessorState {
     connection: Arc<DatabaseConnection>,
     regular_processor: Arc<dyn ReportProcessor>,
     verification_processor: Arc<dyn ReportProcessor>,
-    result_service: Arc<JobResultService>,
-    plan_service: Arc<PlanService>,
-    job_service: Arc<JobService>,
+    _result_service: Arc<JobResultService>,
+    _plan_service: Arc<PlanService>,
+    _job_service: Arc<JobService>,
 }
 
 impl ProcessorState {
@@ -51,9 +49,9 @@ impl ProcessorState {
             connection,
             regular_processor: Arc::new(regular_processor),
             verification_processor: Arc::new(verification_processor),
-            result_service,
-            plan_service,
-            job_service,
+            _result_service: result_service,
+            _plan_service: plan_service,
+            _job_service: job_service,
         }
     }
 }
@@ -63,9 +61,9 @@ impl Default for ProcessorState {
             connection: Arc::new(Default::default()),
             regular_processor: Arc::new(RegularReportProcessor::default()),
             verification_processor: Arc::new(VerificationReportProcessor::default()),
-            result_service: Arc::new(Default::default()),
-            plan_service: Arc::new(Default::default()),
-            job_service: Arc::new(Default::default()),
+            _result_service: Arc::new(Default::default()),
+            _plan_service: Arc::new(Default::default()),
+            _job_service: Arc::new(Default::default()),
         }
     }
 }

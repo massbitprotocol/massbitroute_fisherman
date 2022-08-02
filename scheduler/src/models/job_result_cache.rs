@@ -1,13 +1,12 @@
 use crate::models::component::ProviderPlan;
-use crate::persistence::PlanModel;
+
 use crate::service::judgment::JudgmentsResult;
 use crate::{CONFIG, RESULT_CACHE_MAX_LENGTH};
 use common::jobs::{Job, JobAssignment, JobResult};
 use common::models::PlanEntity;
 use common::util::get_current_time;
 use common::{ComponentId, JobId, PlanId, Timestamp};
-use futures_util::StreamExt;
-use log::debug;
+
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, DerefMut};
@@ -54,7 +53,7 @@ impl JobResultCache {
     ) -> Result<(), anyhow::Error> {
         let mut cache_content = self.result_cache_map.lock().await;
         for (provider_id, values) in results {
-            let mut result_cache = cache_content
+            let result_cache = cache_content
                 .entry(provider_id)
                 .or_insert(HashMap::default());
             for (key, task_result) in values {

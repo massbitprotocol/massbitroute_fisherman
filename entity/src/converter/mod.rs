@@ -1,6 +1,6 @@
 use crate::seaorm::plans::Model as PlanModel;
 use crate::seaorm::{
-    job_assignments, job_result_benchmarks, job_result_http_requests, job_result_latest_blocks,
+    job_assignments, job_result_benchmarks, job_result_http_requests,
     job_result_pings, jobs, plans, workers,
 };
 use common::component::{ChainInfo, ComponentType, Zone};
@@ -17,7 +17,7 @@ use log::debug;
 use sea_orm::ActiveValue::Set;
 use sea_orm::NotSet;
 use serde_json::Value;
-use std::collections::HashMap;
+
 use std::str::FromStr;
 
 impl From<&WorkerInfo> for workers::ActiveModel {

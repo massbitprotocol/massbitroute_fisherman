@@ -3,7 +3,7 @@ use crate::persistence::services::job_result_service::JobResultService;
 
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::service::report_portal::StoreReport;
-use crate::{CONFIG, CONFIG_DIR, IS_REGULAR_REPORT, IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
+use crate::{CONFIG_DIR, IS_REGULAR_REPORT, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 
@@ -11,7 +11,6 @@ use common::models::PlanEntity;
 use common::{JobId, PlanId, DOMAIN};
 use log::{debug, info, warn};
 
-use anyhow::Error;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -19,7 +18,7 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Default)]
 pub struct MainJudgment {
-    result_service: Arc<JobResultService>,
+    _result_service: Arc<JobResultService>,
     judgments: Vec<Arc<dyn ReportCheck>>,
     judgment_result_cache: LatestJudgmentCache,
 }
@@ -55,7 +54,7 @@ impl MainJudgment {
     pub fn new(result_service: Arc<JobResultService>, phase: &JobRole) -> Self {
         let judgments = get_report_judgments(CONFIG_DIR.as_str(), result_service.clone(), phase);
         MainJudgment {
-            result_service,
+            _result_service: result_service,
             judgments,
             judgment_result_cache: Default::default(),
         }
@@ -110,8 +109,10 @@ impl MainJudgment {
                     .await
                     .unwrap_or(JudgmentsResult::Failed);
                 info!(
-                    "Verify judgment result {:?} for provider {:?} with results {:?}",
-                    &currentjob_result, provider_task, results
+                    "Verify judgment {} result {:?} for provider {:?} with results {results:?}",
+                    judgment.get_name(),
+                    &currentjob_result,
+                    provider_task,
                 );
                 total_result.insert(job_id.clone(), currentjob_result.clone());
             };
@@ -218,17 +219,14 @@ impl MainJudgment {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::CONFIG_DIR;
+
     use anyhow::Error;
     use common::component::ComponentType;
     use common::util::get_current_time;
     use log::info;
-    use sea_orm::{DatabaseBackend, MockDatabase};
 
-    use test_util::helper::JobName::Benchmark;
     use test_util::helper::{
-        init_logging, load_env, mock_db_connection, mock_job, mock_job_result, ChainTypeForTest,
-        JobName,
+        load_env, mock_db_connection, mock_job, mock_job_result, ChainTypeForTest, JobName,
     };
 
     #[tokio::test]

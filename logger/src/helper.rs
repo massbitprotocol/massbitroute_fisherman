@@ -2,16 +2,14 @@
  *** This file is to help setup the logger based on the RUST_LOG and RUST_LOG_TYPE options
  **/
 use chrono::Local;
-use env_logger::{Builder};
-
-
+use env_logger::Builder;
 
 use log4rs::append::rolling_file::{policy, RollingFileAppender};
 use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use std::io::Write;
 
-pub fn log_to_file(file_name: &String, log_level: &String) {
+pub fn log_to_file(file_name: &String, log_level: &str) {
     let one_mb = 1000000;
     let trigger = policy::compound::trigger::size::SizeTrigger::new(one_mb * 100); // unit here is Byte
 
@@ -19,7 +17,7 @@ pub fn log_to_file(file_name: &String, log_level: &String) {
     // Lazily concat string so we get log with the name of component
     // We can't use format! because we need the {}, maybe try with string escape later
     let owned_string_one: String = "log/".to_owned();
-    let owned_string_two: String = (owned_string_one + file_name).to_owned();
+    let owned_string_two: String = owned_string_one + file_name;
     let name_with_gz_extension: String = owned_string_two.clone() + ".{}.gz";
     let name_with_log_extension: String = owned_string_two + ".log";
 
@@ -45,7 +43,7 @@ pub fn log_to_file(file_name: &String, log_level: &String) {
     log4rs::init_config(config).unwrap();
 }
 
-pub fn log_to_console(log_level: &String) {
+pub fn log_to_console(log_level: &str) {
     Builder::new()
         .format(|buf, record| {
             writeln!(
