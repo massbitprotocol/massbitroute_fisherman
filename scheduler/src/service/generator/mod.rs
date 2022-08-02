@@ -1,5 +1,6 @@
 pub mod regular;
 pub mod verification;
+
 use crate::models::job_result_cache::JobResultCache;
 use crate::models::jobs::JobAssignmentBuffer;
 use crate::models::providers::ProviderStorage;
@@ -14,6 +15,7 @@ use log::{error, info};
 pub use regular::RegularJobGenerator;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
@@ -62,9 +64,10 @@ impl JobGenerator {
     ) -> Self {
         //Load config
         let config_dir = CONFIG_DIR.as_str();
-        let path = format!("{}/task_master.json", config_dir);
-        let json = std::fs::read_to_string(path.as_str()).unwrap_or_else(|err| {
-            panic!("Error {:?}. Path not found {}", err, path);
+        // let path = format!("{}/task_master.json", config_dir);
+        let path = Path::new(config_dir).join("task_master.json");
+        let json = std::fs::read_to_string(&path).unwrap_or_else(|err| {
+            panic!("Error {:?}. Path not found {:?}", err, path);
         });
         let task_config: TaskConfig = serde_json::from_str(&*json).unwrap();
         let verification = VerificationJobGenerator {
