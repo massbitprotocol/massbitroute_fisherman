@@ -97,7 +97,7 @@ impl WorkerHealthService {
 
         for (_id, status) in self.workers_status.iter_mut() {
             let now = get_current_time();
-            if now - status.update_time > CONFIG.update_worker_list_interval
+            if now - status.update_time > CONFIG.update_worker_list_interval * 1000
                 && status.health == WorkerHealth::Good
             {
                 let res = Self::ping_worker(&*status.worker.worker_info.url).await;
@@ -124,10 +124,10 @@ impl WorkerHealthService {
             .danger_accept_invalid_certs(true)
             .timeout(Duration::from_millis(4000))
             .build()?;
-        let resp = client.get(url).send().await?.text().await?;
+        let resp = client.get(&url).send().await?.text().await?;
         let resp: SimpleResponse = serde_json::from_str(&resp)?;
         let expect_resp = SimpleResponse { success: true };
-        debug!("ping worker rtt: {:#?}", resp);
+        debug!("ping {} worker rtt: {:?}", url, resp);
         if resp != expect_resp {
             return Err(anyhow!("Worker wrong response: {:?}", expect_resp));
         }

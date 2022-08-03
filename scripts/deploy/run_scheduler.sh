@@ -3,7 +3,7 @@
 export CONFIG_DIR=/opt/fisherman/configs/tasks
 export DOMAIN=massbitroute.net
 export IS_VERIFY_REPORT=true
-export IS_REGULAR_REPORT=false
+export IS_REGULAR_REPORT=true
 export PATH_GATEWAYS_LIST=mbr/gateway/list/verify
 export PATH_NODES_LIST=mbr/node/list/verify
 export PATH_PORTAL_PROVIDER_REPORT=mbr/benchmark

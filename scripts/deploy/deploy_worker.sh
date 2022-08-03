@@ -15,10 +15,10 @@ do
   ssh "worker-demo-$ZN" "mkdir fisherman"
 
   echo "Update bin file in zone $ZN"
-  strip ../target/release/fisherman
-  rsync -avz ../target/release/fisherman "worker-demo-$ZN:~/fisherman/fisherman"
+  strip ../../target/release/fisherman
+  rsync -avz ../../target/release/fisherman "worker-demo-$ZN:~/fisherman/fisherman"
   rsync -avz ./run_worker.sh "worker-demo-$ZN:~/fisherman/run.sh"
-  rsync -avz ./benchmark "worker-demo-$ZN:~/fisherman/"
+  rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
 
   echo "Restart tmux session in zone $ZN"
   ssh "worker-demo-$ZN" < script_restart_service_worker.sh
