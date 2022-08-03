@@ -1,11 +1,14 @@
 use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
+use std::path::Path;
 
+use crate::CONFIG_WEBSOCKET_DIR;
 use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::JobResult;
 use common::tasks::websocket_request::JobWebsocketConfig;
+use common::tasks::LoadConfigs;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -16,10 +19,13 @@ pub struct WebsocketJudgment {
 
 impl WebsocketJudgment {
     pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
-        let job_configs = JobWebsocketConfig::read_config(
-            format!("{}/websocket.json", config_dir).as_str(),
-            phase,
-        );
+        // let job_configs = JobWebsocketConfig::read_config(
+        //     format!("{}/websocket.json", config_dir).as_str(),
+        //     phase,
+        // );
+        //let path = format!("{}/websocket", config_dir);
+        let path = Path::new(config_dir).join(&*CONFIG_WEBSOCKET_DIR);
+        let job_configs = JobWebsocketConfig::read_configs(&path, phase);
         WebsocketJudgment {
             _job_configs: job_configs,
             _result_service: result_service,

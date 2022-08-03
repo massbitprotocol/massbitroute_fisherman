@@ -38,6 +38,9 @@ lazy_static! {
         env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
     pub static ref CONFIG_DIR: String =
         env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/tasks"));
+    pub static ref CONFIG_HTTP_REQUEST_DIR: String = String::from("http_request");
+    pub static ref CONFIG_BENCHMARK_DIR: String = String::from("benchmark");
+    pub static ref CONFIG_WEBSOCKET_DIR: String = String::from("websocket");
     pub static ref PORTAL_AUTHORIZATION: String =
         env::var("PORTAL_AUTHORIZATION").expect("There is no env var PORTAL_AUTHORIZATION");
 

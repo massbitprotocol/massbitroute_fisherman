@@ -8,15 +8,17 @@ use common::component::ComponentType;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::JobResult;
 
+use crate::CONFIG_HTTP_REQUEST_DIR;
 use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
-use common::tasks::TaskConfigTrait;
+use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::{BlockChainType, ChainId, NetworkType, Timestamp};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Hash, Default)]
@@ -169,8 +171,10 @@ pub struct HttpLatestBlockJudgment {
 
 impl HttpLatestBlockJudgment {
     pub fn new(config_dir: &str, phase: &JobRole, result_service: Arc<JobResultService>) -> Self {
-        let path = format!("{}/http_request.json", config_dir);
-        let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
+        //let path = format!("{}/http_request", config_dir);
+        let path = Path::new(config_dir).join(&*CONFIG_HTTP_REQUEST_DIR);
+        // let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
+        let task_configs = HttpRequestJobConfig::read_configs(&path, phase);
         let comparators = get_comparators();
         HttpLatestBlockJudgment {
             task_configs,

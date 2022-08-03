@@ -2,7 +2,7 @@
  * Check from any gateway can connection to any node
  */
 
-use crate::models::job_result_cache::{TaskKey};
+use crate::models::job_result_cache::TaskKey;
 use crate::models::jobs::JobAssignmentBuffer;
 
 use crate::service::judgment::JudgmentsResult;
@@ -15,11 +15,13 @@ use common::tasks::{LoadConfigs, TaskConfigTrait, TemplateRender};
 use common::workers::MatchedWorkers;
 use common::{PlanId, Timestamp, DOMAIN};
 
+use crate::CONFIG_BENCHMARK_DIR;
 use handlebars::Handlebars;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::{HashMap};
+use std::collections::HashMap;
+use std::path::Path;
 
 #[derive(Clone, Debug, Default)]
 pub struct BenchmarkGenerator {
@@ -139,8 +141,9 @@ impl BenchmarkGenerator {
         String::from("Benchmark")
     }
     pub fn new(config_dir: &str, role: &JobRole) -> Self {
-        let path = format!("{}/benchmark", config_dir);
-        let configs: Vec<BenchmarkConfig> = BenchmarkConfig::read_configs(path.as_str(), role);
+        // let path = format!("{}/benchmark", config_dir);
+        let path = Path::new(config_dir).join(&*CONFIG_BENCHMARK_DIR);
+        let configs: Vec<BenchmarkConfig> = BenchmarkConfig::read_configs(&path, role);
         log::debug!("Benchmark config {:?}", &configs);
         BenchmarkGenerator {
             configs,

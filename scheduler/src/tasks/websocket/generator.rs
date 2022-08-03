@@ -2,7 +2,7 @@ use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use crate::CONFIG;
+use crate::{CONFIG, CONFIG_BENCHMARK_DIR, CONFIG_HTTP_REQUEST_DIR};
 use anyhow::{anyhow, Error};
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
@@ -16,6 +16,7 @@ use handlebars::Handlebars;
 use log::{debug, trace};
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::path::Path;
 
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
@@ -34,8 +35,9 @@ impl WebsocketGenerator {
     pub fn new(config_dir: &str, phase: &JobRole) -> Self {
         // let path = format!("{}/websocket.json", config_dir);
         // let task_configs = JobWebsocketConfig::read_config(path.as_str(), phase);
-        let path = format!("{}/websocket", config_dir);
-        let task_configs = JobWebsocketConfig::read_configs(path.as_str(), phase);
+        //let path = format!("{}/websocket", config_dir);
+        let path = Path::new(config_dir).join(&*CONFIG_BENCHMARK_DIR);
+        let task_configs = JobWebsocketConfig::read_configs(&path, phase);
         WebsocketGenerator {
             //root_config: configs,
             task_configs,
