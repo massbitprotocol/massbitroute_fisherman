@@ -24,3 +24,5 @@ logs/
 /scripts/test/monitor/
 /scripts/test/gatewaylist.csv
 /scripts/test/nodelist.csv
+/scripts/test/docker-gateway/docker-compose.yaml
+/scripts/test/docker-node/docker-compose.yaml

@@ -2,7 +2,7 @@ use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use crate::{CONFIG, CONFIG_BENCHMARK_DIR, CONFIG_HTTP_REQUEST_DIR};
+use crate::{CONFIG, CONFIG_BENCHMARK_DIR};
 use anyhow::{anyhow, Error};
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};

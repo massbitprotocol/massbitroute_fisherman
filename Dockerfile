@@ -17,11 +17,13 @@ WORKDIR /usr/src
 RUN rustup target add x86_64-unknown-linux-musl
 
 #COPY common  /usr/src/common
-#COPY wrap_wrk  /usr/src/wrap_wrk
 #COPY entity /usr/src/entity
+#COPY fisherman /usr/src/fisherman
+#COPY logger /usr/src/logger/
 #COPY migration /usr/src/migration
-#COPY test_util /usr/src/test_util/
-#COPY logger /usr/src/test_util/
+#COPY scheduler /usr/src/scheduler
+#COPY scripts /usr/src/scripts
+#COPY wrap_wrk  /usr/src/wrap_wrk
 COPY . /usr/src/
 
 # Set the working directory
