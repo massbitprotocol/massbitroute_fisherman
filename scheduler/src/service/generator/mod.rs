@@ -156,10 +156,11 @@ pub mod tests {
     use crate::persistence::PlanModel;
 
     use common::component::ComponentType;
+    use itertools::Itertools;
     use log::info;
     use test_util::helper::{
-        load_env, mock_component_info, mock_db_connection, mock_worker, ChainTypeForTest,
-        CountItems,
+        init_logging, load_env, mock_component_info, mock_db_connection, mock_worker,
+        ChainTypeForTest, CountItems,
     };
     use tokio::task;
     use JobGeneratorTrait;
@@ -169,7 +170,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_main_generator_verification_node() -> Result<(), Error> {
         load_env();
-        //init_logging();
+        init_logging();
         let db_conn = mock_db_connection();
 
         let arc_conn = Arc::new(db_conn);
@@ -229,23 +230,13 @@ pub mod tests {
         // Todo: get config for checking
         let expect_job_names: CountItems<String> = CountItems::new(vec![
             "RoundTripTime".to_string(),
-            "RoundTripTime".to_string(),
-            "LatestBlock".to_string(),
             "LatestBlock".to_string(),
             "VerifyEthNode".to_string(),
-            "VerifyEthNode".to_string(),
-            "VerifyEthNode".to_string(),
-            "VerifyEthNode".to_string(),
-            "VerifyEthNode".to_string(),
-            "VerifyDotNode".to_string(),
-            "VerifyDotNode".to_string(),
-            "VerifyDotNode".to_string(),
-            "VerifyDotNode".to_string(),
             "VerifyDotNode".to_string(),
             "EthWebsocket".to_string(),
             "DotWebsocket".to_string(),
         ]);
-        let expect_len = expect_job_names.sum_len();
+        let expect_len = expect_job_names.len();
         let mut job_names = CountItems::new(vec![]);
         loop {
             if now.elapsed().as_secs() > TEST_TIMEOUT {
@@ -261,16 +252,19 @@ pub mod tests {
                 }
                 println!(
                     "job_names.sum_len: {}, expect_len: {}",
-                    job_names.sum_len(),
+                    job_names.len(),
                     expect_len
                 );
-                if job_names.sum_len() >= expect_len {
+                if job_names.len() >= expect_len {
                     break;
                 }
             }
             sleep(Duration::from_secs(1)).await;
         }
-        assert_eq!(expect_job_names, job_names);
+        println!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
+        for key in expect_job_names.keys() {
+            assert!(job_names.keys().contains(key));
+        }
 
         Ok(())
     }
@@ -338,42 +332,39 @@ pub mod tests {
         // Todo: get config for checking
         let expect_job_names: CountItems<String> = CountItems::new(vec![
             "RoundTripTime".to_string(),
-            "RoundTripTime".to_string(),
             "EthWebsocket".to_string(),
             "DotWebsocket".to_string(),
             "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
-            "VerifyGateway".to_string(),
         ]);
-        let expect_len = expect_job_names.sum_len();
+        let expect_len = expect_job_names.len();
         let mut job_names = CountItems::new(vec![]);
         loop {
             if now.elapsed().as_secs() > TEST_TIMEOUT {
                 return Err(anyhow!("Test Timeout"));
             }
-
             {
+                println!("lock assigment_buffer");
                 let lock = assignment.lock().await;
+                println!("assigment_buffer: {:#?}", lock);
 
                 for job_assign in lock.list_assignments.iter() {
                     job_names.add_item(job_assign.job.job_name.to_string());
                 }
-                if job_names.sum_len() >= expect_len {
-                    println!("assigment_buffer: {:#?}", lock);
+                println!(
+                    "job_names.sum_len: {}, expect_len: {}",
+                    job_names.len(),
+                    expect_len
+                );
+                if job_names.len() >= expect_len {
                     break;
                 }
             }
             sleep(Duration::from_secs(1)).await;
         }
-        assert_eq!(expect_job_names, job_names);
-
+        println!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
+        for key in expect_job_names.keys() {
+            assert!(job_names.keys().contains(key));
+        }
         Ok(())
     }
 

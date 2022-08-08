@@ -3,7 +3,7 @@
     "name": "LatestBlock",
     "phases": ["verification"],
     "blockchains": ["eth"],
-    "repeat_number": 1,
+    "repeat_number": 0,
     "interval": 1000,
     "type": "rpc",
     "http_method": "post",

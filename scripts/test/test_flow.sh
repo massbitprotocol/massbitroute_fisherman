@@ -7,7 +7,16 @@ dataSourceWs="ws:\/\/34.81.232.186:8546"
 nodePrefix="$(echo $RANDOM | md5sum | head -c 5)"
 MEMONIC="bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice"
 
-#docker-compose down
+docker-compose down
+(
+  cd docker-node || exit
+  docker-compose down
+)
+(
+  cd docker-gateway || exit
+  docker-compose down
+)
+
 
 #-------------------------------------------
 # Docker build
@@ -96,7 +105,6 @@ cat docker-gateway/docker-compose.yaml.template | sed "s/\[\[GATEWAY_ID\]\]/$GAT
 # Create docker node
 #-------------------------------------------
 cd docker-node
-docker-compose down
 docker-compose up -d
 
 #-------------------------------------------
@@ -119,27 +127,30 @@ echo "Checking node approved status: Passed"
 # Test staking for NODES
 #-------------------------------------------
 
-node_staking_response=$(curl -s --location --request POST 'http://staking.massbitroute.net/massbit/staking-provider' \
-  --header 'Content-Type: application/json' --data-raw "{
-    \"memonic\": \"$MEMONIC\",
-    \"providerId\": \"$NODE_ID\",
-    \"providerType\": \"Node\",
-    \"blockchain\": \"$blockchain\",
-    \"network\": \"mainnet\",
-    \"amount\": \"100\"
-}" | jq -r ". | .status")
-if [[ "$node_staking_response" != "success" ]]; then
-  echo "Node staking: Failed"
-  exit 1
-fi
-echo "Node staking: Passed"
+while [[ "$node_status" != "staked" ]]; do
+  node_staking_response=$(curl -s --location --request POST 'http://staking.massbitroute.net/massbit/staking-provider' \
+    --header 'Content-Type: application/json' --data-raw "{
+      \"memonic\": \"$MEMONIC\",
+      \"providerId\": \"$NODE_ID\",
+      \"providerType\": \"Node\",
+      \"blockchain\": \"$blockchain\",
+      \"network\": \"mainnet\",
+      \"amount\": \"100\"
+  }" | jq -r ". | .status")
+  if [[ "$node_staking_response" != "success" ]]; then
+    echo "Node staking: Failed"
+  fi
+  sleep 5
+  node_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/node/$NODE_ID" \
+    --header "Authorization: Bearer $bearer" | jq -r ". | .status")
+done
+echo "Node staking status: Passed"
 
 ##-------------------------------------------
 ## Create docker gateway
 ##-------------------------------------------
 
 cd ../docker-gateway
-docker-compose down
 docker-compose up -d
 
 ##-------------------------------------------
@@ -165,30 +176,36 @@ echo "Checking node verified status: Passed"
 # Test staking for GW
 #-------------------------------------------
 # stake gateway
-echo "Wait a minute for staking node..."
-gateway_staking_response=$(curl -s --location --request POST 'http://staking.massbitroute.net/massbit/staking-provider' \
-  --header 'Content-Type: application/json' --data-raw "{
-    \"memonic\": \"$MEMONIC\",
-    \"providerId\": \"$GATEWAY_ID\",
-    \"providerType\": \"Gateway\",
-    \"blockchain\": \"$blockchain\",
-    \"network\": \"mainnet\",
-    \"amount\": \"100\"
-}" | jq -r ". | .status")
-if [[ "$gateway_staking_response" != "success" ]]; then
-  echo "Gateway staking status: Failed "
-  exit 1
-fi
+while [[ "$gateway_status" != "staked" ]]; do
+  echo "Wait a minute for staking node..."
+  gateway_staking_response=$(curl -s --location --request POST 'http://staking.massbitroute.net/massbit/staking-provider' \
+    --header 'Content-Type: application/json' --data-raw "{
+      \"memonic\": \"$MEMONIC\",
+      \"providerId\": \"$GATEWAY_ID\",
+      \"providerType\": \"Gateway\",
+      \"blockchain\": \"$blockchain\",
+      \"network\": \"mainnet\",
+      \"amount\": \"100\"
+  }" | jq -r ". | .status")
+  if [[ "$gateway_staking_response" != "success" ]]; then
+    echo "Gateway staking status: Failed "
+  fi
+  sleep 5
+  gateway_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/gateway/$GATEWAY_ID" \
+    --header "Authorization: Bearer $bearer" | jq -r ". | .status")
+done
 echo "Gateway staking status: Passed"
+
+
 
 
 #-------------------------------------------
 # Turn off NODES/GW
 #-------------------------------------------
-echo "Turning off Node"
+echo "Turning off gateway"
 docker-compose down
-cd ../docker-gateway
-echo "Turning off Gateway"
+cd ../docker-node
+echo "Turning off node"
 docker-compose down
 
 while [[ "$node_status" != "investigate" ]]; do

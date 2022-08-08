@@ -2,7 +2,7 @@ use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use crate::{CONFIG, CONFIG_BENCHMARK_DIR};
+use crate::{CONFIG, CONFIG_BENCHMARK_DIR, CONFIG_WEBSOCKET_DIR};
 use anyhow::{anyhow, Error};
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
@@ -36,7 +36,7 @@ impl WebsocketGenerator {
         // let path = format!("{}/websocket.json", config_dir);
         // let task_configs = JobWebsocketConfig::read_config(path.as_str(), phase);
         //let path = format!("{}/websocket", config_dir);
-        let path = Path::new(config_dir).join(&*CONFIG_BENCHMARK_DIR);
+        let path = Path::new(config_dir).join(&*CONFIG_WEBSOCKET_DIR);
         let task_configs = JobWebsocketConfig::read_configs(&path, phase);
         WebsocketGenerator {
             //root_config: configs,
