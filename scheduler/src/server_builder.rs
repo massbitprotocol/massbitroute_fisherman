@@ -2,6 +2,7 @@ use crate::server_config::AccessControl;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
+use anyhow::{anyhow, Error};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -64,6 +65,13 @@ impl SchedulerServer {
     }
     pub async fn serve(&self) {
         let allow_headers: Vec<String> = self.access_control.get_access_control_allow_headers();
+        // let context_extractor = warp::any().and(
+        //     warp::header::<String>("authorization")
+        //         .map(|token: String| -> Result<(), Error> { Ok(()) })
+        //         .or(warp::any().map(|| Err(anyhow!("No authorization"))))
+        //         .unify(),
+        // );
+
         info!("allow_headers: {:?}", allow_headers);
         let cors = warp::cors()
             .allow_any_origin()
@@ -333,18 +341,14 @@ mod tests {
     use super::*;
     use crate::models::providers::ProviderStorage;
     use crate::models::workers::WorkerInfoStorage;
-    use crate::persistence::services::{
-        JobResultService, JobService, PlanService, WorkerService,
-    };
+    use crate::persistence::services::{JobResultService, JobService, PlanService, WorkerService};
     use crate::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
-    
+
     use anyhow::Error;
     use common::logger::init_logger;
     use common::task_spawn;
     use reqwest::Client;
-    use sea_orm::{
-        entity::prelude::*, DatabaseBackend, MockDatabase,
-    };
+    use sea_orm::{entity::prelude::*, DatabaseBackend, MockDatabase};
     use std::env;
 
     use crate::models::job_result_cache::JobResultCache;
@@ -358,7 +362,7 @@ mod tests {
     #[tokio::test]
     async fn test_api_ping_scheduler() -> Result<(), Error> {
         load_env();
-        let _res = init_logger(&String::from("Testing-Scheduler"));
+        //let _res = init_logger(&String::from("Testing-Scheduler"));
         let local_port: &str = "3032";
         let socket_addr = format!("0.0.0.0:{}", local_port);
         let db_conn = MockDatabase::new(DatabaseBackend::Postgres);
@@ -456,7 +460,7 @@ mod tests {
             "worker_id": "worker_id",
             "report_callback": callback_url
         });
-
+        println!("{} == {}", resp, expect_resp);
         assert_eq!(resp, expect_resp);
 
         Ok(())

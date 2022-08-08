@@ -16,6 +16,7 @@ use sea_orm::{DatabaseBackend, DatabaseConnection, MockDatabase, MockExecResult}
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::ops::{Deref, DerefMut};
 
 pub fn load_env() {
     dotenv::from_filename(".env_test").ok();
@@ -50,6 +51,19 @@ pub struct CountItems<T: Hash + Eq> {
     inner: HashMap<T, u64>,
 }
 
+impl<T: Hash + Eq> Deref for CountItems<T> {
+    type Target = HashMap<T, u64>;
+
+    fn deref(&self) -> &HashMap<T, u64> {
+        &self.inner
+    }
+}
+impl<T: Hash + Eq> DerefMut for CountItems<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 impl<T: Hash + Eq + Debug> CountItems<T> {
     pub fn add_item(&mut self, item: T) {
         let entry = self.inner.entry(item).or_insert(0);
@@ -69,6 +83,12 @@ impl<T: Hash + Eq + Debug> CountItems<T> {
     }
     pub fn sum_len(&self) -> u64 {
         self.inner.values().into_iter().fold(0, |sum, &x| sum + x)
+    }
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 }
 

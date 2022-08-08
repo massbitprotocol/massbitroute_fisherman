@@ -112,9 +112,8 @@ async fn try_register() -> Result<WorkerRegisterResult, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    
-    use httpmock::prelude::{POST};
+
+    use httpmock::prelude::POST;
     use httpmock::MockServer;
     use std::env;
 
@@ -140,7 +139,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_try_register_success() -> Result<(), Error> {
-        let _res = init_logger(&String::from("Fisherman-worker"));
+        // let _res = init_logger(&String::from("Fisherman-worker"));
         let portal = run_mock_portal_server();
         let url = format!("http://{}", portal.address());
         env::set_var("SCHEDULER_ENDPOINT", url);

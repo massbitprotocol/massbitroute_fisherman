@@ -231,7 +231,7 @@ mod tests {
     #[tokio::test]
     async fn test_api_ping_and_job_handler_fisherman() -> Result<(), Error> {
         load_env();
-        let _res = init_logger(&String::from("Testing-Fisherman"));
+        // let _res = init_logger(&String::from("Testing-Fisherman"));
         let local_port: &str = "4042";
         let socket_addr = format!("0.0.0.0:{}", local_port);
 
