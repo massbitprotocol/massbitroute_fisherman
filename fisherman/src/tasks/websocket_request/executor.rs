@@ -317,7 +317,8 @@ mod tests {
             }
         }
     }
-
+    // Ignore because the node is turnoff
+    #[ignore]
     #[tokio::test]
     async fn test_node_websocket() {
         let executor = new_executor();
@@ -332,18 +333,6 @@ mod tests {
                 url: "wss://34.69.64.125/".to_string(),
                 id: "0dc806f2-59b0-4300-b3e5-1e18b3095e10".to_string(),
                 api_key: "ZCY7yfAnkt1R7gL_x9kCKw".to_string(),
-                provider_type: "node".to_string(),
-            },
-            // ProviderInfo {
-            //     url: "wss://20.213.239.121/".to_string(),
-            //     id: "253eb13e-78d2-45a1-83b9-8175543858f9".to_string(),
-            //     api_key: "UUWHlJlbU7cPNDnNxRkX5Q".to_string(),
-            //     provider_type: "node".to_string(),
-            // },
-            ProviderInfo {
-                url: "ws://34.130.199.16/".to_string(),
-                id: "22643ec7-f104-455b-a09c-d98ca91c9939".to_string(),
-                api_key: "Z160PQek6mArXXGHcM7gVQ".to_string(),
                 provider_type: "node".to_string(),
             },
         ];

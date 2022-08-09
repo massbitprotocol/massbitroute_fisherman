@@ -213,13 +213,13 @@ impl VerificationJobGenerator {
                 .get_provider_judg_result(&provider_plan.provider.id, &provider_plan.plan.plan_id)
                 .await;
             //Check if some dependent task' results is missing
-            if !task.has_all_dependent_results(&provider_plan.plan.plan_id, &map_results) {
-                waiting_task.add_task(task.clone());
-                log::debug!(
-                    "Some SubTask {} is not ready for job generation",
-                    task.get_type()
-                );
-            }
+            // if !task.has_all_dependent_results(&provider_plan.plan.plan_id, &map_results) {
+            //     waiting_task.add_task(task.clone());
+            //     log::debug!(
+            //         "Some SubTask {} is not ready for job generation",
+            //         task.get_type()
+            //     );
+            // }
             let sub_task_results = map_results
                 .iter()
                 .map(|(key, value)| (key.task_name.clone(), value.clone()))

@@ -6,13 +6,18 @@ dataSource="http:\/\/34.81.232.186:8545"
 dataSourceWs="ws:\/\/34.81.232.186:8546"
 nodePrefix="$(echo $RANDOM | md5sum | head -c 5)"
 MEMONIC="bottom drive obey lake curtain smoke basket hold race lonely fit walk//Alice"
-echo $date
+
 docker-compose down
-cd docker-node
-docker-compose down
-cd ../docker-gateway
-docker-compose down
+(
+  cd docker-node || exit
+  docker-compose down
+)
+(
+  cd docker-gateway || exit
+  docker-compose down
+)
 cd ../
+
 #-------------------------------------------
 # Docker build
 #-------------------------------------------
@@ -150,7 +155,7 @@ while [[ "$node_status" != "staked" ]]; do
   sleep 10
 done
 now=$(date)
-echo "Node staking: Passed at $now"
+echo "Node staked: Passed at $now"
 
 ##-------------------------------------------
 ## Create docker gateway
@@ -214,16 +219,15 @@ while [[ "$gateway_status" != "staked" ]]; do
   sleep 10
 done
 now=$(date)
-echo "Gateway staking status: Passed at $now"
-
+echo "Gateway staked: Passed at $now"
 
 #-------------------------------------------
 # Turn off NODES/GW
 #-------------------------------------------
-echo "Turning off Gateway"
+echo "Turning off gateway"
 docker-compose down
 cd ../docker-node
-echo "Turning off Node"
+echo "Turning off node"
 docker-compose down
 
 while [[ "$node_status" != "investigate" ]]; do
