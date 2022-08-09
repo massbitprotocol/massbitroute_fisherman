@@ -15,12 +15,13 @@ use crate::service::{ProcessorService, WebService};
 use common::component::ComponentInfo;
 use common::jobs::JobResult;
 use common::task_spawn::spawn;
-use warp::{http::StatusCode, Filter, Rejection, Reply};
+use warp::{http::StatusCode, reject, Filter, Rejection, Reply};
 
+use crate::handler::{handle_rejection, handle_route_reports, UnAuthorization};
 use crate::state::{ProcessorState, SchedulerState};
+use crate::SCHEDULER_AUTHORIZATION;
 use common::workers::WorkerInfo;
 
-static PROCESS_THREAD_COUNT: AtomicUsize = AtomicUsize::new(0);
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
 
 #[derive(Default)]
@@ -86,23 +87,12 @@ impl SchedulerServer {
                 Method::HEAD,
             ]);
         info!("cors: {:?}", cors);
+
         let router = self
             .create_ping()
             .with(&cors)
             .or(self
                 .create_route_worker_register(
-                    self.scheduler_service.clone(),
-                    self.scheduler_state.clone(),
-                )
-                .with(&cors))
-            .or(self
-                .create_route_worker_pause(
-                    self.scheduler_service.clone(),
-                    self.scheduler_state.clone(),
-                )
-                .with(&cors))
-            .or(self
-                .create_route_worker_resume(
                     self.scheduler_service.clone(),
                     self.scheduler_state.clone(),
                 )
@@ -117,26 +107,44 @@ impl SchedulerServer {
             .or(self
                 .create_route_reports(self.processor_service.clone(), self.processor_state.clone())
                 .with(&cors))
+            // .or(self
+            //     .create_route_worker_pause(
+            //         self.scheduler_service.clone(),
+            //         self.scheduler_state.clone(),
+            //     )
+            //     .with(&cors))
+            // .or(self
+            //     .create_route_worker_resume(
+            //         self.scheduler_service.clone(),
+            //         self.scheduler_state.clone(),
+            //     )
+            //     .with(&cors))
             .recover(handle_rejection);
+
+        // Authorize
+        let default_auth = warp::any().map(|| {
+            // something default
+        });
+
+        let auth = warp::header("authorization")
+            .map(|token: String| {
+                // something with token
+            })
+            .or(default_auth)
+            .unify();
+
         let socket_addr: SocketAddr = self.entry_point.parse().unwrap();
 
         warp::serve(router).run(socket_addr).await;
     }
     /// Ping API
-    fn create_ping(
-        &self,
-    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path!("ping")
-            .and(warp::get())
-            .and_then(move || async move {
-                info!("Receive ping request");
-                Self::simple_response(true).await
-            })
+    fn create_ping(&self) -> impl Filter<Extract = impl warp::Reply, Error = Rejection> + Clone {
+        warp::path!("ping").and(warp::get()).map(move || {
+            info!("Receive ping request");
+            Ok(warp::reply::json(&SimpleResponse { success: true }))
+        })
     }
-    pub(crate) async fn simple_response(success: bool) -> Result<impl Reply, Rejection> {
-        let res = SimpleResponse { success };
-        Ok(warp::reply::json(&res))
-    }
+
     fn create_route_worker_register(
         &self,
         service: Arc<WebService>,
@@ -146,14 +154,20 @@ impl SchedulerServer {
             .and(SchedulerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |worker_info: WorkerInfo| {
-                info!("#### Received request body {:?} ####", &worker_info);
+            .and(warp::header::<String>("authorization"))
+            .and_then(move |worker_info: WorkerInfo, authorization: String| {
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move {
-                    clone_service
-                        .register_worker(worker_info, clone_state)
-                        .await
+                    if authorization == *SCHEDULER_AUTHORIZATION {
+                        info!("#### Received request body {:?} ####", &worker_info);
+
+                        clone_service
+                            .register_worker(worker_info, clone_state)
+                            .await
+                    } else {
+                        Err(warp::reject::custom(UnAuthorization))
+                    }
                 }
             })
     }
@@ -189,22 +203,7 @@ impl SchedulerServer {
                 async move { clone_service.resume_worker(worker_info, clone_state).await }
             })
     }
-    // fn create_route_worker_stop(
-    //     &self,
-    //     service: Arc<WebService>,
-    //     state: Arc<Mutex<SchedulerState>>,
-    // ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    //     warp::path!("worker" / "stop")
-    //         .and(SchedulerServer::log_headers())
-    //         .and(warp::post())
-    //         .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-    //         .and_then(move |worker_info: WorkerInfo| {
-    //             info!("#### Received request body {:?} ####", &worker_info);
-    //             let clone_service = service.clone();
-    //             let clone_state = state.clone();
-    //             async move { clone_service.stop_worker(worker_info, clone_state).await }
-    //         })
-    // }
+
     fn create_route_node_verify(
         &self,
         service: Arc<WebService>,
@@ -214,11 +213,18 @@ impl SchedulerServer {
             .and(SchedulerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |node_info: ComponentInfo| {
-                info!("#### Received request body {:?} ####", &node_info);
+            .and(warp::header::<String>("authorization"))
+            .and_then(move |node_info: ComponentInfo, authorization: String| {
                 let clone_service = service.clone();
                 let clone_state = state.clone();
-                async move { clone_service.node_verify(node_info, clone_state).await }
+                async move {
+                    if authorization == *SCHEDULER_AUTHORIZATION {
+                        info!("#### Received request body {:?} ####", &node_info);
+                        Ok(clone_service.node_verify(node_info, clone_state).await)
+                    } else {
+                        Err(warp::reject::custom(UnAuthorization))
+                    }
+                }
             })
     }
     fn create_route_reports(
@@ -230,36 +236,12 @@ impl SchedulerServer {
             .and(SchedulerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and_then(move |job_results: Vec<JobResult>| {
-                info!(
-                    "#### Received {:?} reports request body  ####",
-                    &job_results.len()
-                );
-                let clone_service = service.clone();
-                let clone_state = state.clone();
-                spawn(async move {
-                    PROCESS_THREAD_COUNT.fetch_add(1, Ordering::Relaxed);
-                    let job_results_len = job_results.len();
-                    let now = Instant::now();
-                    let thread_id = PROCESS_THREAD_COUNT.load(Ordering::Relaxed);
-                    info!(
-                        "** Start {}th thread to process {} job results **",
-                        thread_id,
-                        job_results_len
-                    );
-                    let res = clone_service.process_report(job_results, clone_state).await;
-                    info!(
-                        "** Finished {}th thread to process {} job results in {:.2?} with res: {:?} **",
-                        thread_id,
-                        job_results_len,
-                        now.elapsed(),
-                        res
-                    );
-                    PROCESS_THREAD_COUNT.fetch_sub(1, Ordering::Relaxed);
-                });
-
-                async move { Self::simple_response(true).await }
+            .and(warp::header::<String>("authorization"))
+            .map(move |job_results: Vec<JobResult>, authorization: String| {
+                (service.clone(), state.clone(), job_results, authorization)
             })
+            .untuple_one()
+            .and_then(handle_route_reports)
     }
 
     fn log_headers() -> impl Filter<Extract = (), Error = Infallible> + Copy {
@@ -313,27 +295,6 @@ impl ServerBuilder {
             processor_state: self.processor_state.clone(),
         }
     }
-}
-
-async fn handle_rejection(err: Rejection) -> std::result::Result<impl Reply, Infallible> {
-    let (code, message) = if err.is_not_found() {
-        (StatusCode::NOT_FOUND, "Not Found".to_string())
-    } else if err.find::<warp::reject::PayloadTooLarge>().is_some() {
-        (StatusCode::BAD_REQUEST, "Payload too large".to_string())
-    } else if err.find::<warp::reject::MethodNotAllowed>().is_some() {
-        (
-            StatusCode::BAD_REQUEST,
-            format!("Authorization error, {:?}", err),
-        )
-    } else {
-        eprintln!("unhandled error: {:?}", err);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Internal Server Error".to_string(),
-        )
-    };
-
-    Ok(warp::reply::with_status(message, code))
 }
 
 #[cfg(test)]
@@ -469,125 +430,43 @@ mod tests {
     #[ignore]
     #[tokio::test]
     async fn test_api_report_and_verification() -> Result<(), Error> {
-        dotenv::from_filename(".env_test").ok();
-        //let _res = init_logger(&String::from("Testing-Scheduler"));
-        let local_port: &str = "3034";
-        let socket_addr = format!("0.0.0.0:{}", local_port);
-        // Mock DB
-        let db_conn = mock_db_connection();
-        let arc_conn = Arc::new(db_conn);
-        let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
-        let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
+        #![deny(warnings)]
 
-        let scheduler_service = SchedulerServiceBuilder::default().build();
-        let processor_service = ProcessorServiceBuilder::default().build();
-        let access_control = AccessControl::default();
-        let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
-        let provider_storage = Arc::new(ProviderStorage::default());
+        use std::convert::Infallible;
+        use std::str::FromStr;
+        use std::time::Duration;
+        use warp::Filter;
 
-        let scheduler_state = SchedulerState::new(
-            arc_conn.clone(),
-            plan_service.clone(),
-            worker_service,
-            worker_infos.clone(),
-            provider_storage.clone(),
-        );
+        #[tokio::main]
+        async fn main() {
+            // Match `/:Seconds`...
+            let routes = warp::path::param()
+                // and_then create a `Future` that will simply wait N seconds...
+                .and_then(sleepy);
 
-        info!("Init http service ");
-        let result_cache = Arc::new(JobResultCache::default());
-        let job_service = Arc::new(JobService::new(arc_conn.clone()));
-        let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
-        let processor_state = ProcessorState::new(
-            arc_conn.clone(),
-            result_cache.clone(),
-            plan_service.clone(),
-            job_service.clone(),
-            result_service.clone(),
-        );
-        let server = ServerBuilder::default()
-            .with_entry_point(&socket_addr)
-            .with_access_control(access_control)
-            .with_scheduler_state(scheduler_state)
-            .with_processor_state(processor_state)
-            .build(scheduler_service, processor_service);
-        task_spawn::spawn(async move {
-            info!("Start service");
-            server.serve().await;
-        });
-
-        // Test report
-        sleep(Duration::from_secs(1)).await;
-        let body = r###"
-[
-    {"plan_id":"regular-9dafe6e7-460f-4344-b5a7-eeb1d9a0574d","job_id":"b0b7cf69-2ecc-4282-8a95-488d7e3b04a9","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9dafe6e7-460f-4344-b5a7-eeb1d9a0574d","provider_type":"Gateway","phase":"Regular","result_detail":{"HttpRequest":{"job":{"job_id":"b0b7cf69-2ecc-4282-8a95-488d7e3b04a9","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"regular-9dafe6e7-460f-4344-b5a7-eeb1d9a0574d","component_id":"9dafe6e7-460f-4344-b5a7-eeb1d9a0574d","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.248.214/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.248.214/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":26,"detail":{"Body":"25085"},"http_code":200,"error_code":0,"message":"success"}}},"receive_timestamp":1657534340814,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Regular","result_detail":{"HttpRequest":{"job":{"job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":31,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Regular","result_detail":{"HttpRequest":{"job":{"job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":31,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Regular","result_detail":{"HttpRequest":{"job":{"job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":31,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Regular","result_detail":{"HttpRequest":{"job":{"job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":31,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Regular","result_detail":{"HttpRequest":{"job":{"job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":31,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Regular","result_detail":{"HttpRequest":{"job":{"job_id":"f11621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"regular-9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":31,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Verification","result_detail":{"HttpRequest":{"job":{"job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":5131,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Verification","result_detail":{"HttpRequest":{"job":{"job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":5131,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Verification","result_detail":{"HttpRequest":{"job":{"job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":5131,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Verification","result_detail":{"HttpRequest":{"job":{"job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":5131,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Verification","result_detail":{"HttpRequest":{"job":{"job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":5131,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}},
-    {"plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_name":"RoundTripTime","worker_id":"7c7da61c-aec7-45b1-9e32-7436d4721ce0","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","phase":"Verification","result_detail":{"HttpRequest":{"job":{"job_id":"aaa621b9-0f60-409a-81f5-77bdbacabcfc","job_type":"HttpRequest","job_name":"RoundTripTime","plan_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","component_type":"Gateway","priority":1,"expected_runtime":1657534340780,"parallelable":true,"timeout":3000,"component_url":"https://43.156.82.22/_rtt","repeat_number":999999999,"interval":5000,"header":{},"job_detail":{"HttpRequest":{"url":"https://43.156.82.22/_rtt","chain_info":{"chain":"eth","network":"mainnet"},"method":"get","headers":{},"body":"","response_type":"text","response_values":{}}},"phase":"Regular"},"response":{"request_timestamp":1657534340788,"response_duration":5131,"detail":{"Body":"5131598"},"http_code":0,"error_code":1,"message":"success"}}},"receive_timestamp":1657534340819,"chain_info":{"chain":"eth","network":"mainnet"}}
-]
-        "###;
-
-        let client = Client::new();
-        let url = format!("http://localhost:{}/report", local_port);
-        let resp = client.post(url).body(body).send().await;
-        info!("send resp: {:?}", resp);
-        let resp = resp?.text().await;
-        info!("text resp: {:?}", resp);
-        let resp = resp?;
-        info!("res: {:#?}", resp);
-
-        let resp: SimpleResponse = serde_json::from_str(&resp)?;
-
-        assert_eq!(resp, SimpleResponse { success: true });
-        let expect_output_line = r###"{"provider_task":{"provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","task_name":"RoundTripTime","task_type":"HttpRequest"},"result":"Failed"}"###;
-        let now = Instant::now();
-        loop {
-            assert!(now.elapsed().as_secs() < 10);
-            let data = fs::read_to_string("logs/report.txt")
-                .await
-                .expect("Unable to read file");
-
-            let line = data.lines().rev().next().unwrap_or_default();
-            if line == expect_output_line {
-                break;
-            }
-            info!("report.txt: {}", data);
-            sleep(Duration::from_secs(1)).await;
+            warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
         }
 
-        // Test verification
-        let body = r###"
-{
-    "appKey":"lSP1lFN9I_izEzRi_jBapA",
-    "blockchain":"eth",
-    "componentType":"Node",
-    "countryCode":"US",
-    "id":"058a6e94-8b65-46ad-ab52-240a7cb2c36a",
-    "ip":"34.101.146.31",
-    "name":"node-net-highcpu2-asia-southeast2-a-04",
-    "network":"mainnet",
-    "userId":"b363ddf4-42cf-4ccf-89c2-8c42c531ac99",
-    "zone":"AS"
-}
-        "###;
+        async fn sleepy(Seconds(seconds): Seconds) -> Result<impl warp::Reply, Infallible> {
+            tokio::time::sleep(Duration::from_secs(seconds)).await;
+            Ok(format!("I waited {} seconds!", seconds))
+        }
 
-        let client = Client::new();
-        let url = format!("http://localhost:{}/provider/verify", local_port);
-        let resp = client.post(url).body(body).send().await?.text().await?;
-        info!("res: {:#?}", resp);
+        /// A newtype to enforce our maximum allowed seconds.
+        struct Seconds(u64);
 
-        let resp: SimpleResponse = serde_json::from_str(&resp)?;
-
-        assert_eq!(resp, SimpleResponse { success: true });
-
+        impl FromStr for Seconds {
+            type Err = ();
+            fn from_str(src: &str) -> Result<Self, Self::Err> {
+                src.parse::<u64>().map_err(|_| ()).and_then(|num| {
+                    if num <= 5 {
+                        Ok(Seconds(num))
+                    } else {
+                        Err(())
+                    }
+                })
+            }
+        }
         Ok(())
     }
 }

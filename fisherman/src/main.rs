@@ -9,8 +9,8 @@ use fisherman::server_config::AccessControl;
 use fisherman::services::{JobExecution, JobResultReporter, WebServiceBuilder};
 use fisherman::state::WorkerState;
 use fisherman::{
-    ENVIRONMENT, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID, WORKER_IP,
-    WORKER_SERVICE_ENDPOINT, ZONE,
+    ENVIRONMENT, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID,
+    WORKER_IP, WORKER_SERVICE_ENDPOINT, ZONE,
 };
 use futures_util::future::join3;
 use log::{debug, info, warn};
@@ -25,7 +25,7 @@ use tokio::time::sleep;
 #[tokio::main]
 async fn main() {
     // Load env file
-    dotenv::dotenv().ok();
+    dotenv::from_filename(".env_fisherman").expect("Cannot load .env_fisherman");
     // Init logger
     let _res = init_logger(&String::from("Fisherman-worker"));
     // Create job queue
@@ -79,6 +79,7 @@ async fn try_register() -> Result<WorkerRegisterResult, Error> {
         let request_builder = clone_client
             .post(scheduler_url)
             .header("content-type", "application/json")
+            .header("authorization", &*SCHEDULER_AUTHORIZATION)
             .body(clone_body);
         debug!("Register worker request builder: {:?}", request_builder);
         let response = request_builder.send().await;

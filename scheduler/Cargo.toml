@@ -43,3 +43,4 @@ test_util = {path = "../test_util"}
 pretty_assertions = "0.7"
 httpmock = "0.6"
 itertools = "0.10"
+serde_derive = "1.0"
