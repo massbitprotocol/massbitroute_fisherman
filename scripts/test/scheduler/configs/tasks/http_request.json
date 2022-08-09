@@ -1,0 +1,222 @@
+{
+  "default": {
+    "name": "http_request",
+    "active": true,
+    "phases": ["verification", "regular"],
+    "url_template": "",
+    "http_method": "get",
+    "request_type": "http",
+    "provider_types": ["*"],
+    "blockchains": ["*"],
+    "networks": ["*"],
+    "request_timeout": 3000,
+    "headers": {},
+    "repeat_number": 0,
+    "interval": 1000,
+    "body": "",
+    "response" : {
+      "response_type" : "text"
+    },
+    "assignment": {
+      "broadcast": false,
+      "worker_number": 1,
+      "nearby_only": true,
+      "by_distance": false
+    },
+    "thresholds": {
+
+    }
+  },
+  "tasks": [
+    {
+      "name": "RoundTripTime",
+      "phases": ["verification"],
+      "repeat_number": 5,
+      "interval": 1000,
+      "url_template": "https://{{provider.ip}}/_rtt",
+      "assignment": {
+        "broadcast": true
+      },
+      "thresholds": {
+        "histogram_percentile": 95,
+        "response_duration": 500,
+        "success_percent": 50,
+        "number_for_decide": 5
+      }
+    },
+    {
+      "name": "RoundTripTime",
+      "phases": ["regular"],
+      "repeat_number": 1000000000,
+      "interval": 60000,
+      "url_template": "https://{{provider.ip}}/_rtt",
+      "request_timeout": 3000,
+      "thresholds": {
+        "histogram_percentile": 95,
+        "response_duration": 500,
+        "success_percent": 50,
+        "number_for_decide": 5
+      }
+    },
+    {
+      "name": "LatestBlock",
+      "phases": ["verification"],
+      "blockchains": ["eth"],
+      "repeat_number": 0,
+      "interval": 0,
+      "type": "rpc",
+      "http_method": "post",
+      "url_template": "https://{{provider.ip}}/",
+      "provider_types": ["node"],
+      "request_timeout": 5000,
+      "headers": {
+        "content-type":"application/json",
+        "X-Api-Key": "{{provider.appKey}}",
+        "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "eth_getBlockByNumber",
+        "params": ["latest",false],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "hash": ["result", "hash"],
+          "number": ["result", "number"],
+          "timestamp": ["result", "timestamp"]
+        }
+      },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
+      "thresholds": {
+        "late_duration":  1200
+      }
+    },
+    {
+      "name": "LatestBlock",
+      "active": true,
+      "phases": ["regular"],
+      "blockchains": ["eth"],
+      "repeat_number": 1000000000,
+      "interval": 300000,
+      "type": "rpc",
+      "http_method": "post",
+      "url_template": "https://{{provider.ip}}/",
+      "provider_types": ["node"],
+      "request_timeout": 5000,
+      "headers": {
+        "content-type":"application/json",
+        "X-Api-Key": "{{provider.appKey}}",
+        "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "eth_getBlockByNumber",
+        "params": ["latest",false],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "hash": ["result", "hash"],
+          "number": ["result", "number"],
+          "timestamp": ["result", "timestamp"]
+        }
+      },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
+      "thresholds" : {
+        "late_duration":  1200
+      }
+    },
+    {
+      "name": "LatestBlock",
+      "phases": ["verification"],
+      "blockchains": ["dot"],
+      "repeat_number": 0,
+      "interval": 0,
+      "type": "rpc",
+      "http_method": "post",
+      "url_template": "https://{{provider.ip}}/",
+      "provider_types": ["node"],
+      "request_timeout": 5000,
+      "headers": {
+        "content-type":"application/json",
+        "X-Api-Key": "{{provider.appKey}}",
+        "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "chain_getBlock",
+        "params": [],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "parent_hash": ["result", "block","header","parentHash"],
+          "number": ["result", "block","header","number"]
+        }
+      },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
+      "thresholds": {
+        "max_block_missing": 200
+      }
+    },
+    {
+      "name": "LatestBlock",
+      "active": true,
+      "phases": ["regular"],
+      "blockchains": ["dot"],
+      "repeat_number": 1000000000,
+      "interval": 300000,
+      "type": "rpc",
+      "http_method": "post",
+      "url_template": "https://{{provider.ip}}/",
+      "provider_types": ["node"],
+      "request_timeout": 5000,
+      "headers": {
+        "content-type":"application/json",
+        "X-Api-Key": "{{provider.appKey}}",
+        "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "method": "chain_getBlock",
+        "params": [],
+        "id": 1
+      },
+      "response" : {
+        "response_type" : "json",
+        "values" : {
+          "parent_hash": ["result", "block","header","parentHash"],
+          "number": ["result", "block","header","number"]
+        }
+      },
+      "assignment": {
+        "broadcast": false,
+        "worker_number": 1,
+        "nearby_only": false,
+        "by_distance": false
+      },
+      "thresholds": {
+        "max_block_missing": 200
+      }
+    }
+  ]
+}
