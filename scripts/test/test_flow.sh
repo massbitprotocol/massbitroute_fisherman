@@ -16,7 +16,6 @@ docker-compose down
   cd docker-gateway || exit
   docker-compose down
 )
-cd ../
 
 
 #-------------------------------------------
