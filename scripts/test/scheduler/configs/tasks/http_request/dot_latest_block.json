@@ -1,0 +1,81 @@
+[
+  {
+    "name": "LatestBlock",
+    "phases": ["verification"],
+    "blockchains": ["dot"],
+    "repeat_number": 0,
+    "interval": 1000,
+    "type": "rpc",
+    "http_method": "post",
+    "url_template": "https://{{provider.ip}}/",
+    "provider_types": ["node"],
+    "request_timeout": 5000,
+    "headers": {
+      "content-type":"application/json",
+      "X-Api-Key": "{{provider.appKey}}",
+      "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+    },
+    "body": {
+      "jsonrpc": "2.0",
+      "method": "chain_getBlock",
+      "params": [],
+      "id": 1
+    },
+    "response" : {
+      "response_type" : "json",
+      "values" : {
+        "parent_hash": ["result", "block","header","parentHash"],
+        "number": ["result", "block","header","number"]
+      }
+    },
+    "assignment": {
+      "broadcast": false,
+      "worker_number": 1,
+      "nearby_only": false,
+      "by_distance": false
+    },
+    "thresholds": {
+      "max_block_missing": 200
+    }
+  },
+  {
+    "name": "LatestBlock",
+    "active": true,
+    "phases": ["regular"],
+    "blockchains": ["dot"],
+    "repeat_number": 1000000000,
+    "interval": 300000,
+    "type": "rpc",
+    "http_method": "post",
+    "url_template": "https://{{provider.ip}}/",
+    "provider_types": ["node"],
+    "request_timeout": 5000,
+    "headers": {
+      "content-type":"application/json",
+      "X-Api-Key": "{{provider.appKey}}",
+      "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+    },
+    "body": {
+      "jsonrpc": "2.0",
+      "method": "chain_getBlock",
+      "params": [],
+      "id": 1
+    },
+    "response" : {
+      "response_type" : "json",
+      "values" : {
+        "parent_hash": ["result", "block","header","parentHash"],
+        "number": ["result", "block","header","number"]
+      }
+    },
+    "assignment": {
+      "broadcast": false,
+      "worker_number": 1,
+      "nearby_only": true,
+      "by_distance": false
+    },
+    "thresholds": {
+      "max_block_missing": 200
+    }
+  }
+]

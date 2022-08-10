@@ -1,0 +1,28 @@
+{
+  "name": "http_request",
+  "active": true,
+  "phases": ["verification", "regular"],
+  "url_template": "",
+  "http_method": "get",
+  "request_type": "http",
+  "provider_types": ["*"],
+  "blockchains": ["*"],
+  "networks": ["*"],
+  "request_timeout": 3000,
+  "headers": {},
+  "repeat_number": 0,
+  "interval": 30000,
+  "body": "",
+  "response" : {
+    "response_type" : "text"
+  },
+  "assignment": {
+    "broadcast": false,
+    "worker_number": 1,
+    "nearby_only": true,
+    "by_distance": false
+  },
+  "thresholds": {
+
+  }
+}

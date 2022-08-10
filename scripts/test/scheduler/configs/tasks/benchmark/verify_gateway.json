@@ -1,0 +1,9 @@
+{
+  "name": "VerifyGateway",
+  "provider_types": ["gateway"],
+  "url_template":"http://{{provider.ip}}/_test_20k",
+  "http_method": "GET",
+  "dependencies": {
+  },
+  "body": {}
+}
