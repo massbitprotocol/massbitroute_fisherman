@@ -9,7 +9,7 @@ use std::convert::Infallible;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use tokio::time::Instant;
-use warp::{http::StatusCode, reject, service, Filter, Rejection, Reply};
+use warp::{http::StatusCode, reject, Rejection, Reply};
 
 #[derive(Debug)]
 pub struct UnAuthorization;
