@@ -1,8 +1,8 @@
 use crate::persistence::ProviderMapModel;
-use common::component::{ComponentInfo};
+use common::component::ComponentInfo;
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{ComponentId, WorkerId};
-use log::{info};
+use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -40,11 +40,11 @@ impl WorkerInfoStorage {
     pub async fn remove_workers(&self, worker_ids: &[&WorkerId]) {
         let mut workers = self.workers.lock().await;
         info!(
-            "Worker list before remove: {:?}, worker_ids:{:?}",
+            "Workers list before remove: {:?}, worker_ids:{:?}",
             workers, worker_ids
         );
         workers.retain(|worker| !worker_ids.contains(&&worker.worker_info.worker_id));
-        info!("Worker list after remove: {:?}", workers);
+        info!("Workers list after remove: {:?}", workers);
     }
 
     pub async fn get_workers(&self) -> Vec<Arc<Worker>> {

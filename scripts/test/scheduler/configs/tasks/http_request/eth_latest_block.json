@@ -1,0 +1,83 @@
+[
+  {
+    "name": "LatestBlock",
+    "phases": ["verification"],
+    "blockchains": ["eth"],
+    "repeat_number": 1,
+    "interval": 1000,
+    "type": "rpc",
+    "http_method": "post",
+    "url_template": "https://{{provider.ip}}/",
+    "provider_types": ["node"],
+    "request_timeout": 5000,
+    "headers": {
+      "content-type":"application/json",
+      "X-Api-Key": "{{provider.appKey}}",
+      "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+    },
+    "body": {
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["latest",true],
+      "id": 1
+    },
+    "response" : {
+      "response_type" : "json",
+      "values" : {
+        "hash": ["result", "hash"],
+        "number": ["result", "number"],
+        "timestamp": ["result", "timestamp"]
+      }
+    },
+    "assignment": {
+      "broadcast": false,
+      "worker_number": 1,
+      "nearby_only": false,
+      "by_distance": false
+    },
+    "thresholds": {
+      "late_duration":  1200
+    }
+  },
+  {
+    "name": "LatestBlock",
+    "active": true,
+    "phases": ["regular"],
+    "blockchains": ["eth"],
+    "repeat_number": 1000000000,
+    "interval": 300000,
+    "type": "rpc",
+    "http_method": "post",
+    "url_template": "https://{{provider.ip}}/",
+    "provider_types": ["node"],
+    "request_timeout": 5000,
+    "headers": {
+      "content-type":"application/json",
+      "X-Api-Key": "{{provider.appKey}}",
+      "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+    },
+    "body": {
+      "jsonrpc": "2.0",
+      "method": "eth_getBlockByNumber",
+      "params": ["latest",true],
+      "id": 1
+    },
+    "response" : {
+      "response_type" : "json",
+      "values" : {
+        "hash": ["result", "hash"],
+        "number": ["result", "number"],
+        "timestamp": ["result", "timestamp"]
+      }
+    },
+    "assignment": {
+      "broadcast": false,
+      "worker_number": 1,
+      "nearby_only": true,
+      "by_distance": false
+    },
+    "thresholds" : {
+      "late_duration":  1200
+    }
+  }
+]

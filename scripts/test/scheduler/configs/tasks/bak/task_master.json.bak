@@ -1,0 +1,4 @@
+{
+  "regular": ["Ping", "LatestBlock","HttpRequest"],
+  "verification": ["Ping", "Benchmark", "LatestBlock","HttpRequest", "Websocket"]
+}

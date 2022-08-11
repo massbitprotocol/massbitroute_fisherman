@@ -3,7 +3,7 @@
 if [ -z "$1" ]
 then
     #ZONES=( 'as' 'eu' 'na' 'sa' 'oc' 'af' )
-    ZONES=( 'as-1' 'eu-2' 'na-2' 'oc-1' )
+    ZONES=( 'as' 'eu' 'na' 'oc' 'sa')
 else
     ZONES=( "$1" )
 fi

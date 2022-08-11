@@ -1,0 +1,11 @@
+{
+  "checking_component_status": "staked",
+  "check_ping_pong_interval": 2,
+  "check_logic_interval": 2,
+  "check_benchmark_interval": 3,
+  "update_provider_list_interval": 30,
+  "regular_plan_generate_interval": 10,
+  "generate_new_regular_timeout": 60,
+  "plan_expiry_time": 600,
+  "update_worker_list_interval": 30
+}
