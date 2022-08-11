@@ -42,7 +42,8 @@ lazy_static! {
     pub static ref DOMAIN: String = env::var("DOMAIN").expect("There is no env var DOMAIN");
     pub static ref BENCHMARK_WRK_PATH: String =
         env::var("BENCHMARK_WRK_PATH").expect("There is no env var BENCHMARK_WRK_PATH");
-
+    pub static ref SCHEDULER_AUTHORIZATION: String =
+        env::var("SCHEDULER_AUTHORIZATION").expect("There is no env var SCHEDULER_AUTHORIZATION");
 }
 
 // fn get_config() -> Config {

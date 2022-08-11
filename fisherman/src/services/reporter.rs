@@ -1,4 +1,4 @@
-use crate::JOB_RESULT_REPORTER_PERIOD;
+use crate::{JOB_RESULT_REPORTER_PERIOD, SCHEDULER_AUTHORIZATION};
 use anyhow::anyhow;
 use common::jobs::JobResult;
 use log::{debug, info, trace};
@@ -51,6 +51,7 @@ impl JobResultReporter {
         let result = client
             .post(call_back)
             .header("content-type", "application/json")
+            .header("authorization", &*SCHEDULER_AUTHORIZATION)
             .body(body)
             .send()
             .await;
