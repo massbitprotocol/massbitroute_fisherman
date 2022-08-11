@@ -148,6 +148,7 @@ mod tests {
         env::set_var("WORKER_ENDPOINT", "WORKER_ENDPOINT");
         env::set_var("WORKER_IP", "WORKER_IP");
         env::set_var("ZONE", "AS");
+        env::set_var("SCHEDULER_AUTHORIZATION", "DEFAULT_SCHEDULER_AUTHORIZATION");
         let res = try_register().await;
         println!("res: {:?}", res);
 
