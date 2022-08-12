@@ -285,6 +285,7 @@ mod tests {
                 "hash": ["result", "hash"]
             }
         }"#;
+    #[ignore]
     #[tokio::test]
     async fn test_eth_gateway_websocket() {
         let executor = new_executor();

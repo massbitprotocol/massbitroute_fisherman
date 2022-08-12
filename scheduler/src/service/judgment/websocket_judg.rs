@@ -57,7 +57,8 @@ impl ReportCheck for WebsocketJudgment {
         if let JobResultDetail::Websocket(_web_socket_result) = &first_result.result_detail {
             Ok(JudgmentsResult::Pass)
         } else {
-            Ok(JudgmentsResult::Failed)
+            let failed_reason = format!("Result type should be Websocket");
+            Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
         }
     }
 }

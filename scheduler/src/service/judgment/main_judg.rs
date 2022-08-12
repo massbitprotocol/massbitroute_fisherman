@@ -104,10 +104,20 @@ impl MainJudgment {
             .unwrap_or_default();
         for judgment in self.judgments.iter() {
             if judgment.can_apply_for_result(provider_task) {
-                currentjob_result = judgment
-                    .apply_for_results(provider_task, &results)
-                    .await
-                    .unwrap_or(JudgmentsResult::Failed);
+                currentjob_result = match judgment.apply_for_results(provider_task, &results).await
+                {
+                    Ok(result) => result,
+                    Err(err) => JudgmentsResult::new_failed(
+                        provider_task.task_name.clone(),
+                        format!(
+                            "Verify judgement {} apply for {} got error: {:?}",
+                            judgment.get_name(),
+                            provider_task.task_name,
+                            err
+                        ),
+                    ),
+                };
+
                 info!(
                     "Verify judgment {} result {:?} for provider {:?} with results {results:?}",
                     judgment.get_name(),
@@ -115,6 +125,7 @@ impl MainJudgment {
                     provider_task,
                 );
                 total_result.insert(job_id.clone(), currentjob_result.clone());
+                break;
             };
         }
 
@@ -177,7 +188,15 @@ impl MainJudgment {
                         results,
                         err
                     );
-                    judg_result = JudgmentsResult::Error;
+                    judg_result = JudgmentsResult::new_failed(
+                        provider_task.task_name.clone(),
+                        format!(
+                            "Regular judgement {} apply for {} got error: {:?}",
+                            judgment.get_name(),
+                            provider_task.task_name,
+                            err
+                        ),
+                    );
                 }
             }
 
@@ -188,26 +207,27 @@ impl MainJudgment {
                 provider_task.task_name,
                 provider_task.provider_id
             );
-            match judg_result {
-                JudgmentsResult::Failed | JudgmentsResult::Error => {
-                    let mut report = StoreReport::build(
-                        &"Scheduler".to_string(),
-                        &JobRole::Regular,
-                        &*PORTAL_AUTHORIZATION,
-                        &DOMAIN,
-                    );
-                    report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
-                    if *IS_REGULAR_REPORT {
-                        debug!("Send plan report to portal:{:?}", report);
-                        let res = report.send_data().await;
-                        info!("Send report to portal res: {:?}", res);
-                    } else {
-                        let result = json!({"provider_task":provider_task,"result":judg_result});
-                        let res = report.write_data(result);
-                        info!("Write report to file res: {:?}", res);
-                    }
+            if let JudgmentsResult::Failed(_) = &judg_result {
+                let mut report = StoreReport::build(
+                    &"Scheduler".to_string(),
+                    &JobRole::Regular,
+                    &*PORTAL_AUTHORIZATION,
+                    &DOMAIN,
+                );
+                report.set_report_data_short(
+                    &judg_result,
+                    &provider_task.provider_id,
+                    &provider_type,
+                );
+                if *IS_REGULAR_REPORT {
+                    debug!("*** Send regular report to portal:{:?}", report);
+                    let res = report.send_data().await;
+                    info!("Send report to portal res: {:?}", res);
+                } else {
+                    let result = json!({"provider_task":provider_task,"result":judg_result});
+                    let res = report.write_data(result);
+                    info!("*** Write regular report to file res: {:?}", res);
                 }
-                _ => {}
             }
             break;
         }

@@ -70,6 +70,9 @@ impl LatestBlockResultCache {
      * Use check function here to avoid clone data
      * return true if value is up to date and put it back to cache
      */
+    pub fn get_job_name() -> String {
+        "LatestBlock".to_string()
+    }
     pub fn check_latest_block(
         &self,
         cache_key: CacheKey,
@@ -107,10 +110,11 @@ impl LatestBlockResultCache {
             .ok_or(anyhow!("Missing late_duration"))?
             .as_i64()
             .ok_or(anyhow!("Wrong value late_duration"))?;
-        let late_duration = result_value.time / 1000 - latest_block_time; //In seconds
+        let result_value_time = result_value.time / 1000;
+        let late_duration = result_value_time - latest_block_time; //In seconds
         info!(
             "execution_timestamp: {}, block_timestamp: {}, Latest block late_duration/threshold: {}s/{}s",
-            result_value.time / 1000,
+            result_value_time,
             latest_block_time,
             late_duration,
             late_duration_threshold,
@@ -118,7 +122,14 @@ impl LatestBlockResultCache {
 
         if late_duration > late_duration_threshold {
             info!("Judge Failed latest-block for Node eth {:?}", cache_key);
-            Ok(JudgmentsResult::Failed)
+            let failed_reason = format!(
+                "provider latest block timestamp {}, late duration: {} > {}",
+                result_value_time, late_duration, late_duration_threshold
+            );
+            Ok(JudgmentsResult::new_failed(
+                Self::get_job_name(),
+                failed_reason,
+            ))
         } else {
             Ok(JudgmentsResult::Pass)
         }
@@ -144,7 +155,7 @@ impl LatestBlockResultCache {
         }
         //Block in current value newer then caches ones
         if missing_block < 0 {
-            values.insert(cache_key.clone(), result_value);
+            values.insert(cache_key.clone(), result_value.clone());
         }
         let max_block_missing = thresholds
             .get("max_block_missing")
@@ -156,7 +167,14 @@ impl LatestBlockResultCache {
             Ok(JudgmentsResult::Pass)
         } else {
             info!("Judge Failed latest-block for Node Dot {:?}", cache_key);
-            Ok(JudgmentsResult::Failed)
+            let failed_reason = format!(
+                "provider latest block {:?}, late duration: {} > {}",
+                result_value.values, missing_block, max_block_missing
+            );
+            Ok(JudgmentsResult::new_failed(
+                Self::get_job_name(),
+                failed_reason,
+            ))
         }
     }
 }
@@ -253,7 +271,8 @@ impl ReportCheck for HttpLatestBlockJudgment {
         // Get newest result from cache
         for result in job_results {
             if result.chain_info.is_none() {
-                return Ok(JudgmentsResult::Error);
+                let failed_reason = format!("There are no chain info in the result: {:?}", result);
+                return Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason));
             }
 
             if let (

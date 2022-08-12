@@ -4,7 +4,7 @@ use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::{JudgmentsResult, MainJudgment};
-use crate::service::report_portal::StoreReport;
+use crate::service::report_portal::{ReportFailedReasons, StoreReport};
 use crate::{IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
 use async_trait::async_trait;
 use common::job_manage::JobRole;
@@ -212,7 +212,6 @@ impl VerificationReportProcessor {
         results: Vec<JobResult>,
         plan_jobs: &Vec<Job>,
     ) {
-        let mut message = "Result message: ".to_string();
         let plan_results = self
             .judgment
             .apply_for_verify(&provider_task, plan, &results, plan_jobs)
@@ -244,15 +243,9 @@ impl VerificationReportProcessor {
             .await;
 
         //Handle plan result
-        let mut final_result = JudgmentsResult::Pass;
-        for (job_id, plan_result) in plan_results {
-            message.push_str(&format!("{} {:?}; ", job_id, &plan_result));
-            if plan_result != JudgmentsResult::Pass {
-                final_result = plan_result;
-            }
-        }
+        let final_result = JudgmentsResult::Pass;
 
-        self.report_judgment_result(&provider_task, plan, final_result, message)
+        self.report_judgment_result(&provider_task, plan, final_result)
             .await;
     }
 
@@ -273,56 +266,64 @@ impl VerificationReportProcessor {
             }
         }
         //Handle plan result
-        for (_, plan_result) in results.iter() {
-            if plan_result != &JudgmentsResult::Pass {
-                return plan_result.clone();
+        let mut reasons = ReportFailedReasons::new(vec![]);
+        for plan_result in results.values() {
+            match plan_result {
+                JudgmentsResult::Pass => continue,
+                JudgmentsResult::Failed(sub_reasons) => {
+                    reasons.extend(sub_reasons.clone().into_inner())
+                }
+                JudgmentsResult::Unfinished => {
+                    return JudgmentsResult::Unfinished;
+                }
             }
+
+            // if plan_result != &JudgmentsResult::Pass {
+            //     return plan_result.clone();
+            // }
         }
-        JudgmentsResult::Pass
+        if reasons.is_empty() {
+            JudgmentsResult::Pass
+        } else {
+            JudgmentsResult::Failed(reasons)
+        }
     }
 
     pub async fn report_judgment_result(
         &self,
         provider_task: &ProviderTask,
         plan: &PlanEntity,
-        judg_result: JudgmentsResult,
-        message: String,
+        judge_result: JudgmentsResult,
     ) {
-        match judg_result {
-            JudgmentsResult::Failed | JudgmentsResult::Pass | JudgmentsResult::Error => {
-                let mut report = StoreReport::build(
-                    &"Scheduler".to_string(),
-                    &JobRole::Verification,
-                    &*PORTAL_AUTHORIZATION,
-                    &DOMAIN,
-                );
-                report.set_report_data_short(
-                    JudgmentsResult::Pass == judg_result,
-                    &provider_task.provider_id,
-                    &provider_task.provider_type,
-                );
-                info!(
-                    "Send plan report to portal with message {}: {:?}",
-                    message, report
-                );
-                if *IS_VERIFY_REPORT {
-                    let res = report.send_data().await;
-                    info!(
-                        "report_judgment_result Send report to portal res: {:?}",
-                        res
-                    );
-                } else {
-                    let result = json!({
-                        "provider_id":provider_task.provider_id,
-                        "plan_id":plan.plan_id,
-                        "result":judg_result,
-                        "message":message
-                    });
-                    let res = report.write_data(result);
-                    info!("Write report to file res: {:?}", res);
-                }
+        if judge_result.is_concluded() {
+            let mut report = StoreReport::build(
+                &"Scheduler".to_string(),
+                &JobRole::Verification,
+                &*PORTAL_AUTHORIZATION,
+                &DOMAIN,
+            );
+            report.set_report_data_short(
+                &judge_result,
+                &provider_task.provider_id,
+                &provider_task.provider_type,
+            );
+            info!(
+                "*** Send verify report to portal with message {:?}: {:?}",
+                judge_result, report
+            );
+            if *IS_VERIFY_REPORT {
+                let res = report.send_data().await;
+                info!("Send report to portal res: {:?}", res);
+            } else {
+                let result = judge_result.to_string();
+                let line = json!({
+                    "provider_id":provider_task.provider_id,
+                    "plan_id":plan.plan_id,
+                    "result":result,
+                });
+                let res = report.write_data(line);
+                info!("*** Write verify report to file res: {:?}", res);
             }
-            _ => {}
         }
     }
 }
