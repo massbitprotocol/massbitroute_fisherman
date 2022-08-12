@@ -1,6 +1,6 @@
 version: '3.8'
 networks:
-  mbr_test_network:
+  mbr_test_network_[[NETWORK_NUMBER]]:
     driver: bridge
     external: true
     # ipam:
@@ -12,7 +12,7 @@ services:
     image: massbit/massbitroute_test_proxy:v0.1.0-rel
     restart: always
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].254"
     volumes:
       - ./docker-proxy/logs:/logs
@@ -37,7 +37,7 @@ services:
     image: postgres:14.4-alpine
     restart: always
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].203"
     environment:
       - POSTGRES_USER=postgres
@@ -79,7 +79,7 @@ services:
     image: redis:7.0.2-alpine
     restart: always
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].202"
     ports:
       - '6379:6379'
@@ -115,7 +115,7 @@ services:
     depends_on:
       - "massbitchain"
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].215"
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
@@ -150,7 +150,7 @@ services:
       - "db"
       - "redis"
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].201"
     ports:
       - '3001:3001'
@@ -187,7 +187,7 @@ services:
       - "db"
       - "redis"
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].211"
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
@@ -224,7 +224,7 @@ services:
       - "redis"
       - "api"
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].212"
     ports:
       - '3006:3006'
@@ -261,7 +261,7 @@ services:
     depends_on:
       - "mbr_portal_api"
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].200"
     ports:
       - '3000:3000'
@@ -298,7 +298,7 @@ services:
       - "db"
       - "mbr_portal_api"
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].204"
     volumes:
       - ./scheduler/configs:/usr/local/bin/configs
@@ -360,7 +360,7 @@ services:
       - "mbr_portal_api"
       - "fisherman_scheduler"
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].213"
     volumes:
       - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
@@ -408,7 +408,7 @@ services:
       - "mbr_portal_api"
       - "fisherman_scheduler"
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].214"
     volumes:
       - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
@@ -453,7 +453,7 @@ services:
     # build: ../massbitchain
     restart: always
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].205"
     ports:
         - '9944:9944'
@@ -462,7 +462,7 @@ services:
     privileged: true
     restart: unless-stopped
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].206"
 
     image: massbit/massbitroute_api_dev:0.0.1-shamu-dev
@@ -513,7 +513,7 @@ services:
   git_[[RUN_ID]]:
     privileged: true
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].207"
 
     restart: unless-stopped
@@ -563,7 +563,7 @@ services:
   gwman_[[RUN_ID]]:
     privileged: true
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].210"
 
     restart: unless-stopped
@@ -611,7 +611,7 @@ services:
   stat_[[RUN_ID]]:
     privileged: true
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].208"
     restart: unless-stopped
     image: massbit/massbitroute_stat_dev:0.0.1-shamu-dev
@@ -659,7 +659,7 @@ services:
   monitor_[[RUN_ID]]:
     privileged: true
     networks:
-      mbr_test_network:
+      mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].209"
 
     restart: unless-stopped
