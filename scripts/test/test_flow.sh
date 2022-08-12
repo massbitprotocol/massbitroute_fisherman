@@ -265,4 +265,4 @@ done
 now=$(date)
 echo "Checking gateway verified status: investigate at $now"
 
-docker-copose down
+docker-compose down
