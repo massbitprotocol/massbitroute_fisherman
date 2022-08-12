@@ -465,7 +465,7 @@ services:
       mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].206"
 
-    image: massbit/massbitroute_api_dev:0.0.1-shamu-dev
+    image: massbit/massbitroute_api:v0.1.4
     # command: sed -i "s|export WHITELIST_PARTNERS=.*|export WHITELIST_PARTNERS=\"allow 172.24.[[NETWORK_NUMBER]].201\"|g" /massbit/massbitroute/app/src/sites/services/api/env/api.env
     command: "-n"
     # build:
@@ -484,8 +484,12 @@ services:
       # - ./api/tmp:/massbit/massbitroute/app/src/sites/services/git/tmp:rw
       - ./api/db:/massbit/massbitroute/app/src/sites/services/git/db:rw
     environment:
-      - MBR_ENV=shamu
-      - BRANCH=shamu
+      - MBR_ENV=v0.1.4      
+      - MKAGENT_BRANCH=v0.1.0
+      - ENV_BRANCH=v0.1.0
+      - SSL_BRANCH=v0.1.0
+      - GWMANDEPLOY_BRANCH=v0.1.0
+      - APIDEPLOY_BRANCH=v0.1.0
       - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"

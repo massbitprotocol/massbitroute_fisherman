@@ -53,6 +53,7 @@ services:
       - ./migrations:/docker-entrypoint-initdb.d
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -87,6 +88,7 @@ services:
       - redis-data:/data
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -119,6 +121,7 @@ services:
         ipv4_address: "172.24.24.215"
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -156,6 +159,7 @@ services:
       - '3001:3001'
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -191,6 +195,7 @@ services:
         ipv4_address: "172.24.24.211"
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -267,6 +272,7 @@ services:
       - '3000:3000'
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -307,6 +313,7 @@ services:
 #      - '80:80'
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -366,6 +373,7 @@ services:
       - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -414,6 +422,7 @@ services:
       - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -489,6 +498,7 @@ services:
       - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -539,6 +549,8 @@ services:
       - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -587,6 +599,7 @@ services:
       - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -635,6 +648,7 @@ services:
       - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"
@@ -684,6 +698,7 @@ services:
       - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"
+      - "git.massbitroute.net:172.24.24.207"
       - "ns1.massbitroute.net:172.24.24.254"
       - "ns2.massbitroute.net:172.24.24.254"
       - "api.massbitroute.net:172.24.24.254"

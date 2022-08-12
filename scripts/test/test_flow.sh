@@ -31,7 +31,6 @@ docker-compose up -d
 truncate -s 0 ./docker-proxy/logs/*.*
 sleep 10
 bash 1_pre_config.sh || exit 1
-if 
 docker exec mbr_db bash -c 'bash /docker-entrypoint-initdb.d/2_clean_node.sh'
 
 #-------------------------------------------
