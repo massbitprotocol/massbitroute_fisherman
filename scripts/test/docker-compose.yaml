@@ -144,7 +144,7 @@ services:
 
   mbr_portal_api:
     container_name: mbr_portal_api
-    image: massbit/massbitroute_portal:v0.1-dev
+    image: massbit/massbitroute_portal:v0.1.0-dev
     # build: .
     depends_on:
       - "db"
@@ -181,7 +181,7 @@ services:
 
   mbr_portal_worker:
     container_name: mbr_portal_worker
-    image: massbit/massbitroute_portal:v0.1-dev
+    image: massbit/massbitroute_portal:v0.1.0-dev
     # build: .
     depends_on:
       - "db"
@@ -217,7 +217,7 @@ services:
 
   mbr_portal_admin:
     container_name: mbr_portal_admin
-    image: massbit/massbitroute_portal:v0.1-dev
+    image: massbit/massbitroute_portal:v0.1.0-dev
     # build: .
     depends_on:
       - "db"
@@ -465,7 +465,7 @@ services:
       mbr_test_network:
         ipv4_address: "172.24.24.206"
 
-    image: massbit/massbitroute_api_dev:0.0.1-shamu-dev
+    image: massbit/massbitroute_api:v0.1.4
     # command: sed -i "s|export WHITELIST_PARTNERS=.*|export WHITELIST_PARTNERS=\"allow 172.24.24.201\"|g" /massbit/massbitroute/app/src/sites/services/api/env/api.env
     command: "-n"
     # build:
@@ -517,7 +517,7 @@ services:
         ipv4_address: "172.24.24.207"
 
     restart: unless-stopped
-    image: massbit/massbitroute_git_dev:0.0.1-shamu-dev
+    image: massbit/massbitroute_git:v0.1.2
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/git
@@ -535,6 +535,7 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
+      - DOMAIN=massbitroute.net
       - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.24.254"

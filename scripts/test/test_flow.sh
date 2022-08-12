@@ -21,7 +21,7 @@ docker-compose down
 #-------------------------------------------
 # Docker build
 #-------------------------------------------
-#bash docker_build.sh
+bash docker_build.sh
 #bash docker_build_proxy.sh
 #-------------------------------------------
 # Docker up
@@ -263,4 +263,4 @@ done
 now=$(date)
 echo "Checking gateway verified status: investigate at $now"
 
-docker-copose down
+docker-compose down
