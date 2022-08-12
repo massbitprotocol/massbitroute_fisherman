@@ -292,19 +292,18 @@ mod tests {
     use crate::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 
     use anyhow::Error;
-    use common::logger::init_logger;
+
     use common::task_spawn;
     use reqwest::Client;
-    use sea_orm::{entity::prelude::*, DatabaseBackend, MockDatabase};
+    use sea_orm::{DatabaseBackend, MockDatabase};
     use std::env;
 
     use crate::models::job_result_cache::JobResultCache;
-    use futures_util::AsyncBufReadExt;
     use serde_json::json;
     use std::time::Duration;
     use test_util::helper::{load_env, mock_db_connection};
     use tokio::fs;
-    use tokio::time::sleep;
+    use tokio::time::{sleep, Instant};
 
     #[tokio::test]
     async fn test_api_ping_scheduler() -> Result<(), Error> {
@@ -532,7 +531,7 @@ mod tests {
         let resp: SimpleResponse = serde_json::from_str(&resp)?;
 
         assert_eq!(resp, SimpleResponse { success: true });
-        let expect_output_line = r###"{"provider_task":{"provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","task_name":"RoundTripTime","task_type":"HttpRequest"},"result":"Failed"}"###;
+        let expect_output_line = r###"{"provider_task":{"provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","task_name":"RoundTripTime","task_type":"HttpRequest"},"result":{"Failed":{"inner":[{"failed_detail":"95% response duration : 29606 > 500","job_name":"HttpPing"}]}}}"###;
         let now = Instant::now();
         loop {
             assert!(now.elapsed().as_secs() < 20);

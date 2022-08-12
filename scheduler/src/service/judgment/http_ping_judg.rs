@@ -203,18 +203,22 @@ impl ReportCheck for HttpPingJudgment {
         );
         let number_for_decide =
             Self::get_threshold_value(&thresholds, &String::from("number_for_decide"))?;
-        let success_percent =
+        let success_percent_threshold =
             Self::get_threshold_value(&thresholds, &String::from("success_percent"))?;
-        let histogram_percentile =
+        let histogram_percentile_threshold =
             Self::get_threshold_value(&thresholds, &String::from("histogram_percentile"))?;
-        let response_duration =
+        let response_duration_threshold =
             Self::get_threshold_value(&thresholds, &String::from("response_duration"))?;
 
         debug!("{} Http Ping in cache.", response_durations.len());
         return if response_durations.len() < number_for_decide as usize {
             Ok(JudgmentsResult::Unfinished)
-        } else if response_durations.get_success_percent() < success_percent as f64 {
-            Ok(JudgmentsResult::Failed)
+        } else if response_durations.get_success_percent() < success_percent_threshold as f64 {
+            let failed_reason = format!(
+                "Success percent {} < {success_percent_threshold}",
+                response_durations.get_success_percent()
+            );
+            Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
         } else {
             let mut histogram = Histogram::new();
             for val in response_durations.iter() {
@@ -226,24 +230,29 @@ impl ReportCheck for HttpPingJudgment {
                 }
             }
 
-            let res = histogram.percentile(histogram_percentile as f64);
+            let res = histogram.percentile(histogram_percentile_threshold as f64);
             log::trace!(
                 "Http Ping job on {} has results: {:?} ans histogram {}%: {:?} ",
                 &provider_task.provider_id,
                 &response_durations,
-                histogram_percentile,
+                histogram_percentile_threshold,
                 &res
             );
 
             match res {
                 Ok(val) => {
-                    if val <= response_duration as u64 {
+                    if val <= response_duration_threshold as u64 {
                         Ok(JudgmentsResult::Pass)
                     } else {
-                        Ok(JudgmentsResult::Failed)
+                        let failed_reason =
+                            format!("{histogram_percentile_threshold}% response duration : {val} > {response_duration_threshold}");
+                        Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
                     }
                 }
-                Err(_err) => Ok(JudgmentsResult::Failed),
+                Err(err) => {
+                    let failed_reason = format!("Cannot get response duration, with error: {err}");
+                    Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+                }
             }
         };
     }

@@ -1,3 +1,4 @@
+use crate::service::judgment::JudgmentsResult;
 use crate::{URL_PORTAL_PROVIDER_REPORT, URL_PORTAL_PROVIDER_VERIFY};
 use anyhow::{anyhow, Error};
 use common::component::ComponentType;
@@ -9,9 +10,67 @@ use serde_json::Value;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::ops::{Deref, DerefMut};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const REPORT_PATH: &str = "logs/report.txt";
+
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
+pub struct ReportFailedReason {
+    job_name: String,
+    failed_detail: String,
+}
+
+impl ReportFailedReason {
+    pub fn new(job_name: String, failed_detail: String) -> Self {
+        ReportFailedReason {
+            job_name,
+            failed_detail,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
+pub struct ReportFailedReasons {
+    inner: Vec<ReportFailedReason>,
+}
+
+impl Deref for ReportFailedReasons {
+    type Target = Vec<ReportFailedReason>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl DerefMut for ReportFailedReasons {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
+impl ReportFailedReasons {
+    pub(crate) fn new(reasons: Vec<ReportFailedReason>) -> Self {
+        ReportFailedReasons { inner: reasons }
+    }
+    pub(crate) fn new_with_single_reason(job_name: String, failed_detail: String) -> Self {
+        let reasons = vec![ReportFailedReason::new(job_name, failed_detail)];
+        ReportFailedReasons { inner: reasons }
+    }
+    pub fn into_inner(self) -> Vec<ReportFailedReason> {
+        self.inner
+    }
+}
+
+impl ToString for ReportFailedReasons {
+    fn to_string(&self) -> String {
+        let mut msg = String::new();
+        for reason in self.inner.iter() {
+            msg.push_str(&format!("{}: {}; ", reason.job_name, reason.failed_detail));
+        }
+        msg
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct StoreReport {
@@ -68,11 +127,25 @@ impl StoreReport {
     // Short store before report
     pub fn set_report_data_short(
         &mut self,
-        is_data_correct: bool,
+        judge_result: &JudgmentsResult,
         component_id: &ComponentId,
         component_type: &ComponentType,
     ) {
-        self.is_data_correct = is_data_correct;
+        match judge_result {
+            JudgmentsResult::Pass => {
+                self.is_data_correct = true;
+                self.status_detail = "Pass".to_string();
+            }
+            JudgmentsResult::Failed(reasons) => {
+                self.is_data_correct = false;
+                self.status_detail = reasons.to_string();
+            }
+            JudgmentsResult::Unfinished => {
+                self.is_data_correct = false;
+                self.status_detail = "Internal Error: Report Unfinished task".to_string();
+            }
+        };
+
         self.provider_id = component_id.clone();
         self.provider_type = component_type.clone();
         self.report_time = SystemTime::now()
