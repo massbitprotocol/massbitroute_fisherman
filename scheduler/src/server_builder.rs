@@ -146,7 +146,10 @@ impl SchedulerServer {
                 let clone_state = state.clone();
                 async move {
                     if authorization == *SCHEDULER_AUTHORIZATION {
-                        info!("#### Received request body {:?} ####", &worker_info);
+                        info!(
+                            "#### Received register worker request body {:?} ####",
+                            &worker_info
+                        );
 
                         clone_service
                             .register_worker(worker_info, clone_state)
@@ -205,7 +208,7 @@ impl SchedulerServer {
                 let clone_state = state.clone();
                 async move {
                     if authorization == *SCHEDULER_AUTHORIZATION {
-                        info!("#### Received request body {:?} ####", &node_info);
+                        info!("#### Received verify request body {:?} ####", &node_info);
                         Ok(clone_service.node_verify(node_info, clone_state).await)
                     } else {
                         Err(warp::reject::custom(UnAuthorization))
@@ -299,7 +302,9 @@ mod tests {
     use std::env;
 
     use crate::models::job_result_cache::JobResultCache;
-    use serde_json::json;
+    use crate::service::report_portal::ReportRecord;
+    use common::logger::init_logger;
+    use serde_json::{json, Value};
     use std::time::Duration;
     use test_util::helper::{load_env, mock_db_connection};
     use tokio::fs;
@@ -531,7 +536,9 @@ mod tests {
         let resp: SimpleResponse = serde_json::from_str(&resp)?;
 
         assert_eq!(resp, SimpleResponse { success: true });
-        let expect_output_line = r###"{"provider_task":{"provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","task_name":"RoundTripTime","task_type":"HttpRequest"},"result":{"Failed":{"inner":[{"failed_detail":"95% response duration : 29606 > 500","job_name":"HttpPing"}]}}}"###;
+        let expect_output_line = r###"{"report_time":"","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","plan_id":"","result":{"Failed":{"inner":[{"job_name":"HttpPing","failed_detail":"95% response duration : 29606 > 500"}]}}}"###;
+        let expect_output: ReportRecord = serde_json::from_str(expect_output_line).unwrap();
+
         let now = Instant::now();
         loop {
             assert!(now.elapsed().as_secs() < 20);
@@ -540,8 +547,9 @@ mod tests {
                 .expect("Unable to read file");
 
             let line = data.lines().rev().next().unwrap_or_default();
-
-            if line == expect_output_line {
+            let mut output: ReportRecord = serde_json::from_str(line).unwrap();
+            output.report_time = "".to_string();
+            if expect_output == output {
                 info!("Reported the bad node!");
                 assert!(true);
                 break;

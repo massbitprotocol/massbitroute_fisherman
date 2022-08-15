@@ -1,7 +1,7 @@
 {
   "name": "VerifyEthNode",
   "provider_types": ["node"],
-  "blockchains": ["eth"],
+  "blockchains": ["eth","bsc","matic"],
   "dependencies": {
   },
   "body": {

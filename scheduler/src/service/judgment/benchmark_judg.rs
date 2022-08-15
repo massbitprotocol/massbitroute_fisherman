@@ -265,11 +265,10 @@ pub mod tests {
     use super::*;
     use crate::CONFIG_DIR;
     use common::component::ComponentType;
+    use common::BlockChainType;
     use log::info;
 
-    use test_util::helper::{
-        load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
-    };
+    use test_util::helper::{load_env, mock_db_connection, mock_job_result, JobName};
 
     #[tokio::test]
     async fn test_benchmark_judgment() -> Result<(), Error> {
@@ -306,7 +305,7 @@ pub mod tests {
         // For eth
         let job_result = mock_job_result(
             &JobName::Benchmark,
-            ChainTypeForTest::Eth,
+            BlockChainType::Eth,
             "",
             Default::default(),
         );
@@ -320,7 +319,7 @@ pub mod tests {
         // For dot
         let job_result = mock_job_result(
             &JobName::Benchmark,
-            ChainTypeForTest::Dot,
+            BlockChainType::Dot,
             "",
             Default::default(),
         );

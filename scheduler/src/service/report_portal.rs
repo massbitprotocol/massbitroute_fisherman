@@ -3,10 +3,10 @@ use crate::{URL_PORTAL_PROVIDER_REPORT, URL_PORTAL_PROVIDER_VERIFY};
 use anyhow::{anyhow, Error};
 use common::component::ComponentType;
 use common::job_manage::JobRole;
-use common::{ComponentId, Deserialize, Serialize};
+use common::{ComponentId, Deserialize, PlanId, Serialize};
 use log::{debug, info};
 use reqwest::Response;
-use serde_json::Value;
+
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -14,6 +14,39 @@ use std::ops::{Deref, DerefMut};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const REPORT_PATH: &str = "logs/report.txt";
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct ReportRecord {
+    pub report_time: String,
+    provider_id: ComponentId,
+    plan_id: PlanId,
+    result: JudgmentsResult,
+}
+
+impl ReportRecord {
+    pub fn new(
+        report_time: String,
+        provider_id: ComponentId,
+        plan_id: PlanId,
+        result: JudgmentsResult,
+    ) -> Self {
+        ReportRecord {
+            report_time,
+            provider_id,
+            plan_id,
+            result,
+        }
+    }
+}
+
+impl ToString for ReportRecord {
+    fn to_string(&self) -> String {
+        format!(
+            "{} {} {} {}",
+            self.report_time, self.provider_id, self.plan_id, self.result
+        )
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct ReportFailedReason {
@@ -197,7 +230,7 @@ impl StoreReport {
     }
 
     // For testing only
-    pub fn write_data(&self, data: Value) -> Result<String, Error> {
+    pub fn write_data(&self, data: ReportRecord) -> Result<String, Error> {
         let data = serde_json::to_string(&data)?;
         let report_file = std::path::Path::new(REPORT_PATH);
         if let Some(path) = report_file.parent() {

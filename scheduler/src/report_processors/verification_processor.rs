@@ -4,17 +4,19 @@ use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::{JudgmentsResult, MainJudgment};
-use crate::service::report_portal::{ReportFailedReasons, StoreReport};
+use crate::service::report_portal::{ReportFailedReasons, ReportRecord, StoreReport};
 use crate::{IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
 use async_trait::async_trait;
+
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
+use common::util::get_datetime_utc_7;
 use common::{ComponentId, PlanId, DOMAIN};
 use log::{debug, info, trace};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
-use serde_json::json;
+
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -315,13 +317,13 @@ impl VerificationReportProcessor {
                 let res = report.send_data().await;
                 info!("Send report to portal res: {:?}", res);
             } else {
-                let result = judge_result.to_string();
-                let line = json!({
-                    "provider_id":provider_task.provider_id,
-                    "plan_id":plan.plan_id,
-                    "result":result,
-                });
-                let res = report.write_data(line);
+                let report_record = ReportRecord::new(
+                    get_datetime_utc_7(),
+                    provider_task.provider_id.clone(),
+                    plan.plan_id.clone(),
+                    judge_result,
+                );
+                let res = report.write_data(report_record);
                 info!("*** Write verify report to file res: {:?}", res);
             }
         }

@@ -141,7 +141,7 @@ impl WorkerServer {
             .and(warp::get())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |_param: WorkerStateParam| {
-                info!("#### Received request body ####");
+                info!("#### Received get_state request body ####");
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move { clone_service.get_state(clone_state).await }

@@ -2,7 +2,7 @@
   {
     "name": "LatestBlock",
     "phases": ["verification"],
-    "blockchains": ["eth"],
+    "blockchains": ["eth","bsc","matic"],
     "repeat_number": 0,
     "interval": 1000,
     "type": "rpc",
