@@ -32,18 +32,7 @@ echo "--------------------------------------------"
 #TODO: Remove this 
 # network_number="24"
 
-cat docker-compose.yaml.template |  \
-	 sed "s/\[\[RUN_ID\]\]/$network_number/g" | \
-	 sed "s/\[\[NETWORK_NUMBER\]\]/$network_number/g" | \
-     sed "s/\[\[STAKING_TAG\]\]/$STAKING_TAG/g" | \
-     sed "s/\[\[PORTAL_TAG\]\]/$PORTAL_TAG/g" | \
-     sed "s/\[\[WEB_TAG\]\]/$WEB_TAG/g" | \
-     sed "s/\[\[CHAIN_TAG\]\]/$CHAIN_TAG/g" | \
-     sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
-     sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
-     sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
-     sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g" | \
-    > docker-compose.yaml
+
 
     
 cat docker-git/docker-compose.yaml.template |  \
@@ -56,8 +45,19 @@ cat docker-git/docker-compose.yaml.template |  \
      sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
-     sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g" | \
+     sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g" \
     > docker-git/docker-compose.yaml
+
+
+
+
+cd docker-git
+docker-compose up -d
+docker exec -it mbr_git_$network_number rm -rf /massbit/massbitroute/app/src/sites/services/git/vars/*
+docker exec -it mbr_git_$network_number rm -rf /massbit/massbitroute/app/src/sites/services/git/data/*
+docker exec -it mbr_git_$network_number /massbit/massbitroute/app/src/sites/services/git/scripts/run _repo_init
+PRIVATE_GIT_READ=$(docker exec -it mbr_git_$network_number cat /massbit/massbitroute/app/src/sites/services/git/env/git.env)
+echo $PRIVATE_GIT_READ
 
 cat docker-node/docker-compose.yaml.template |  \
 	 sed "s/\[\[RUN_ID\]\]/$network_number/g" | \
@@ -69,8 +69,23 @@ cat docker-node/docker-compose.yaml.template |  \
      sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
-     sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g" | \
+     sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \
+     sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g" \
     > docker-node/docker-compose.yaml
+
+cat docker-compose.yaml.template |  \
+	 sed "s/\[\[RUN_ID\]\]/$network_number/g" | \
+	 sed "s/\[\[NETWORK_NUMBER\]\]/$network_number/g" | \
+     sed "s/\[\[STAKING_TAG\]\]/$STAKING_TAG/g" | \
+     sed "s/\[\[PORTAL_TAG\]\]/$PORTAL_TAG/g" | \
+     sed "s/\[\[WEB_TAG\]\]/$WEB_TAG/g" | \
+     sed "s/\[\[CHAIN_TAG\]\]/$CHAIN_TAG/g" | \
+     sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
+     sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
+     sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
+     sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \     
+     sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g"  \
+    > docker-compose.yaml
 
 cat docker-gateway/docker-compose.yaml.template |  \
 	 sed "s/\[\[RUN_ID\]\]/$network_number/g" | \
@@ -82,13 +97,6 @@ cat docker-gateway/docker-compose.yaml.template |  \
      sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
-     sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g" | \
+     sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \
+     sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g"  \
     > docker-gateway/docker-compose.yaml
-
-
-cd docker-git
-docker-compose up -d
-docker exec -it mbr_git_$network_number rm -rf /massbit/massbitroute/app/src/sites/services/git/vars/*
-docker exec -it mbr_git_$network_number rm -rf /massbit/massbitroute/app/src/sites/services/git/data/*
-docker exec -it mbr_git_$network_number /massbit/massbitroute/app/src/sites/services/git/scripts/run _repo_init
-docker exec -it mbr_git_$network_number cat /massbit/massbitroute/app/src/sites/services/git/env/git.env
