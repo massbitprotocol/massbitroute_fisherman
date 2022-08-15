@@ -38,6 +38,7 @@ services:
       - SSL_BRANCH=shamu
       - GWMANDEPLOY_BRANCH=shamu
       - APIDEPLOY_BRANCH=shamu
+      - DOMAIN=massbitroute.net
       - GIT_PRIVATE_READ_URL=[[PRIVATE_GIT_READ]]
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
