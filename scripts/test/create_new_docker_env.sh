@@ -43,6 +43,8 @@ cat docker-git/docker-compose.yaml.template |  \
      sed "s/\[\[WEB_TAG\]\]/$WEB_TAG/g" | \
      sed "s/\[\[CHAIN_TAG\]\]/$CHAIN_TAG/g" | \
      sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
+     sed "s/\[\[GIT_TAG\]\]/$GIT_TAG/g" | \
+     sed "s/\[\[STAKING_TAG\]\]/$STAKING_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
      sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g" \
@@ -67,6 +69,7 @@ cat docker-node/docker-compose.yaml.template |  \
      sed "s/\[\[WEB_TAG\]\]/$WEB_TAG/g" | \
      sed "s/\[\[CHAIN_TAG\]\]/$CHAIN_TAG/g" | \
      sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
+     sed "s/\[\[GIT_TAG\]\]/$GIT_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
      sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \
@@ -81,6 +84,7 @@ cat docker-compose.yaml.template |  \
      sed "s/\[\[WEB_TAG\]\]/$WEB_TAG/g" | \
      sed "s/\[\[CHAIN_TAG\]\]/$CHAIN_TAG/g" | \
      sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
+     sed "s/\[\[GIT_TAG\]\]/$GIT_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
      sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \     
@@ -95,6 +99,7 @@ cat docker-gateway/docker-compose.yaml.template |  \
      sed "s/\[\[WEB_TAG\]\]/$WEB_TAG/g" | \
      sed "s/\[\[CHAIN_TAG\]\]/$CHAIN_TAG/g" | \
      sed "s/\[\[API_TAG\]\]/$API_TAG/g" | \
+     sed "s/\[\[GIT_TAG\]\]/$GIT_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
      sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \

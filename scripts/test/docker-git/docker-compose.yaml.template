@@ -15,7 +15,7 @@ services:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].207"
 
     restart: unless-stopped
-    image: massbit/massbitroute_git_dev:[[GIT_TAG]]
+    image: massbit/massbitroute_git:[[GIT_TAG]]
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/git
