@@ -110,7 +110,7 @@ services:
 
   mbr_staking_[[RUN_ID]]:
     container_name: mbr_staking_[[RUN_ID]]
-    image: massbit/massbitroute_staking:v0.1-dev
+    image: massbit/massbitroute_staking:[[STAKING_TAG]]
     # build: .
     depends_on:
       - "massbitchain"
@@ -144,7 +144,7 @@ services:
 
   mbr_portal_api_[[RUN_ID]]:
     container_name: mbr_portal_api_[[RUN_ID]]
-    image: massbit/massbitroute_portal:v0.1-dev
+    image: massbit/massbitroute_portal:[[PORTAL_TAG]]
     # build: .
     depends_on:
       - "db"
@@ -181,7 +181,7 @@ services:
 
   mbr_portal_worker_[[RUN_ID]]:
     container_name: mbr_portal_worker_[[RUN_ID]]
-    image: massbit/massbitroute_portal:v0.1-dev
+    image: massbit/massbitroute_portal:[[PORTAL_TAG]]
     # build: .
     depends_on:
       - "db"
@@ -217,7 +217,7 @@ services:
 
   mbr_portal_admin_[[RUN_ID]]:
     container_name: mbr_portal_admin_[[RUN_ID]]
-    image: massbit/massbitroute_portal:v0.1-dev
+    image: massbit/massbitroute_portal:[[PORTAL_TAG]]
     # build: .
     depends_on:
       - "db"
@@ -255,7 +255,7 @@ services:
 
   mbr_web_[[RUN_ID]]:
     container_name: mbr_web_[[RUN_ID]]
-    image: massbit/massbitroute_web:v0.1
+    image: massbit/massbitroute_web:[[WEB_TAG]]
     # build: ../mbr-app
     restart: always
     depends_on:
@@ -291,7 +291,7 @@ services:
 
   fisherman_scheduler_[[RUN_ID]]:
     container_name: mbr_fisherman_scheduler_[[RUN_ID]]
-    image: massbit/massbitroute_fisherman:v0.1-dev
+    image: massbit/massbitroute_fisherman:[[FISHERMAN_TAG]]
     # build: ../massbitroute_fisherman
     restart: always
     depends_on:
@@ -352,7 +352,7 @@ services:
 
   fisherman_worker_1_[[RUN_ID]]:
     container_name: mbr_fisherman_worker_1_[[RUN_ID]]
-    image: massbit/massbitroute_fisherman:v0.1-dev
+    image: massbit/massbitroute_fisherman:[[FISHERMAN_TAG]]
     # build: ../massbitroute_fisherman
     restart: always
     depends_on:
@@ -400,7 +400,7 @@ services:
 
   fisherman_worker_2_[[RUN_ID]]:
     container_name: mbr_fisherman_worker_2_[[RUN_ID]]
-    image: massbit/massbitroute_fisherman:v0.1-dev
+    image: massbit/massbitroute_fisherman:[[FISHERMAN_TAG]]
     # build: ../massbitroute_fisherman
     restart: always
     depends_on:
@@ -449,7 +449,7 @@ services:
 
   massbitchain_[[RUN_ID]]:
     container_name: mbr_chain_[[RUN_ID]]
-    image: massbit/massbitroute_chain:v0.1
+    image: massbit/massbitroute_chain:[[CHAIN_TAG]]
     # build: ../massbitchain
     restart: always
     networks:
@@ -465,7 +465,7 @@ services:
       mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].206"
 
-    image: massbit/massbitroute_api:v0.1.4
+    image: massbit/massbitroute_api:[[API_TAG]]
     # command: sed -i "s|export WHITELIST_PARTNERS=.*|export WHITELIST_PARTNERS=\"allow 172.24.[[NETWORK_NUMBER]].201\"|g" /massbit/massbitroute/app/src/sites/services/api/env/api.env
     command: "-n"
     # build:
@@ -484,13 +484,13 @@ services:
       # - ./api/tmp:/massbit/massbitroute/app/src/sites/services/git/tmp:rw
       - ./api/db:/massbit/massbitroute/app/src/sites/services/git/db:rw
     environment:
-      - MBR_ENV=v0.1.4      
-      - MKAGENT_BRANCH=v0.1.0
-      - ENV_BRANCH=v0.1.0
-      - SSL_BRANCH=v0.1.0
-      - GWMANDEPLOY_BRANCH=v0.1.0
-      - APIDEPLOY_BRANCH=v0.1.0
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+      - MBR_ENV=[[API_TAG]]
+      - MKAGENT_BRANCH=shamu
+      - ENV_BRANCH=shamu
+      - SSL_BRANCH=shamu
+      - GWMANDEPLOY_BRANCH=shamu
+      - APIDEPLOY_BRANCH=shamu
+      - GIT_PRIVATE_READ_URL=[[PRIVATE_GIT_READ]]
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
       - "ns1.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
@@ -513,56 +513,6 @@ services:
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
       - "api.ipapi.com:172.24.[[NETWORK_NUMBER]].254"
       - "staking.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-
-  git_[[RUN_ID]]:
-    privileged: true
-    networks:
-      mbr_test_network_[[NETWORK_NUMBER]]:
-        ipv4_address: "172.24.[[NETWORK_NUMBER]].207"
-
-    restart: unless-stopped
-    image: massbit/massbitroute_git_dev:0.0.1-shamu-dev
-    command: "-n"
-    # build:
-    #   context: /massbit/massbitroute/app/src/sites/services/git
-    #   dockerfile: install/mbr/build/git/Dockerfile.dev
-    #   args:
-    #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu
-    container_name: mbr_git_[[RUN_ID]]
-    volumes:
-      - ./git/deploy:/massbit/massbitroute/app/src/sites/services/git/deploy:rw
-      - ./git/logs:/massbit/massbitroute/app/src/sites/services/git/logs:rw
-      - ./git/vars:/massbit/massbitroute/app/src/sites/services/git/vars:rw
-      # - ./git/tmp:/massbit/massbitroute/app/src/sites/services/git/tmp:rw
-      - ./git/db:/massbit/massbitroute/app/src/sites/services/git/db:rw
-    environment:
-      - MBR_ENV=shamu
-      - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
-    extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "ns1.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "ns2.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "api.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "chain.massbitroute.net:172.24.[[NETWORK_NUMBER]].205"
-      - "portal.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "admin-api.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "dapi.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "scheduler.fisherman.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].209"
-      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].209"
-      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].209"
-      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].209"
-      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
-      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
-      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
-      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
-      - "api.ipapi.com:172.24.[[NETWORK_NUMBER]].254"
-      - "staking.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
-
 
   gwman_[[RUN_ID]]:
     privileged: true
@@ -571,7 +521,7 @@ services:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].210"
 
     restart: unless-stopped
-    image: massbit/massbitroute_gwman_dev:0.0.1-shamu-dev
+    image: massbit/massbitroute_gwman:[[GWMAN_TAG]]
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/gwman
@@ -585,9 +535,13 @@ services:
       - ./gwman/vars:/massbit/massbitroute/app/src/sites/services/gwman/vars:rw
       - ./gwman/db:/massbit/massbitroute/app/src/sites/services/gwman/db:rw
     environment:
-      - MBR_ENV=shamu
-      - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+      - GIT_PUBLIC_URL="https://github.com"
+      - MBR_ENV=[[GWMAN_TAG]]
+      - MKAGENT_BRANCH=shamu
+      - ENV_BRANCH=shamu
+      - SSL_BRANCH=shamu
+      - GWMANDEPLOY_BRANCH=shamu    
+      - GIT_PRIVATE_READ_URL=[[PRIVATE_GIT_READ]]
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
       - "ns1.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
@@ -618,7 +572,7 @@ services:
       mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].208"
     restart: unless-stopped
-    image: massbit/massbitroute_stat_dev:0.0.1-shamu-dev
+    image: massbit/massbitroute_stat:[[STAT_TAG]]
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/stat
@@ -633,9 +587,12 @@ services:
       # - ./stat/tmp:/massbit/massbitroute/app/src/sites/services/stat/tmp:rw
       - ./stat/db:/massbit/massbitroute/app/src/sites/services/stat/db:rw
     environment:
-      - MBR_ENV=shamu
-      - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+      - STAT_TYPE=node
+      - STAT_NETWORK=eth
+      - STAT_BLOCKCHAIN=mainnet
+      - MBR_ENV=[[STAT_TAG]]
+      - PORTAL_URL=https://portal.massbitroute.net
+      - GIT_PRIVATE_READ_URL=[[PRIVATE_GIT_READ]]
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
       - "ns1.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
@@ -667,7 +624,7 @@ services:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].209"
 
     restart: unless-stopped
-    image: massbit/massbitroute_monitor_dev:0.0.1-shamu-dev
+    image: massbit/massbitroute_monitor:[[MONITOR_TAG]]
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/monitor
@@ -682,9 +639,11 @@ services:
       # - ./monitor/tmp:/massbit/massbitroute/app/src/sites/services/monitor/tmp:rw
       - ./monitor/db:/massbit/massbitroute/app/src/sites/services/monitor/db:rw
     environment:
-      - MBR_ENV=shamu
-      - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
+      - MONITOR_TYPES=node
+      - MONITOR_NETWORKS=eth
+      - MONITOR_BLOCKCHAINS=mainnet
+      - MBR_ENV=[[MONITOR_TAG]]
+      - GIT_PRIVATE_READ_URL=[[PRIVATE_GIT_READ]]
     extra_hosts:
       - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
       - "ns1.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"

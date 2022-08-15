@@ -5,16 +5,16 @@ networks:
     external: true
     # ipam:
       # config:
-      #     - subnet: "172.24.24.0/16"
+      #     - subnet: "172.24.[[NETWORK_NUMBER]].0/16"
 services:
   gateway:
     privileged: true
     networks:
       mbr_test_network:
-        ipv4_address: "172.24.24.3"
+        ipv4_address: "172.24.[[NETWORK_NUMBER]].3"
 
     restart: unless-stopped
-    image: massbit/massbitroute_gateway_dev:0.0.1-shamu-dev
+    image: massbit/massbitroute_gateway:[[GATEWAY_TAG]]
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/gateway
@@ -30,25 +30,25 @@ services:
       - INSTALL_CMD=https://portal.massbitroute.net/api/v1/gateway_install?id=[[GATEWAY_ID]]&user_id=[[USER_ID]]&blockchain=eth&network=mainnet&zone=AS&app_key=[[APP_KEY]]&portal_url=https://portal.massbitroute.net&env=keiko
 
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.254"
-      - "ns1.massbitroute.net:172.24.24.254"
-      - "ns2.massbitroute.net:172.24.24.254"
-      - "api.massbitroute.net:172.24.24.254"
-      - "stat.mbr.massbitroute.net:172.24.24.254"
-      - "monitor.mbr.massbitroute.net:172.24.24.254"
-      - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.254"
-      - "admin-api.massbitroute.net:172.24.24.254"
-      - "dapi.massbitroute.net:172.24.24.254"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
-      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.254"
-      - "staking.massbitroute.net:172.24.24.254"
-      - "ipv4.icanhazip.com:172.24.24.201"
+      - "hostmaster.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "ns1.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "ns2.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "api.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "chain.massbitroute.net:172.24.[[NETWORK_NUMBER]].205"
+      - "portal.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "admin-api.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "dapi.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "scheduler.fisherman.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].209"
+      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].209"
+      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].209"
+      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].209"
+      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
+      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
+      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
+      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.[[NETWORK_NUMBER]].208"
+      - "api.ipapi.com:172.24.[[NETWORK_NUMBER]].254"
+      - "staking.massbitroute.net:172.24.[[NETWORK_NUMBER]].254"
+      - "ipv4.icanhazip.com:172.24.[[NETWORK_NUMBER]].201"
