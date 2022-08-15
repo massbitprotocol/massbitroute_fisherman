@@ -58,7 +58,7 @@ docker-compose up -d
 docker exec -it mbr_git_$network_number rm -rf /massbit/massbitroute/app/src/sites/services/git/vars/*
 docker exec -it mbr_git_$network_number rm -rf /massbit/massbitroute/app/src/sites/services/git/data/*
 docker exec -it mbr_git_$network_number /massbit/massbitroute/app/src/sites/services/git/scripts/run _repo_init
-PRIVATE_GIT_READ=$(docker exec -it mbr_git_$network_number cat /massbit/massbitroute/app/src/sites/services/git/env/git.env)
+PRIVATE_GIT_READ=$(docker exec -it mbr_git_$network_number cat /massbit/massbitroute/app/src/sites/services/git/data/env/git.env  | grep GIT_PRIVATE_READ_URL  | cut -d "=" -f 2 | sed "s/'//g")
 echo $PRIVATE_GIT_READ
 
 cat docker-node/docker-compose.yaml.template |  \
@@ -72,7 +72,7 @@ cat docker-node/docker-compose.yaml.template |  \
      sed "s/\[\[GIT_TAG\]\]/$GIT_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
-     sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \
+     sed "s|\[\[PRIVATE_GIT_READ\]\]|$PRIVATE_GIT_READ|g" | \
      sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g" \
     > docker-node/docker-compose.yaml
 
@@ -87,7 +87,7 @@ cat docker-compose.yaml.template |  \
      sed "s/\[\[GIT_TAG\]\]/$GIT_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
-     sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \     
+     sed "s|\[\[PRIVATE_GIT_READ\]\]|$PRIVATE_GIT_READ|g" | \     
      sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g"  \
     > docker-compose.yaml
 
@@ -102,6 +102,6 @@ cat docker-gateway/docker-compose.yaml.template |  \
      sed "s/\[\[GIT_TAG\]\]/$GIT_TAG/g" | \
      sed "s/\[\[GWMAN_TAG\]\]/$GWMAN_TAG/g" | \
      sed "s/\[\[STAT_TAG\]\]/$STAT_TAG/g" | \
-     sed "s/\[\[PRIVATE_GIT_READ\]\]/$PRIVATE_GIT_READ/g" | \
+     sed "s|\[\[PRIVATE_GIT_READ\]\]|$PRIVATE_GIT_READ|g" | \
      sed "s/\[\[MONITOR_TAG\]\]/$MONITOR_TAG/g"  \
     > docker-gateway/docker-compose.yaml
