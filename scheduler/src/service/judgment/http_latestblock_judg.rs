@@ -13,7 +13,7 @@ use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
 use common::tasks::{LoadConfigs, TaskConfigTrait};
-use common::{BlockChainType, ChainId, NetworkType, Timestamp};
+use common::{BlockChainType, NetworkType, Timestamp};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -84,10 +84,14 @@ impl LatestBlockResultCache {
             "Check latest block for blockchain {:?} with values {:?} and thresholds {:?}",
             &cache_key.blockchain, &result_value, &thresholds
         );
-        match cache_key.blockchain.as_str() {
-            "dot" => self.check_latest_dot_block(cache_key, result_value, comparator, thresholds),
+        match &cache_key.blockchain {
+            BlockChainType::Dot => {
+                self.check_latest_dot_block(cache_key, result_value, comparator, thresholds)
+            }
             //Default use eth check
-            _ => self.check_latest_eth_block(cache_key, result_value, comparator, thresholds),
+            BlockChainType::Eth | BlockChainType::Bsc | BlockChainType::Matic => {
+                self.check_latest_eth_block(cache_key, result_value, comparator, thresholds)
+            }
         }
     }
     fn check_latest_eth_block(
@@ -184,7 +188,7 @@ pub struct HttpLatestBlockJudgment {
     task_configs: Vec<HttpRequestJobConfig>,
     _result_service: Arc<JobResultService>,
     cache_values: LatestBlockResultCache,
-    comparators: HashMap<ChainId, Arc<dyn Comparator>>,
+    comparators: HashMap<BlockChainType, Arc<dyn Comparator>>,
 }
 
 impl HttpLatestBlockJudgment {
@@ -204,7 +208,7 @@ impl HttpLatestBlockJudgment {
     pub fn get_task_config(
         &self,
         phase: &JobRole,
-        blockchain: &String,
+        blockchain: &BlockChainType,
         network: &String,
         provider_type: &ComponentType,
     ) -> Map<String, Value> {
@@ -223,7 +227,7 @@ impl HttpLatestBlockJudgment {
             .map(|config| config.thresholds.clone())
             .unwrap_or_default()
     }
-    pub fn get_comparator(&self, chain_id: &ChainId) -> Arc<dyn Comparator> {
+    pub fn get_comparator(&self, chain_id: &BlockChainType) -> Arc<dyn Comparator> {
         self.comparators
             .get(chain_id)
             .map(|item| item.clone())
@@ -330,9 +334,7 @@ pub mod tests {
     use super::*;
     use crate::CONFIG_DIR;
 
-    use test_util::helper::{
-        load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
-    };
+    use test_util::helper::{load_env, mock_db_connection, mock_job_result, JobName};
 
     #[tokio::test]
     async fn test_http_latest_block_judgment() -> Result<(), Error> {
@@ -373,7 +375,7 @@ pub mod tests {
         // For eth
         let job_result = mock_job_result(
             &JobName::LatestBlock,
-            ChainTypeForTest::Eth,
+            BlockChainType::Eth,
             "",
             Default::default(),
         );
@@ -387,7 +389,7 @@ pub mod tests {
         // For dot
         let job_result = mock_job_result(
             &JobName::LatestBlock,
-            ChainTypeForTest::Dot,
+            BlockChainType::Dot,
             "",
             Default::default(),
         );

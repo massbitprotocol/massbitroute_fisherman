@@ -1,6 +1,6 @@
 {
   "name": "EthWebsocket",
-  "blockchains": ["eth"],
+  "blockchains": ["eth","bsc","matic"],
   "provider_types": ["*"],
   "body": {
     "jsonrpc": "2.0",

@@ -10,7 +10,7 @@ use common::tasks::http_request::{
 };
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
-use common::ComponentInfo;
+use common::{BlockChainType, ComponentInfo};
 use entity::job_result_http_requests;
 use sea_orm::{DatabaseBackend, DatabaseConnection, MockDatabase, MockExecResult};
 use std::collections::HashMap;
@@ -30,20 +30,6 @@ pub enum JobName {
     RoundTripTime,
     LatestBlock,
     Benchmark,
-}
-
-pub enum ChainTypeForTest {
-    Eth,
-    Dot,
-}
-
-impl ToString for ChainTypeForTest {
-    fn to_string(&self) -> String {
-        match self {
-            ChainTypeForTest::Eth => "eth".to_string(),
-            ChainTypeForTest::Dot => "dot".to_string(),
-        }
-    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -133,11 +119,11 @@ pub fn mock_db_connection() -> DatabaseConnection {
 
 pub fn mock_component_info(
     id: &str,
-    chain: &ChainTypeForTest,
+    chain: &BlockChainType,
     component_type: &ComponentType,
 ) -> ComponentInfo {
     ComponentInfo {
-        blockchain: chain.to_string(),
+        blockchain: chain.clone(),
         network: "main".to_string(),
         id: id.to_string(),
         user_id: "user_id".to_string(),
@@ -153,20 +139,14 @@ pub fn mock_component_info(
 
 pub fn mock_job_result(
     job_name: &JobName,
-    chain: ChainTypeForTest,
+    chain: BlockChainType,
     job_id: &str,
     phase: JobRole,
 ) -> JobResult {
     let job = mock_job(job_name, "", job_id, &phase);
-    let chain_info = match chain {
-        ChainTypeForTest::Eth => ChainInfo {
-            chain: "eth".to_string(),
-            network: "main".to_string(),
-        },
-        ChainTypeForTest::Dot => ChainInfo {
-            chain: "dot".to_string(),
-            network: "main".to_string(),
-        },
+    let chain_info = ChainInfo {
+        chain: chain.clone(),
+        network: "main".to_string(),
     };
 
     let job_result_detail = match job_name {
@@ -189,12 +169,12 @@ pub fn mock_job_result(
         }
         JobName::LatestBlock => {
             let detail: JobHttpResponseDetail = match chain {
-                ChainTypeForTest::Eth => {
+                BlockChainType::Eth|BlockChainType::Bsc|BlockChainType::Matic => {
                     serde_json::from_str(r###"
             {"Values": {"inner": {"hash": "0x7e915fa20e34a184701607091cf6715744889751b9485aae7b04ef165aa6cacc", "number": "0xe5a51a", "timestamp": "0x62c217d5"}}}
             "###).unwrap()
                 }
-                ChainTypeForTest::Dot => {
+                BlockChainType::Dot => {
                     serde_json::from_str(r###"
             {"Values": {"inner": {"number": "0xa88c38", "parent_hash": "0x9dc0f5d6d7e25e2b9c6108c57c04daaf63913c71f706ab17ac4f21c58df674e1"}}}
             "###).unwrap()
@@ -223,7 +203,7 @@ pub fn mock_job_result(
 
 pub fn mock_job(job_name: &JobName, component_url: &str, job_id: &str, phase: &JobRole) -> Job {
     let component = ComponentInfo {
-        blockchain: "".to_string(),
+        blockchain: BlockChainType::default(),
         network: "".to_string(),
         id: job_id.to_string(),
         user_id: "".to_string(),

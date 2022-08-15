@@ -57,7 +57,9 @@ impl ReportProcessor for RegularReportProcessor {
                 reports.len()
             );
             let res = adapter.append_job_results(&reports).await;
-            error!("Regular append_job_results error: {res:?}");
+            if res.is_err() {
+                error!("Regular append_job_results error: {res:?}");
+            }
         }
 
         for report in reports {

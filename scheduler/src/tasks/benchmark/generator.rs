@@ -13,7 +13,7 @@ use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job};
 use common::tasks::{LoadConfigs, TaskConfigTrait, TemplateRender};
 use common::workers::MatchedWorkers;
-use common::{PlanId, Timestamp, DOMAIN};
+use common::{NetworkType, PlanId, Timestamp, DOMAIN};
 
 use crate::CONFIG_BENCHMARK_DIR;
 use handlebars::Handlebars;
@@ -73,20 +73,12 @@ impl TaskConfigTrait for BenchmarkConfig {
     fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
-    fn match_blockchain(&self, blockchain: &String) -> bool {
-        let blockchain = blockchain.to_lowercase();
-        if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
-        {
-            log::trace!(
-                "Blockchain {:?} not match with {:?}",
-                &blockchain,
-                &self.blockchains
-            );
-            return false;
-        }
-        true
+
+    fn get_blockchain(&self) -> &Vec<String> {
+        &self.blockchains
     }
-    fn match_network(&self, network: &String) -> bool {
+
+    fn match_network(&self, network: &NetworkType) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
             log::trace!(

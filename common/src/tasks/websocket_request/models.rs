@@ -3,7 +3,7 @@ use crate::job_manage::JobRole;
 use crate::jobs::AssignmentConfig;
 use crate::models::{ResponseConfig, ResponseValues};
 use crate::tasks::{LoadConfigs, TaskConfigTrait};
-use crate::{ComponentInfo, Timestamp};
+use crate::{BlockChainType, ComponentInfo, NetworkType, Timestamp};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -165,11 +165,14 @@ impl JobWebsocketConfig {
 }
 
 impl TaskConfigTrait for JobWebsocketConfig {
+    fn get_blockchain(&self) -> &Vec<String> {
+        &self.blockchains
+    }
     fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
-    fn match_blockchain(&self, blockchain: &String) -> bool {
-        let blockchain = blockchain.to_lowercase();
+    fn match_blockchain(&self, blockchain: &BlockChainType) -> bool {
+        let blockchain = blockchain.to_string().to_lowercase();
         if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
         {
             log::trace!(
@@ -181,7 +184,7 @@ impl TaskConfigTrait for JobWebsocketConfig {
         }
         true
     }
-    fn match_network(&self, network: &String) -> bool {
+    fn match_network(&self, network: &NetworkType) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
             log::trace!(

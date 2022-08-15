@@ -1,7 +1,7 @@
 use crate::seaorm::plans::Model as PlanModel;
 use crate::seaorm::{
-    job_assignments, job_result_benchmarks, job_result_http_requests,
-    job_result_pings, jobs, plans, workers,
+    job_assignments, job_result_benchmarks, job_result_http_requests, job_result_pings, jobs,
+    plans, workers,
 };
 use common::component::{ChainInfo, ComponentType, Zone};
 use common::job_manage::{JobBenchmarkResult, JobResultDetail, JobRole};
@@ -257,8 +257,7 @@ impl From<&JobResult> for job_result_http_requests::ActiveModel {
                 .chain_info
                 .as_ref()
                 .unwrap_or(&ChainInfo::default())
-                .chain_id()
-                .clone()),
+                .to_string()),
             http_code: Set(result.response.http_code as i32),
             error_code: Set(result.response.error_code as i32),
             message: Set(result.response.message.to_string()),

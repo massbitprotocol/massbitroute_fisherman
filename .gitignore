@@ -26,3 +26,4 @@ logs/
 /scripts/test/nodelist.csv
 /scripts/test/docker-gateway/docker-compose.yaml
 /scripts/test/docker-node/docker-compose.yaml
+/.env_fisherman
