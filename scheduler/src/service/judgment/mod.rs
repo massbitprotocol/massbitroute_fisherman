@@ -38,7 +38,7 @@ impl JudgmentsResult {
         self == &JudgmentsResult::Pass
     }
     pub fn is_failed(&self) -> bool {
-        self == &JudgmentsResult::Failed
+        self == &JudgmentsResult::Failed || self == &JudgmentsResult::Error
     }
     pub fn is_concluded(&self) -> bool {
         self == &JudgmentsResult::Pass

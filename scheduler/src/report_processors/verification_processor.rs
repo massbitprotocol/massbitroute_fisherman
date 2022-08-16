@@ -247,8 +247,19 @@ impl VerificationReportProcessor {
         let mut final_result = JudgmentsResult::Pass;
         for (job_id, plan_result) in plan_results {
             message.push_str(&format!("{} {:?}; ", job_id, &plan_result));
-            if plan_result != JudgmentsResult::Pass {
-                final_result = plan_result;
+            match plan_result {
+                JudgmentsResult::Pass => continue,
+                JudgmentsResult::Failed => {
+                    final_result = JudgmentsResult::Failed;
+                }
+                JudgmentsResult::Unfinished => {
+                    if final_result == JudgmentsResult::Pass {
+                        final_result = JudgmentsResult::Unfinished;
+                    }
+                }
+                JudgmentsResult::Error => {
+                    final_result = JudgmentsResult::Error;
+                }
             }
         }
 
@@ -263,6 +274,11 @@ impl VerificationReportProcessor {
         if results.is_empty() {
             return JudgmentsResult::Unfinished;
         }
+        // Check if there is error or failed
+        if results.iter().any(|(_key, res)| res.is_failed()) {
+            return JudgmentsResult::Failed;
+        }
+
         // Check if all job report
         for job in plan_jobs {
             if !results
@@ -274,8 +290,8 @@ impl VerificationReportProcessor {
         }
         //Handle plan result
         for (_, plan_result) in results.iter() {
-            if plan_result != &JudgmentsResult::Pass {
-                return plan_result.clone();
+            if plan_result == &JudgmentsResult::Unfinished {
+                return JudgmentsResult::Unfinished;
             }
         }
         JudgmentsResult::Pass
