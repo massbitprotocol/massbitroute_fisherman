@@ -87,7 +87,7 @@ impl HttpRequestExecutor {
                         detail: JobHttpResponseDetail::default(),
                         http_code,
                         error_code: 1,
-                        message: "error".to_string(),
+                        message: format!("parse_response error: {:?}", err),
                     })
                 }
             }

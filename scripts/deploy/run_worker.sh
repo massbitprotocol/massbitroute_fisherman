@@ -3,7 +3,7 @@
 export ROOT=/massbit/massbitroute/app/src/sites/services/gateway
 
 export DOMAIN=massbitroute.net
-export RUST_LOG=info
+export RUST_LOG=debug
 export SCHEDULER_ENDPOINT=https://scheduler.fisherman.$DOMAIN
 export WORKER_IP=$(curl ifconfig.me)
 export ZONE={{ZONE}}
