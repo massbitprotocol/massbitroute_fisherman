@@ -44,10 +44,5 @@ lazy_static! {
         env::var("BENCHMARK_WRK_PATH").expect("There is no env var BENCHMARK_WRK_PATH");
     pub static ref SCHEDULER_AUTHORIZATION: String =
         env::var("SCHEDULER_AUTHORIZATION").expect("There is no env var SCHEDULER_AUTHORIZATION");
+    pub static ref BUILD_VERSION: String = format!("{}", env!("BUILD_VERSION"));
 }
-
-// fn get_config() -> Config {
-//     let json = std::fs::read_to_string(CONFIG_FILE)
-//         .unwrap_or_else(|err| panic!("Unable to read config file `{}`: {}", CONFIG_FILE, err));
-//     serde_json::from_str::<Config>(&*json).unwrap()
-// }

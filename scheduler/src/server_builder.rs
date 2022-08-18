@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
+use serde_json::json;
 use std::sync::Arc;
 
 use warp::http::{HeaderMap, Method};
@@ -17,7 +18,7 @@ use warp::{Filter, Rejection};
 
 use crate::handler::{handle_rejection, handle_route_reports, UnAuthorization};
 use crate::state::{ProcessorState, SchedulerState};
-use crate::SCHEDULER_AUTHORIZATION;
+use crate::{BUILD_VERSION, SCHEDULER_AUTHORIZATION};
 use common::workers::WorkerInfo;
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
@@ -89,6 +90,7 @@ impl SchedulerServer {
         let router = self
             .create_ping()
             .with(&cors)
+            .or(self.create_version().with(&cors))
             .or(self
                 .create_route_worker_register(
                     self.scheduler_service.clone(),
@@ -128,6 +130,16 @@ impl SchedulerServer {
         warp::path!("ping").and(warp::get()).map(move || {
             info!("Receive ping request");
             Ok(warp::reply::json(&SimpleResponse { success: true }))
+        })
+    }
+
+    /// Version API
+    fn create_version(&self) -> impl Filter<Extract = impl warp::Reply, Error = Rejection> + Clone {
+        warp::path!("version").and(warp::get()).map(move || {
+            info!("Receive get version request");
+            let res = json!({ "version": &*BUILD_VERSION });
+            info!("BUILD_VERSION: {}", &*BUILD_VERSION);
+            Ok(warp::reply::json(&res))
         })
     }
 
@@ -303,8 +315,9 @@ mod tests {
 
     use crate::models::job_result_cache::JobResultCache;
     use crate::service::report_portal::ReportRecord;
+    use chrono::FixedOffset;
     use common::logger::init_logger;
-    use serde_json::{json, Value};
+    use serde_json::json;
     use std::time::Duration;
     use test_util::helper::{load_env, mock_db_connection};
     use tokio::fs;
@@ -650,5 +663,15 @@ mod tests {
         assert_eq!(resp, SimpleResponse { success: true });
 
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_version() {
+        let _res = init_logger(&String::from("Testing-Scheduler"));
+        info!("***time");
+        let time = chrono::offset::Local::now()
+            .with_timezone(&FixedOffset::east(7 * 60 * 60))
+            .to_string();
+        println!("time: {}", time);
     }
 }
