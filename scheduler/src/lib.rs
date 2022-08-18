@@ -74,4 +74,5 @@ lazy_static! {
         env::var("IS_VERIFY_REPORT").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_VERIFY_REPORT, e.g. true");
     pub static ref IS_REGULAR_REPORT: bool =
         env::var("IS_REGULAR_REPORT").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_REGULAR_REPORT, e.g. true");
+    pub static ref BUILD_VERSION: String = format!("{}", env!("BUILD_VERSION"));
 }

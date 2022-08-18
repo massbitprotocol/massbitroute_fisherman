@@ -10,7 +10,9 @@ use warp::http::{HeaderMap, Method};
 
 use crate::services::WebService;
 use crate::state::WorkerState;
+use crate::BUILD_VERSION;
 use common::workers::WorkerStateParam;
+use serde_json::json;
 use std::default::Default;
 use tokio::sync::Mutex;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
@@ -68,6 +70,7 @@ impl WorkerServer {
             .or(self
                 .create_route_handle_jobs(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
+            .or(self.create_version().with(&cors))
             .or(self
                 .create_route_update_jobs(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
@@ -91,6 +94,17 @@ impl WorkerServer {
                 Self::simple_response(true).await
             })
     }
+
+    /// Version API
+    fn create_version(&self) -> impl Filter<Extract = impl warp::Reply, Error = Rejection> + Clone {
+        warp::path!("version").and(warp::get()).map(move || {
+            info!("Receive get version request");
+            let res = json!({ "version": &*BUILD_VERSION });
+            info!("BUILD_VERSION: {}", &*BUILD_VERSION);
+            Ok(warp::reply::json(&res))
+        })
+    }
+
     pub(crate) async fn simple_response(success: bool) -> Result<impl Reply, Rejection> {
         let res = SimpleResponse { success };
         Ok(warp::reply::json(&res))
