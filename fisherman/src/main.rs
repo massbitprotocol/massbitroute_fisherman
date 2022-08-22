@@ -25,7 +25,7 @@ use tokio::time::sleep;
 #[tokio::main]
 async fn main() {
     // Load env file
-    dotenv::from_filename(".env_fisherman").expect("Cannot load .env_fisherman");
+    let _ = dotenv::from_filename(".env_fisherman");
     // Init logger
     let _res = init_logger(&String::from("Fisherman-worker"));
     // Create job queue

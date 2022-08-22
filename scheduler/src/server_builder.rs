@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 
+use serde_json::json;
 use std::sync::Arc;
 
 use warp::http::{HeaderMap, Method};
@@ -17,7 +18,7 @@ use warp::{Filter, Rejection};
 
 use crate::handler::{handle_rejection, handle_route_reports, UnAuthorization};
 use crate::state::{ProcessorState, SchedulerState};
-use crate::SCHEDULER_AUTHORIZATION;
+use crate::{BUILD_VERSION, SCHEDULER_AUTHORIZATION};
 use common::workers::WorkerInfo;
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
@@ -89,6 +90,7 @@ impl SchedulerServer {
         let router = self
             .create_ping()
             .with(&cors)
+            .or(self.create_version().with(&cors))
             .or(self
                 .create_route_worker_register(
                     self.scheduler_service.clone(),
@@ -131,6 +133,16 @@ impl SchedulerServer {
         })
     }
 
+    /// Version API
+    fn create_version(&self) -> impl Filter<Extract = impl warp::Reply, Error = Rejection> + Clone {
+        warp::path!("version").and(warp::get()).map(move || {
+            info!("Receive get version request");
+            let res = json!({ "version": &*BUILD_VERSION });
+            info!("BUILD_VERSION: {}", &*BUILD_VERSION);
+            Ok(warp::reply::json(&res))
+        })
+    }
+
     fn create_route_worker_register(
         &self,
         service: Arc<WebService>,
@@ -146,7 +158,10 @@ impl SchedulerServer {
                 let clone_state = state.clone();
                 async move {
                     if authorization == *SCHEDULER_AUTHORIZATION {
-                        info!("#### Received request body {:?} ####", &worker_info);
+                        info!(
+                            "#### Received register worker request body {:?} ####",
+                            &worker_info
+                        );
 
                         clone_service
                             .register_worker(worker_info, clone_state)
@@ -205,7 +220,7 @@ impl SchedulerServer {
                 let clone_state = state.clone();
                 async move {
                     if authorization == *SCHEDULER_AUTHORIZATION {
-                        info!("#### Received request body {:?} ####", &node_info);
+                        info!("#### Received verify request body {:?} ####", &node_info);
                         Ok(clone_service.node_verify(node_info, clone_state).await)
                     } else {
                         Err(warp::reject::custom(UnAuthorization))
@@ -292,19 +307,21 @@ mod tests {
     use crate::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 
     use anyhow::Error;
-    use common::logger::init_logger;
+
     use common::task_spawn;
     use reqwest::Client;
-    use sea_orm::{entity::prelude::*, DatabaseBackend, MockDatabase};
+    use sea_orm::{DatabaseBackend, MockDatabase};
     use std::env;
 
     use crate::models::job_result_cache::JobResultCache;
-    use futures_util::AsyncBufReadExt;
+    use crate::service::report_portal::ReportRecord;
+    use chrono::FixedOffset;
+    use common::logger::init_logger;
     use serde_json::json;
     use std::time::Duration;
     use test_util::helper::{load_env, mock_db_connection};
     use tokio::fs;
-    use tokio::time::sleep;
+    use tokio::time::{sleep, Instant};
 
     #[tokio::test]
     async fn test_api_ping_scheduler() -> Result<(), Error> {
@@ -532,7 +549,9 @@ mod tests {
         let resp: SimpleResponse = serde_json::from_str(&resp)?;
 
         assert_eq!(resp, SimpleResponse { success: true });
-        let expect_output_line = r###"{"provider_task":{"provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","provider_type":"Gateway","task_name":"RoundTripTime","task_type":"HttpRequest"},"result":"Failed"}"###;
+        let expect_output_line = r###"{"report_time":"","provider_id":"9cee993f-41bf-47c3-9e3c-c725976a33cd","plan_id":"","result":{"Failed":{"inner":[{"job_name":"HttpPing","failed_detail":"95% response duration : 29606 > 500"}]}}}"###;
+        let expect_output: ReportRecord = serde_json::from_str(expect_output_line).unwrap();
+
         let now = Instant::now();
         loop {
             assert!(now.elapsed().as_secs() < 20);
@@ -541,8 +560,9 @@ mod tests {
                 .expect("Unable to read file");
 
             let line = data.lines().rev().next().unwrap_or_default();
-
-            if line == expect_output_line {
+            let mut output: ReportRecord = serde_json::from_str(line).unwrap();
+            output.report_time = "".to_string();
+            if expect_output == output {
                 info!("Reported the bad node!");
                 assert!(true);
                 break;
@@ -643,5 +663,15 @@ mod tests {
         assert_eq!(resp, SimpleResponse { success: true });
 
         Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_version() {
+        let _res = init_logger(&String::from("Testing-Scheduler"));
+        info!("***time");
+        let time = chrono::offset::Local::now()
+            .with_timezone(&FixedOffset::east(7 * 60 * 60))
+            .to_string();
+        println!("time: {}", time);
     }
 }

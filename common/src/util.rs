@@ -1,5 +1,6 @@
 use crate::Timestamp;
 use anyhow::{anyhow, Error};
+use chrono::FixedOffset;
 use log::{debug, warn};
 use regex::Regex;
 /*
@@ -11,6 +12,16 @@ pub fn get_current_time() -> Timestamp {
         .expect("Unix time doesn't go backwards; qed")
         .as_millis() as Timestamp
 }
+
+/*
+ * Get current datetime utc +7 in string
+ */
+pub fn get_datetime_utc_7() -> String {
+    chrono::offset::Local::now()
+        .with_timezone(&FixedOffset::east(7 * 60 * 60))
+        .to_string()
+}
+
 pub fn remove_break_line(input: &String) -> String {
     match Regex::new(r#"^\s*(?P<result>[\s\S]*?)\s*$"#).map(|regex| {
         let caps = regex.captures(input).unwrap();

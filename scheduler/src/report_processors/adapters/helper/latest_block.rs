@@ -24,20 +24,7 @@ pub struct LatestBlockEntity {
     pub max_block_number: Option<i64>,
     pub response_timestamp: i64,
 }
-#[derive(Clone, Default, Eq, Hash, PartialEq)]
-pub struct BlockChainId {
-    pub blockchain: String,
-    pub network: String,
-}
 
-impl BlockChainId {
-    pub fn new(blockchain: String, network: String) -> Self {
-        Self {
-            blockchain,
-            network,
-        }
-    }
-}
 #[derive(Clone, Default, Debug)]
 pub struct LatestBlockValue {
     pub block_timestamp: Option<i64>,
@@ -78,9 +65,9 @@ impl From<HttpResponseValues> for LatestBlockValue {
 #[derive(Clone, Default)]
 pub struct LatestBlockCache {
     pub latest_flush_timestamp: i64,
-    pub max_block_number: HashMap<BlockChainId, i64>,
-    pub max_block_timestamp: HashMap<BlockChainId, i64>,
-    pub latest_values: HashMap<BlockChainId, HashMap<ComponentId, LatestBlockValue>>,
+    pub max_block_number: HashMap<ChainInfo, i64>,
+    pub max_block_timestamp: HashMap<ChainInfo, i64>,
+    pub latest_values: HashMap<ChainInfo, HashMap<ComponentId, LatestBlockValue>>,
 }
 
 impl LatestBlockCache {
@@ -135,7 +122,7 @@ impl LatestBlockCache {
         provider_id: ComponentId,
         latest_value: LatestBlockValue,
     ) {
-        let block_id = BlockChainId::new(chain_info.chain.clone(), chain_info.network.clone());
+        let block_id = ChainInfo::new(chain_info.chain.clone(), chain_info.network.clone());
         if let Some(val) = latest_value.block_timestamp {
             let max = self
                 .max_block_timestamp
@@ -168,7 +155,7 @@ impl LatestBlockCache {
                     let model = ProviderLatestBlockModel {
                         id: 0,
                         provider_id: comp_id.clone(),
-                        blockchain: blockchain_id.blockchain.clone(),
+                        blockchain: blockchain_id.chain.to_string(),
                         network: blockchain_id.network.clone(),
                         blockhash: value.block_hash.clone(),
                         block_timestamp: value.block_timestamp.clone(),

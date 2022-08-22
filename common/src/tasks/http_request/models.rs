@@ -218,18 +218,8 @@ impl TaskConfigTrait for HttpRequestJobConfig {
     fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
-    fn match_blockchain(&self, blockchain: &String) -> bool {
-        let blockchain = blockchain.to_lowercase();
-        if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
-        {
-            log::trace!(
-                "Blockchain {:?} not match with {:?}",
-                &blockchain,
-                &self.blockchains
-            );
-            return false;
-        }
-        true
+    fn get_blockchain(&self) -> &Vec<String> {
+        &self.blockchains
     }
     fn match_network(&self, network: &String) -> bool {
         let network = network.to_lowercase();
