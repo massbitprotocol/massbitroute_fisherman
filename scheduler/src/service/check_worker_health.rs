@@ -6,7 +6,7 @@ use crate::CONFIG;
 use anyhow::{anyhow, Error};
 use common::util::get_current_time;
 use common::workers::Worker;
-use common::{Timestamp, WorkerId};
+use common::{Timestamp, WorkerId, DEFAULT_HTTP_REQUEST_TIMEOUT};
 use log::{debug, info, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -146,7 +146,13 @@ impl WorkerHealthService {
             .danger_accept_invalid_certs(true)
             .timeout(Duration::from_millis(4000))
             .build()?;
-        let resp = client.get(&url).send().await?.text().await?;
+        let resp = client
+            .get(&url)
+            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT))
+            .send()
+            .await?
+            .text()
+            .await?;
         let resp: SimpleResponse = serde_json::from_str(&resp)?;
         let expect_resp = SimpleResponse { success: true };
         debug!("ping {} worker rtt: {:?}", url, resp);
