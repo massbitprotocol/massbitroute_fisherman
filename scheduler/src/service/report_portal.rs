@@ -2,14 +2,14 @@ use crate::{URL_PORTAL_PROVIDER_REPORT, URL_PORTAL_PROVIDER_VERIFY};
 use anyhow::{anyhow, Error};
 use common::component::ComponentType;
 use common::job_manage::JobRole;
-use common::{ComponentId, Deserialize, Serialize};
+use common::{ComponentId, Deserialize, Serialize, DEFAULT_HTTP_REQUEST_TIMEOUT};
 use log::{debug, info};
 use reqwest::Response;
 use serde_json::Value;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const REPORT_PATH: &str = "logs/report.txt";
 
@@ -117,7 +117,8 @@ impl StoreReport {
             .post(url)
             .header("content-type", "application/json")
             .header("Authorization", &self.authorization)
-            .body(body);
+            .body(body)
+            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT));
         debug!("request_builder: {:?}", request_builder);
         let response = request_builder.send().await?;
         Ok(response)

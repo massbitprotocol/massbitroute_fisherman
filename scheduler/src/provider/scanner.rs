@@ -9,6 +9,7 @@ use reqwest::Client;
 use std::sync::Arc;
 use std::time::Duration;
 
+use common::DEFAULT_HTTP_REQUEST_TIMEOUT;
 use tokio::time::sleep;
 
 pub struct ProviderScanner {
@@ -114,6 +115,7 @@ impl ProviderScanner {
             .client
             .get(url)
             .header("Authorization", PORTAL_AUTHORIZATION.as_str())
+            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT))
             .send()
             .await?
             .text()

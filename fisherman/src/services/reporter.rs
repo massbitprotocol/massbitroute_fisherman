@@ -1,6 +1,7 @@
 use crate::JOB_RESULT_REPORTER_PERIOD;
 use anyhow::anyhow;
 use common::jobs::JobResult;
+use common::DEFAULT_HTTP_REQUEST_TIMEOUT;
 use log::{debug, info, trace};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Receiver;
@@ -52,6 +53,7 @@ impl JobResultReporter {
             .post(call_back)
             .header("content-type", "application/json")
             .body(body)
+            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT))
             .send()
             .await;
         info!("Send response: {:?}", result);
