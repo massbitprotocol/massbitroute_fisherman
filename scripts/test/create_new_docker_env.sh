@@ -11,6 +11,9 @@ export GIT_TAG=v0.1.5
 export GWMAN_TAG=v0.1.0
 export STAT_TAG=v0.1.0
 export MONITOR_TAG=v0.1.0
+export GATEWAY_TAG=v0.1.0
+export NODE_TAG=v0.1.0
+
 
 while docker network ls -q | grep "$find_string"
 do
@@ -58,8 +61,10 @@ docker-compose up -d
 docker exec -it mbr_git_$network_number rm -rf /massbit/massbitroute/app/src/sites/services/git/vars/*
 docker exec -it mbr_git_$network_number rm -rf /massbit/massbitroute/app/src/sites/services/git/data/*
 docker exec -it mbr_git_$network_number /massbit/massbitroute/app/src/sites/services/git/scripts/run _repo_init
-PRIVATE_GIT_READ=$(docker exec -it mbr_git_$network_number cat /massbit/massbitroute/app/src/sites/services/git/data/env/git.env  | grep GIT_PRIVATE_READ_URL  | cut -d "=" -f 2 | sed "s/'//g")
+PRIVATE_GIT_READ=$(docker exec -it mbr_git_$network_number cat /massbit/massbitroute/app/src/sites/services/git/data/env/git.env  | grep GIT_PRIVATE_READ_URL  | cut -d "=" -f 2 | sed "s/'//g" | sed "s|http://||g")
 echo $PRIVATE_GIT_READ
+
+
 
 cat docker-node/docker-compose.yaml.template |  \
 	 sed "s/\[\[RUN_ID\]\]/$network_number/g" | \
