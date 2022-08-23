@@ -77,6 +77,7 @@ impl WorkerHealthService {
     }
 
     async fn update_status_and_remove_bad_worker(&mut self) {
+        // Update worker.update_time
         {
             let results = self.result_cache.result_cache_map.lock().await;
             // Check if worker sent results in cache
@@ -87,7 +88,6 @@ impl WorkerHealthService {
                             if worker.update_time < result.receive_timestamp {
                                 //info!("Update worker status: worker.update_time: {} < result.receive_timestamp: {}",worker.update_time, result.receive_timestamp);
                                 worker.update_time = result.receive_timestamp;
-                                worker.health = WorkerHealth::Good;
                             }
                         }
                     }
@@ -95,6 +95,7 @@ impl WorkerHealthService {
             }
         }
 
+        // Judge worker status
         for (_id, status) in self.workers_status.iter_mut() {
             let now = get_current_time();
             if now - status.update_time > CONFIG.update_worker_list_interval * 1000 {
