@@ -20,7 +20,7 @@ lazy_static! {
     pub static ref WORKER_ID: String =
         env::var("WORKER_ID").expect("There is no env var WORKER_ID");
     pub static ref COMMON_CONFIG_FILE: String =
-        env::var("COMMON_CONFIG_FILE").unwrap_or_else(|_| String::from("common.json"));
+        env::var("COMMON_CONFIG_FILE").expect("There is no env var WORKER_ID");
     pub static ref COMMON_CONFIG: Config = Config::load(COMMON_CONFIG_FILE.as_str());
 }
 
