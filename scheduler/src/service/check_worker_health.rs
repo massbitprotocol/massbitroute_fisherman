@@ -6,7 +6,7 @@ use crate::CONFIG;
 use anyhow::{anyhow, Error};
 use common::util::get_current_time;
 use common::workers::Worker;
-use common::{Timestamp, WorkerId, DEFAULT_HTTP_REQUEST_TIMEOUT};
+use common::{Timestamp, WorkerId, COMMON_CONFIG};
 use log::{debug, info, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -149,7 +149,9 @@ impl WorkerHealthService {
             .build()?;
         let resp = client
             .get(&url)
-            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT))
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ))
             .send()
             .await?
             .text()

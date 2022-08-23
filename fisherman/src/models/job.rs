@@ -1,7 +1,7 @@
 use common::jobs::Job;
 use common::util::get_current_time;
 
-use log::trace;
+use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -50,6 +50,7 @@ impl JobBuffer {
         self.jobs.len()
     }
     pub fn pop_job(&mut self) -> Option<Job> {
+        debug!("Jobs in queue: {}", self.jobs.len());
         let first_expected_time = self.jobs.front().and_then(|job| {
             log::trace!(
                 "Found new job with expected runtime {}: {:?}",
@@ -91,7 +92,7 @@ impl JobBuffer {
 #[cfg(test)]
 mod test {
     use crate::models::job::JobBuffer;
-    
+
     use common::job_manage::JobDetail;
     use common::jobs::Job;
     use common::tasks::http_request::JobHttpRequest;

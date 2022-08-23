@@ -249,7 +249,7 @@ impl VerificationReportProcessor {
         let mut final_result = JudgmentsResult::Pass;
 
         let mut reasons = ReportFailedReasons::new(vec![]);
-        for (job_id, plan_result) in plan_results {
+        for (_job_id, plan_result) in plan_results {
             match plan_result {
                 JudgmentsResult::Pass => continue,
                 JudgmentsResult::Failed(sub_reasons) => {

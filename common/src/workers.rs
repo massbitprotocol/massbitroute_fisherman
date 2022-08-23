@@ -1,7 +1,7 @@
 use crate::component::Zone;
 use crate::jobs::Job;
 use crate::models::TimeFrames;
-use crate::{ComponentInfo, IPAddress, WorkerId, DEFAULT_HTTP_REQUEST_TIMEOUT};
+use crate::{ComponentInfo, IPAddress, WorkerId, COMMON_CONFIG};
 use anyhow::anyhow;
 use rand::Rng;
 use reqwest::Body;
@@ -111,7 +111,9 @@ impl Worker {
             .post(self.worker_info.url.as_str())
             .header("content-type", "application/json")
             .body(serde_json::to_string(&vec![job])?)
-            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT));
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         match request_builder.send().await {
             Ok(res) => {
                 log::debug!("Worker response: {:?}", res);
@@ -140,7 +142,9 @@ impl Worker {
             .header("content-type", "application/json")
             .header("Host", self.get_host())
             .body(body)
-            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT));
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         match request_builder.send().await {
             Ok(res) => {
                 log::debug!("Worker response: {:?}", res);

@@ -3,7 +3,7 @@ use crate::{URL_PORTAL_PROVIDER_REPORT, URL_PORTAL_PROVIDER_VERIFY};
 use anyhow::{anyhow, Error};
 use common::component::ComponentType;
 use common::job_manage::JobRole;
-use common::{ComponentId, Deserialize, PlanId, Serialize, DEFAULT_HTTP_REQUEST_TIMEOUT};
+use common::{ComponentId, Deserialize, PlanId, Serialize, COMMON_CONFIG};
 use log::{debug, info};
 use reqwest::Response;
 
@@ -224,7 +224,9 @@ impl StoreReport {
             .header("content-type", "application/json")
             .header("Authorization", &self.authorization)
             .body(body)
-            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT));
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         debug!("request_builder: {:?}", request_builder);
         let response = request_builder.send().await?;
         Ok(response)

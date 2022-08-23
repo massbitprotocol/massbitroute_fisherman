@@ -3,7 +3,7 @@ use common::jobs::JobResult;
 use common::logger::init_logger;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
 
-use common::DEFAULT_HTTP_REQUEST_TIMEOUT;
+use common::COMMON_CONFIG;
 use fisherman::models::job::JobBuffer;
 use fisherman::server_builder::WebServerBuilder;
 use fisherman::server_config::AccessControl;
@@ -82,7 +82,9 @@ async fn try_register() -> Result<WorkerRegisterResult, Error> {
             .header("content-type", "application/json")
             .header("authorization", &*SCHEDULER_AUTHORIZATION)
             .body(clone_body)
-            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT));
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         debug!("Register worker request builder: {:?}", request_builder);
         let response = request_builder.send().await;
         if response.is_err() {

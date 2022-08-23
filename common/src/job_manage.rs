@@ -14,7 +14,8 @@ use crate::tasks::http_request::{JobHttpRequest, JobHttpResult};
 use crate::tasks::ping::JobPingResult;
 use crate::tasks::rpc_request::{JobRpcRequest, JobRpcResult};
 use crate::tasks::websocket_request::{JobWebsocket, JobWebsocketResult};
-use crate::{BlockChainType, JobId, Timestamp, WorkerId, DEFAULT_HTTP_REQUEST_TIMEOUT};
+use crate::{BlockChainType, JobId, Timestamp, WorkerId, COMMON_CONFIG};
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -163,7 +164,9 @@ impl JobResultDetail {
             .post(url)
             .header("content-type", "application/json")
             .body(body)
-            .timeout(Duration::from_millis(DEFAULT_HTTP_REQUEST_TIMEOUT));
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         info!("request_builder: {:?}", request_builder);
 
         let sender = request_builder.send().await?.text().await?;
