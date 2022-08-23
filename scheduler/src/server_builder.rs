@@ -214,12 +214,15 @@ impl SchedulerServer {
             .and(SchedulerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
-            .and(warp::header::<String>("authorization"))
-            .and_then(move |node_info: ComponentInfo, authorization: String| {
+            // Temporary disable authorization for compatible with portal
+            // .and(warp::header::<String>("authorization"))
+            // .and_then(move |node_info: ComponentInfo, authorization: String| {
+            .and_then(move |node_info: ComponentInfo| {
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move {
-                    if authorization == *SCHEDULER_AUTHORIZATION {
+                    // if authorization == *SCHEDULER_AUTHORIZATION {
+                    if true {
                         info!("#### Received verify request body {:?} ####", &node_info);
                         Ok(clone_service.node_verify(node_info, clone_state).await)
                     } else {
