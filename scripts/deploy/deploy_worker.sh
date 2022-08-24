@@ -20,6 +20,7 @@ do
   rsync -avz ../../target/release/fisherman "worker-demo-$ZN:~/fisherman/fisherman"
   rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
   rsync -avz ../../.env_fisherman "worker-demo-$ZN:~/fisherman/.env_fisherman"
+  rsync -avz ../../common/configs/common.json "scheduler:~/fisherman/"
 
   # Create run script
   cat run_worker.sh | sed "s/{{ZONE}}/$ZN/g" > _run_worker_"$ZN".sh
