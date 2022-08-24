@@ -3,6 +3,7 @@ use common::jobs::JobResult;
 use common::logger::init_logger;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
 
+use common::COMMON_CONFIG;
 use fisherman::models::job::JobBuffer;
 use fisherman::server_builder::WebServerBuilder;
 use fisherman::server_config::AccessControl;
@@ -13,7 +14,7 @@ use fisherman::{
     WORKER_IP, WORKER_SERVICE_ENDPOINT, ZONE,
 };
 use futures_util::future::join3;
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use reqwest::StatusCode;
 use std::sync::Arc;
 use std::time::Duration;
@@ -80,11 +81,15 @@ async fn try_register() -> Result<WorkerRegisterResult, Error> {
             .post(scheduler_url)
             .header("content-type", "application/json")
             .header("authorization", &*SCHEDULER_AUTHORIZATION)
-            .body(clone_body);
+            .body(clone_body)
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         debug!("Register worker request builder: {:?}", request_builder);
         let response = request_builder.send().await;
         if response.is_err() {
             sleep(Duration::from_millis(2000)).await;
+            error!("Register worker Error: {:?}", response);
             continue;
         }
         let response = response.unwrap();

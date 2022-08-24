@@ -6,7 +6,7 @@ use crate::CONFIG;
 use anyhow::{anyhow, Error};
 use common::util::get_current_time;
 use common::workers::Worker;
-use common::{Timestamp, WorkerId};
+use common::{Timestamp, WorkerId, COMMON_CONFIG};
 use log::{debug, info, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -77,6 +77,7 @@ impl WorkerHealthService {
     }
 
     async fn update_status_and_remove_bad_worker(&mut self) {
+        // Update worker.update_time
         {
             let results = self.result_cache.result_cache_map.lock().await;
             // Check if worker sent results in cache
@@ -87,7 +88,6 @@ impl WorkerHealthService {
                             if worker.update_time < result.receive_timestamp {
                                 //info!("Update worker status: worker.update_time: {} < result.receive_timestamp: {}",worker.update_time, result.receive_timestamp);
                                 worker.update_time = result.receive_timestamp;
-                                worker.health = WorkerHealth::Good;
                             }
                         }
                     }
@@ -95,6 +95,7 @@ impl WorkerHealthService {
             }
         }
 
+        // Judge worker status
         for (_id, status) in self.workers_status.iter_mut() {
             let now = get_current_time();
             if now - status.update_time > CONFIG.update_worker_list_interval * 1000 {
@@ -146,7 +147,15 @@ impl WorkerHealthService {
             .danger_accept_invalid_certs(true)
             .timeout(Duration::from_millis(4000))
             .build()?;
-        let resp = client.get(&url).send().await?.text().await?;
+        let resp = client
+            .get(&url)
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ))
+            .send()
+            .await?
+            .text()
+            .await?;
         let resp: SimpleResponse = serde_json::from_str(&resp)?;
         let expect_resp = SimpleResponse { success: true };
         debug!("ping {} worker rtt: {:?}", url, resp);

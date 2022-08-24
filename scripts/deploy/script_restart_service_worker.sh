@@ -1,5 +1,5 @@
 cd fisherman
-SESSION=fisherman_worker
-tmux kill-session -t $SESSION
+
+tmux kill-session -t fisherman_worker
 sleep 3
-tmux new-session -d -s $SESSION 'bash run.sh > fisherman.log 2>&1'
+tmux new-session -d -s fisherman_worker 'bash run.sh >> fisherman.log 2>&1'

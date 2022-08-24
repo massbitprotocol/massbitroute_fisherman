@@ -77,6 +77,7 @@ impl ReportProcessor for VerificationReportProcessor {
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         let mut plan_ids = HashSet::<PlanId>::new();
 
+        // Add report to provider_task_results and plan_ids
         for report in reports {
             plan_ids.insert(report.plan_id.clone());
             let key = ProviderTask::new(
@@ -136,7 +137,7 @@ impl ReportProcessor for VerificationReportProcessor {
         }
         debug!("Active task results {:?}", &active_provider_task_results);
 
-        // Get active report for s
+        // Get active report for storage
         let mut active_reports = vec![];
         for job_results in active_provider_task_results.values() {
             active_reports.extend_from_slice(job_results);
@@ -245,7 +246,23 @@ impl VerificationReportProcessor {
             .await;
 
         //Handle plan result
-        let final_result = JudgmentsResult::Pass;
+        let mut final_result = JudgmentsResult::Pass;
+
+        let mut reasons = ReportFailedReasons::new(vec![]);
+        for (_job_id, plan_result) in plan_results {
+            match plan_result {
+                JudgmentsResult::Pass => continue,
+                JudgmentsResult::Failed(sub_reasons) => {
+                    reasons.extend(sub_reasons.clone().into_inner());
+                }
+                JudgmentsResult::Unfinished => {
+                    final_result = JudgmentsResult::Unfinished;
+                }
+            }
+        }
+        if !reasons.is_empty() {
+            final_result = JudgmentsResult::Failed(reasons);
+        }
 
         self.report_judgment_result(&provider_task, plan, final_result)
             .await;
@@ -258,6 +275,7 @@ impl VerificationReportProcessor {
         if results.is_empty() {
             return JudgmentsResult::Unfinished;
         }
+
         // Check if all job report
         for job in plan_jobs {
             if !results
@@ -268,6 +286,7 @@ impl VerificationReportProcessor {
             }
         }
         //Handle plan result
+        let mut final_jug = JudgmentsResult::Pass;
         let mut reasons = ReportFailedReasons::new(vec![]);
         for plan_result in results.values() {
             match plan_result {
@@ -276,16 +295,12 @@ impl VerificationReportProcessor {
                     reasons.extend(sub_reasons.clone().into_inner())
                 }
                 JudgmentsResult::Unfinished => {
-                    return JudgmentsResult::Unfinished;
+                    final_jug = JudgmentsResult::Unfinished;
                 }
             }
-
-            // if plan_result != &JudgmentsResult::Pass {
-            //     return plan_result.clone();
-            // }
         }
         if reasons.is_empty() {
-            JudgmentsResult::Pass
+            final_jug
         } else {
             JudgmentsResult::Failed(reasons)
         }

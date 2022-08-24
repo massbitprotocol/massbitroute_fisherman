@@ -78,7 +78,7 @@ impl BenchmarkExecutor {
                 self.benchmark_wrk_path.clone(),
             );
 
-            let stdout = benchmark.run(
+            let res = benchmark.run(
                 thread,
                 connection,
                 duration,
@@ -89,7 +89,12 @@ impl BenchmarkExecutor {
                 &method,
                 &headers,
             );
-            if let Ok(stdout) = stdout {
+
+            if let Ok((stdout, stderr)) = res {
+                if !stderr.is_empty() {
+                    return Err(CallBenchmarkError::SendError(format!("stderr: {}", stderr)));
+                }
+
                 return self
                     .get_result(&stdout, &histograms)
                     .map_err(|err| CallBenchmarkError::ParseResultError(format!("{:?}", err)));

@@ -5,7 +5,7 @@ use crate::{
     WORKER_ID,
 };
 
-use common::jobs::{JobResult};
+use common::jobs::JobResult;
 use common::tasks::executor::TaskExecutor;
 use common::util::warning_if_error;
 use log::{debug, trace};
@@ -92,7 +92,6 @@ impl JobExecution {
                     }
                 }
             }
-            debug!("No Job for execution.");
             sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD)).await;
         }
     }

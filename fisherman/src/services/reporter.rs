@@ -1,6 +1,7 @@
 use crate::{JOB_RESULT_REPORTER_PERIOD, SCHEDULER_AUTHORIZATION};
 use anyhow::anyhow;
 use common::jobs::JobResult;
+use common::COMMON_CONFIG;
 use log::{debug, info, trace};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc::Receiver;
@@ -53,6 +54,9 @@ impl JobResultReporter {
             .header("content-type", "application/json")
             .header("authorization", &*SCHEDULER_AUTHORIZATION)
             .body(body)
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ))
             .send()
             .await;
         info!("Send response: {:?}", result);

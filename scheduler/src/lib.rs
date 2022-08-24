@@ -1,7 +1,5 @@
 extern crate diesel;
 extern crate diesel_migrations;
-
-use crate::server_config::Config;
 use lazy_static::lazy_static;
 use std::env;
 
@@ -15,6 +13,8 @@ pub mod server_config;
 pub mod service;
 pub mod state;
 pub mod tasks;
+
+use server_config::Config;
 
 pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds

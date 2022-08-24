@@ -1,13 +1,14 @@
 use crate::component::Zone;
 use crate::jobs::Job;
 use crate::models::TimeFrames;
-use crate::{ComponentInfo, IPAddress, WorkerId};
+use crate::{ComponentInfo, IPAddress, WorkerId, COMMON_CONFIG};
 use anyhow::anyhow;
 use rand::Rng;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
+use std::time::Duration;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerInfo {
@@ -109,7 +110,10 @@ impl Worker {
         let request_builder = client
             .post(self.worker_info.url.as_str())
             .header("content-type", "application/json")
-            .body(serde_json::to_string(&vec![job])?);
+            .body(serde_json::to_string(&vec![job])?)
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         match request_builder.send().await {
             Ok(res) => {
                 log::debug!("Worker response: {:?}", res);
@@ -137,14 +141,17 @@ impl Worker {
             .post(url.as_str())
             .header("content-type", "application/json")
             .header("Host", self.get_host())
-            .body(body);
+            .body(body)
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         match request_builder.send().await {
             Ok(res) => {
                 log::debug!("Worker response: {:?}", res);
                 Ok(())
             }
             Err(err) => {
-                log::debug!("Error:{:?}", &err);
+                log::error!("Error:{:?}", &err);
                 Err(anyhow!(format!("{:?}", &err)))
             }
         }
