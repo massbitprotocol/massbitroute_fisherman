@@ -80,6 +80,7 @@ impl JobBuffer {
                 }
                 job
             } else {
+                debug!("Next job executed in: {} ms", expected_time - current_time);
                 None
             }
         } else {

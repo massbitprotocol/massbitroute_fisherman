@@ -313,7 +313,7 @@ pub mod tests {
         let res = judge
             .apply_for_results(&task_benchmark, &vec![job_result])
             .await?;
-        println!("Judge Eth res: {:?}", res);
+        info!("Judge Eth res: {:?}", res);
         assert_eq!(res, JudgmentsResult::Pass);
 
         // For dot
@@ -327,7 +327,7 @@ pub mod tests {
         let res = judge
             .apply_for_results(&task_benchmark, &vec![job_result])
             .await?;
-        println!("Judge Dot res: {:?}", res);
+        info!("Judge Dot res: {:?}", res);
         assert_eq!(res, JudgmentsResult::Pass);
 
         Ok(())

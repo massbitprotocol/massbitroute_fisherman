@@ -92,7 +92,6 @@ impl JobExecution {
                     }
                 }
             }
-            debug!("No Job for execution.");
             sleep(Duration::from_millis(JOB_EXECUTOR_PERIOD)).await;
         }
     }

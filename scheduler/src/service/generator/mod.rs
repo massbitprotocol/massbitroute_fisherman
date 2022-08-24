@@ -538,7 +538,7 @@ pub mod tests {
                     info!("job_names: {:?}", job_names);
                 }
                 if job_names.sum_len() >= expect_len {
-                    println!("assigment_buffer: {:#?}", lock);
+                    info!("assigment_buffer: {:#?}", lock);
                     break;
                 }
             }

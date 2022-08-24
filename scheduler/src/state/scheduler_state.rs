@@ -11,7 +11,7 @@ use common::workers::{WorkerInfo, WorkerRegisterResult};
 
 use sea_orm::DatabaseConnection;
 
-use log::error;
+use log::{error, info};
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -46,7 +46,7 @@ impl SchedulerState {
         &self,
         worker_info: WorkerInfo,
     ) -> Result<WorkerRegisterResult, anyhow::Error> {
-        println!("{:?}", &worker_info);
+        info!("worker_info: {:?}", &worker_info);
         let report_callback = REPORT_CALLBACK.as_str().to_string();
         //Save worker to db
         if let Some(WorkerInfo { worker_id, .. }) = self

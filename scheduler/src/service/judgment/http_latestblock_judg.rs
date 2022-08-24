@@ -14,7 +14,7 @@ use common::tasks::http_request::{
 };
 use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::{BlockChainType, NetworkType, Timestamp};
-use log::{debug, info};
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -304,9 +304,10 @@ impl ReportCheck for HttpLatestBlockJudgment {
             }
         }
         // Get threshold from config
-        println!(
+        trace!(
             "cache_key: {:?}, latest_job_result: {:?}",
-            cache_key, latest_job_result
+            cache_key,
+            latest_job_result
         );
         let thresholds = self.get_task_config(
             &latest_job_result.phase,
@@ -315,7 +316,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
             &latest_job_result.provider_type,
         );
 
-        println!("get_task_config thresholds: {:?}", thresholds);
+        trace!("get_task_config thresholds: {:?}", thresholds);
 
         // Get threshold from config
         let res = self.cache_values.check_latest_block(
@@ -348,7 +349,7 @@ pub mod tests {
             Arc::new(result_service),
         );
 
-        println!("Task configs: {:?}", judge.task_configs);
+        info!("Task configs: {:?}", judge.task_configs);
         let task_latest_block = ProviderTask::new(
             "provider_id".to_string(),
             ComponentType::Node,
@@ -383,7 +384,7 @@ pub mod tests {
         let res = judge
             .apply_for_results(&task_latest_block, &vec![job_result])
             .await?;
-        println!("Judge res: {:?}", res);
+        info!("Judge res: {:?}", res);
         assert_eq!(res, JudgmentsResult::Pass);
 
         // For dot
