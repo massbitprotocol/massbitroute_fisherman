@@ -26,7 +26,7 @@ impl WrkBenchmark {
         body: Option<String>,
         method: &str,
         headers: &HashMap<String, String>,
-    ) -> Result<String, Error> {
+    ) -> Result<(String,String), Error> {
         println!("current_dir: {}", self.current_dir);
         println!("wrk_path: {}", self.wrk_path);
         println!("script: {}", self.script);
@@ -65,12 +65,12 @@ impl WrkBenchmark {
             .expect("failed to execute process");
         let status = output.status;
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         println!("status: {}", status);
         println!("stdout: {}", stdout);
         println!("stderr: {}", stderr);
 
-        Ok(stdout)
+        Ok((stdout,stderr))
         //         let stdout = "thread addr: 34.142.136.135:443
         // thread addr: 34.142.136.135:443
         // thread addr: 34.142.136.135:443
