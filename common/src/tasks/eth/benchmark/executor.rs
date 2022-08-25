@@ -6,7 +6,7 @@ use crate::jobs::{Job, JobResult};
 use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::executor::TaskExecutor;
 use crate::util::get_current_time;
-use crate::WorkerId;
+use crate::{NetworkType, WorkerId};
 use anyhow::Error;
 use async_trait::async_trait;
 use bytesize::ByteSize;
@@ -237,7 +237,7 @@ impl TaskExecutor for BenchmarkExecutor {
                 response_timestamp: current_time,
                 response,
             };
-            let chain_info = ChainInfo::new(job_detail.chain_type.to_string(), "".to_string());
+            let chain_info = ChainInfo::new(job_detail.chain_type.clone(), NetworkType::default());
             let res = result_sender
                 .send(JobResult::new(
                     JobResultDetail::Benchmark(result),

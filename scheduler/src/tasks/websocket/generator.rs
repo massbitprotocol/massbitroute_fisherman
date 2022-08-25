@@ -2,7 +2,7 @@ use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use crate::{CONFIG, CONFIG_BENCHMARK_DIR, CONFIG_WEBSOCKET_DIR};
+use crate::{CONFIG, CONFIG_WEBSOCKET_DIR};
 use anyhow::{anyhow, Error};
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
@@ -11,12 +11,13 @@ use common::tasks::websocket_request::{JobWebsocket, JobWebsocketConfig};
 use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
-use common::{PlanId, Timestamp, DOMAIN};
+use common::{BlockChainType, PlanId, Timestamp, DOMAIN};
 use handlebars::Handlebars;
 use log::{debug, trace};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::Path;
+use std::str::FromStr;
 
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
@@ -80,7 +81,7 @@ impl WebsocketGenerator {
             let chain_info = ChainInfo::new(
                 provider["blockchain"]
                     .as_str()
-                    .map(|str| str.to_string())
+                    .map(|str| BlockChainType::from_str(str).unwrap())
                     .unwrap_or_default(),
                 provider["network"]
                     .as_str()

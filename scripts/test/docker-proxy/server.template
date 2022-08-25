@@ -1,0 +1,22 @@
+# http://[[SERVER_NAME]]
+server {
+  listen       443 ssl;
+  listen        80;
+  ssl_certificate /etc/letsencrypt/live/[[DOMAIN]]/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/[[DOMAIN]]/privkey.pem;
+  server_name [[SERVER_NAME]];
+  set $resp_body "";
+  body_filter_by_lua '
+      local resp_body = string.sub(ngx.arg[1], 1, 1000)
+      ngx.ctx.buffered = (ngx.ctx.buffered or "") .. resp_body
+      if ngx.arg[2] then
+          ngx.var.resp_body = ngx.ctx.buffered
+      end
+  ';
+  location / {
+      proxy_pass  $scheme://[[IP]]; # desired IP
+      proxy_set_header Host [[SERVER_NAME]]; # desired host
+      #proxy_pass  $scheme://[[SERVER_NAME]]; # desired IP
+      proxy_ssl_verify              off;
+  }
+}

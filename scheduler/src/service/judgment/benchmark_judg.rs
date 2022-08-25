@@ -219,13 +219,21 @@ impl ReportCheck for BenchmarkJudgment {
                     "Histogram value at {}% is {}. Config response time threshold {:?}",
                     &config.judge_histogram_percentile, res, config.response_threshold
                 );
-                if *res < config.response_threshold as f32 {
+                if *res <= config.response_threshold as f32 {
                     JudgmentsResult::Pass
                 } else {
-                    JudgmentsResult::Failed
+                    let failed_reason = format!(
+                        "Histogram value at {}% is {} > {}",
+                        &config.judge_histogram_percentile, *res, config.response_threshold
+                    );
+                    JudgmentsResult::new_failed(self.get_name(), failed_reason)
                 }
             } else {
-                JudgmentsResult::Error
+                let failed_reason = format!(
+                    "Cannot get histogram percentile: {:?}",
+                    best_benchmark.response.histograms
+                );
+                JudgmentsResult::new_failed(self.get_name(), failed_reason)
             };
             // With verification process, need only one Pass result form all benchmark result to Pass the verification
             if let BenchmarkConfig {
@@ -246,7 +254,8 @@ impl ReportCheck for BenchmarkJudgment {
             };
             Ok(judge_result)
         } else {
-            Ok(JudgmentsResult::Error)
+            let failed_reason = format!("Cannot get config for: {:?}", provider_task.task_name);
+            Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
         }
     }
 }
@@ -256,11 +265,10 @@ pub mod tests {
     use super::*;
     use crate::CONFIG_DIR;
     use common::component::ComponentType;
+    use common::BlockChainType;
     use log::info;
 
-    use test_util::helper::{
-        load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
-    };
+    use test_util::helper::{load_env, mock_db_connection, mock_job_result, JobName};
 
     #[tokio::test]
     async fn test_benchmark_judgment() -> Result<(), Error> {
@@ -297,7 +305,7 @@ pub mod tests {
         // For eth
         let job_result = mock_job_result(
             &JobName::Benchmark,
-            ChainTypeForTest::Eth,
+            BlockChainType::Eth,
             "",
             Default::default(),
         );
@@ -311,7 +319,7 @@ pub mod tests {
         // For dot
         let job_result = mock_job_result(
             &JobName::Benchmark,
-            ChainTypeForTest::Dot,
+            BlockChainType::Dot,
             "",
             Default::default(),
         );

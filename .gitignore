@@ -14,7 +14,7 @@ logs/
 **/.env
 /scheduler/.env_test
 /scheduler/.env_deploy
-
+/fisherman/.env_fisherman
 
 #Docker test
 /scripts/test/stat/
@@ -26,3 +26,4 @@ logs/
 /scripts/test/nodelist.csv
 /scripts/test/docker-gateway/docker-compose.yaml
 /scripts/test/docker-node/docker-compose.yaml
+/.env_fisherman

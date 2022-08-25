@@ -11,12 +11,13 @@ use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
-use common::{PlanId, Timestamp, DOMAIN};
+use common::{BlockChainType, PlanId, Timestamp, DOMAIN};
 use handlebars::Handlebars;
 use log::{debug, trace};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::Path;
+use std::str::FromStr;
 
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
@@ -79,7 +80,7 @@ impl HttpRequestGenerator {
             let chain_info = ChainInfo::new(
                 provider["blockchain"]
                     .as_str()
-                    .map(|str| str.to_string())
+                    .map(|str| BlockChainType::from_str(str).unwrap())
                     .unwrap_or_default(),
                 provider["network"]
                     .as_str()

@@ -5,6 +5,7 @@ use anyhow::{anyhow, Error};
 use async_trait::async_trait;
 use common::tasks::http_request::HttpResponseValues;
 use common::util::from_str_radix16;
+use common::BlockChainType;
 pub use default_comparator::LatestBlockDefaultComparator;
 pub use dot_comparator::LatestBlockDotComparator;
 pub use eth_comparator::LatestBlockEthComparator;
@@ -32,14 +33,22 @@ pub trait Comparator: Sync + Send + Debug {
     ) -> Result<i64, Error>;
 }
 
-pub fn get_comparators() -> HashMap<String, Arc<dyn Comparator>> {
-    let mut comparators = HashMap::<String, Arc<dyn Comparator>>::new();
+pub fn get_comparators() -> HashMap<BlockChainType, Arc<dyn Comparator>> {
+    let mut comparators = HashMap::<BlockChainType, Arc<dyn Comparator>>::new();
     comparators.insert(
-        String::from("eth"),
+        BlockChainType::Eth,
         Arc::new(LatestBlockEthComparator::default()),
     );
     comparators.insert(
-        String::from("dot"),
+        BlockChainType::Matic,
+        Arc::new(LatestBlockEthComparator::default()),
+    );
+    comparators.insert(
+        BlockChainType::Bsc,
+        Arc::new(LatestBlockEthComparator::default()),
+    );
+    comparators.insert(
+        BlockChainType::Dot,
         Arc::new(LatestBlockDotComparator::default()),
     );
     comparators

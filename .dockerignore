@@ -17,7 +17,6 @@ logs/
 /scripts/test/git/
 /scripts/test/gwman/
 /scripts/test/monitor/
-/Cargo.toml
 
 #Docker build
 /scripts/

@@ -9,7 +9,7 @@ pub mod rpc_request;
 pub mod websocket_request;
 
 use crate::job_manage::JobRole;
-use crate::ComponentInfo;
+use crate::{BlockChainType, ComponentInfo, NetworkType};
 use anyhow::{anyhow, Error};
 use handlebars::Handlebars;
 use log::debug;
@@ -159,8 +159,21 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
 
 pub trait TaskConfigTrait {
     fn match_phase(&self, phase: &JobRole) -> bool;
-    fn match_blockchain(&self, blockchain: &String) -> bool;
-    fn match_network(&self, network: &String) -> bool;
+    fn get_blockchain(&self) -> &Vec<String>;
+    fn match_blockchain(&self, blockchain: &BlockChainType) -> bool {
+        let blockchain = blockchain.to_string().to_lowercase();
+        if !self.get_blockchain().contains(&String::from("*")) && !self.get_blockchain().contains(&blockchain)
+        {
+            log::trace!(
+                "Blockchain {:?} not match with {:?}",
+                &blockchain,
+                &self.get_blockchain()
+            );
+            return false;
+        }
+        true
+    }
+    fn match_network(&self, network: &NetworkType) -> bool;
     fn match_provider_type(&self, provider_type: &String) -> bool;
     fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool;
 }

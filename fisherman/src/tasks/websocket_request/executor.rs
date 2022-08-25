@@ -221,7 +221,9 @@ mod tests {
     use common::component::ComponentInfo;
 
     use common::tasks::websocket_request::{JobWebsocket, JobWebsocketResponseDetail};
+    use common::BlockChainType;
     use serde_json::Value;
+
     #[derive(Debug)]
     struct ProviderInfo {
         url: String,
@@ -234,8 +236,8 @@ mod tests {
     }
     fn new_test_job(job_detail: &str) -> JobWebsocket {
         let _component = ComponentInfo {
-            blockchain: "rinkerby".to_string(),
-            network: "main".to_string(),
+            blockchain: BlockChainType::Eth,
+            network: "rinkerby".to_string(),
             id: "".to_string(),
             user_id: "".to_string(),
             ip: "".to_string(),
@@ -285,6 +287,7 @@ mod tests {
                 "hash": ["result", "hash"]
             }
         }"#;
+    #[ignore]
     #[tokio::test]
     async fn test_eth_gateway_websocket() {
         let executor = new_executor();

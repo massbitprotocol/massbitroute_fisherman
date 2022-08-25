@@ -97,24 +97,46 @@ impl WorkerHealthService {
 
         for (_id, status) in self.workers_status.iter_mut() {
             let now = get_current_time();
-            if now - status.update_time > CONFIG.update_worker_list_interval * 1000
-                && status.health == WorkerHealth::Good
-            {
+            if now - status.update_time > CONFIG.update_worker_list_interval * 1000 {
                 let res = Self::ping_worker(&*status.worker.worker_info.url).await;
+                status.update_time = now;
                 if res.is_err() {
-                    status.update_time = now;
+                    if status.health == WorkerHealth::Good {
+                        // Remove cannot ping worker
+                        warn!(
+                            "Remove worker {} {} from working list, err {:?}.",
+                            status.worker.worker_info.worker_id, status.worker.worker_info.url, res
+                        );
+                        self.workers
+                            .remove_workers(&[&status.worker.worker_info.worker_id])
+                            .await;
+                    }
                     status.health = WorkerHealth::Bad;
-                    warn!(
-                        "Remove worker {} {} from working list, err {:?}.",
-                        status.worker.worker_info.worker_id, status.worker.worker_info.url, res
-                    );
-                    self.workers
-                        .remove_workers(&[&status.worker.worker_info.worker_id])
-                        .await;
                 } else {
-                    status.update_time = now;
+                    if status.health == WorkerHealth::Bad {
+                        // Add good heal worker
+                        warn!(
+                            "Ping ok, add worker {} {} from working list.",
+                            status.worker.worker_info.worker_id, status.worker.worker_info.url
+                        );
+                        self.workers
+                            .add_worker(status.worker.worker_info.clone())
+                            .await;
+                    }
                     status.health = WorkerHealth::Good;
                 }
+            } else {
+                if status.health == WorkerHealth::Bad {
+                    // Add good heal worker
+                    warn!(
+                        "Update new result, add worker {} {} from working list.",
+                        status.worker.worker_info.worker_id, status.worker.worker_info.url
+                    );
+                    self.workers
+                        .add_worker(status.worker.worker_info.clone())
+                        .await;
+                }
+                status.health = WorkerHealth::Good;
             }
         }
     }

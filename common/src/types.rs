@@ -1,7 +1,8 @@
+pub use crate::component::BlockChainType;
+
 pub type Url = String;
-pub type BlockChainType = String;
+//pub type BlockChainType = String;
 pub type NetworkType = String;
-pub type ChainId = String;
 pub type UrlType = String;
 pub type ComponentId = String;
 pub type JobId = String;

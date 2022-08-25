@@ -5,6 +5,7 @@ use crate::server_config::Config;
 use lazy_static::lazy_static;
 use std::env;
 
+pub mod handler;
 pub mod models;
 pub mod persistence;
 pub mod provider;
@@ -43,7 +44,8 @@ lazy_static! {
     pub static ref CONFIG_WEBSOCKET_DIR: String = String::from("websocket");
     pub static ref PORTAL_AUTHORIZATION: String =
         env::var("PORTAL_AUTHORIZATION").expect("There is no env var PORTAL_AUTHORIZATION");
-
+    pub static ref SCHEDULER_AUTHORIZATION: String =
+        env::var("SCHEDULER_AUTHORIZATION").expect("There is no env var SCHEDULER_AUTHORIZATION");
     pub static ref URL_PORTAL: String =
         env::var("URL_PORTAL").expect("There is no env var URL_PORTAL, e.g. https://portal.massbitroute.net");
 
@@ -72,4 +74,5 @@ lazy_static! {
         env::var("IS_VERIFY_REPORT").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_VERIFY_REPORT, e.g. true");
     pub static ref IS_REGULAR_REPORT: bool =
         env::var("IS_REGULAR_REPORT").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_REGULAR_REPORT, e.g. true");
+    pub static ref BUILD_VERSION: String = format!("{}", env!("BUILD_VERSION"));
 }
