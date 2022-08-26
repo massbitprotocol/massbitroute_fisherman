@@ -219,7 +219,7 @@ pub fn mock_job(job_name: &JobName, component_url: &str, job_id: &str, phase: &J
     let mut job = match job_name {
         JobName::Benchmark => {
             let job_detail = r###"
-        {"rate": 50, "script": "massbit.lua", "thread": 20, "duration": 15000, "url_path": "/", "chain_type": "eth", "connection": 20, "histograms": [90, 95, 99, 100], "component_type": "Node","method": "POST", "headers": {}}
+        {"rate": 50, "script": "massbit.lua", "thread": 20, "duration": 15000, "timeout": 10000, "url_path": "/", "chain_type": "eth", "connection": 20, "histograms": [90, 95, 99, 100], "component_type": "Node","method": "POST", "headers": {}}
         "###;
             let job_detail: JobBenchmark = serde_json::from_str(job_detail).unwrap();
             Job::new(
