@@ -110,7 +110,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut job_delivery = JobDelivery::new(assigment_buffer.clone());
 
     // Check worker status task
-    let worker_health = WorkerHealthService::new(worker_infos, result_cache.clone());
+    let worker_health = WorkerHealthService::new(worker_infos.clone(), result_cache.clone());
 
     // Spawn tasks
     let task_worker_health = task::spawn(async move { worker_health.run().await });
@@ -124,6 +124,7 @@ async fn main() -> Result<(), anyhow::Error> {
         plan_service.clone(),
         job_service.clone(),
         result_service.clone(),
+        worker_infos,
     );
     info!("Init http service ");
     let server = ServerBuilder::default()

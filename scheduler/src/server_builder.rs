@@ -408,7 +408,7 @@ mod tests {
     "worker_id":"worker_id",
     "app_key":"lSP1lFN9I_izEzRi_jBapA",
     "worker_ip":"192.168.1.30",
-    "url":"http://192.168.1.30:3030/jobs_handle",
+    "url":"http://192.168.1.30:3030/handle_jobs",
     "zone":"AS",
     "worker_spec": {
         "cpus": 4,
@@ -506,6 +506,7 @@ mod tests {
             plan_service.clone(),
             job_service.clone(),
             result_service.clone(),
+            worker_infos.clone(),
         );
         let server = ServerBuilder::default()
             .with_entry_point(&socket_addr)
@@ -616,6 +617,7 @@ mod tests {
             plan_service.clone(),
             job_service.clone(),
             result_service.clone(),
+            worker_infos.clone(),
         );
         let server = ServerBuilder::default()
             .with_entry_point(&socket_addr)

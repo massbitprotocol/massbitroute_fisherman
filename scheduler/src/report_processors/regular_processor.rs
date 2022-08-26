@@ -1,4 +1,5 @@
-use crate::models::job_result::{ProviderTask, StoredJobResult};
+use crate::models::job_result::ProviderTask;
+use crate::models::workers::WorkerInfoStorage;
 use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::MainJudgment;
@@ -14,13 +15,19 @@ use std::sync::Arc;
 pub struct RegularReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
     judgment: MainJudgment,
+    worker_pool: Arc<WorkerInfoStorage>,
 }
 
 impl RegularReportProcessor {
-    pub fn new(report_adapters: Vec<Arc<dyn Appender>>, judgment: MainJudgment) -> Self {
+    pub fn new(
+        report_adapters: Vec<Arc<dyn Appender>>,
+        judgment: MainJudgment,
+        worker_pool: Arc<WorkerInfoStorage>,
+    ) -> Self {
         RegularReportProcessor {
             report_adapters,
             judgment,
+            worker_pool,
         }
     }
     pub fn add_adapter(&mut self, adapter: Arc<dyn Appender>) {
@@ -33,21 +40,13 @@ impl ReportProcessor for RegularReportProcessor {
         true
     }
 
-    async fn process_job(
-        &self,
-        _report: &JobResult,
-        _db_connection: Arc<DatabaseConnection>,
-    ) -> Result<StoredJobResult, anyhow::Error> {
-        todo!()
-    }
-
     async fn process_jobs(
         &self,
         reports: Vec<JobResult>,
         _db_connection: Arc<DatabaseConnection>,
     ) -> Result<(), anyhow::Error> {
         log::info!("Regular report process jobs");
-        //let stored_results = Vec::<StoredJobResult>::new();
+
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
 
         for adapter in self.report_adapters.iter() {
@@ -73,7 +72,11 @@ impl ReportProcessor for RegularReportProcessor {
             jobs.push(report);
         }
         for (key, results) in provider_task_results {
-            match self.judgment.apply_for_regular(&key, &results).await {
+            match self
+                .judgment
+                .apply_for_regular(&key, &results, self.worker_pool.clone())
+                .await
+            {
                 Ok(_res) => {}
                 Err(err) => {
                     error!("{:?}", &err);
