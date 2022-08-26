@@ -4,7 +4,7 @@ pub mod dot;
 pub mod eth;
 pub mod regular_processor;
 pub mod verification_processor;
-use crate::models::job_result::StoredJobResult;
+
 use async_trait::async_trait;
 pub use channel::ReportChannel;
 use common::jobs::JobResult;
@@ -16,11 +16,6 @@ use std::sync::Arc;
 #[async_trait]
 pub trait ReportProcessor: Sync + Send {
     fn can_apply(&self, report: &JobResult) -> bool;
-    async fn process_job(
-        &self,
-        report: &JobResult,
-        db_connection: Arc<DatabaseConnection>,
-    ) -> Result<StoredJobResult, anyhow::Error>;
     async fn process_jobs(
         &self,
         report: Vec<JobResult>,

@@ -9,6 +9,7 @@
   "benchmark_connection": 5,
   "benchmark_duration": 15000,
   "benchmark_rate": 10,
+  "timeout": 10000,
   "script": "massbit.lua",
   "histograms": [90,95,99,100],
   "http_method": "POST",

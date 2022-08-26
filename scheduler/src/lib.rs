@@ -65,7 +65,7 @@ lazy_static! {
         env::var("LATEST_BLOCK_CACHING_DURATION").ok().and_then(|val|val.parse::<i64>().ok()).unwrap_or(10000);
     //Worker configurations
     pub static ref WORKER_PATH_JOBS_HANDLE: String =
-        env::var("WORKER_PATH_JOBS_HANDLE").unwrap_or_else(|_| String::from("jobs_handle"));
+        env::var("WORKER_PATH_JOBS_HANDLE").unwrap_or_else(|_| String::from("handle_jobs"));
     pub static ref WORKER_PATH_JOBS_UPDATE: String =
         env::var("WORKER_PATH_JOBS_UPDATE").unwrap_or_else(|_| String::from("jobs_update"));
     pub static ref WORKER_PATH_JOB_UPDATE: String =
