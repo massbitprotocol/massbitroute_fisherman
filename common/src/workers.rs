@@ -10,7 +10,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, Eq, PartialEq, Hash)]
 pub struct WorkerInfo {
     /*
      * In register phase WorkerId is default (empty),
@@ -23,7 +23,7 @@ pub struct WorkerInfo {
     pub worker_spec: WorkerSpec,
     pub available_time_frame: Option<TimeFrames>,
 }
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, Eq, PartialEq, Hash)]
 pub struct WorkerSpec {
     cpus: u16,      //Number of cpus
     ram: u32,       //Ram capacity in Mb
@@ -70,7 +70,7 @@ impl WorkerRegisterResult {
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerStateParam {}
-#[derive(Default, Debug, Deserialize, Serialize, Clone)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone, Eq, PartialEq, Hash)]
 pub struct Worker {
     pub worker_info: WorkerInfo,
 }

@@ -15,8 +15,10 @@ use common::util::get_datetime_utc_7;
 use serde::{Deserialize, Serialize};
 
 use crate::models::workers::WorkerInfoStorage;
+use crate::service::delivery::CancelPlanBuffer;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use tokio::sync::Mutex as TokioMutex;
 
 #[derive(Default)]
 pub struct MainJudgment {
@@ -162,6 +164,7 @@ impl MainJudgment {
         provider_task: &ProviderTask,
         results: &Vec<JobResult>,
         worker_pool: Arc<WorkerInfoStorage>,
+        cancel_plans_buffer: Arc<TokioMutex<CancelPlanBuffer>>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         if results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);
@@ -234,10 +237,14 @@ impl MainJudgment {
                             if resp.status().is_success() {
                                 // Remove job plan in worker because the provider is failed
                                 if let Some(worker) = worker_pool.get_worker(worker_id).await {
-                                    let res = worker.send_cancel_plans(&vec![plan_id]).await;
-                                    if let Err(err) = res {
-                                        error!("send_cancel_plans error: {:?}", err);
-                                    }
+                                    // let res = worker.send_cancel_plans(&vec![plan_id]).await;
+                                    // if let Err(err) = res {
+                                    //     error!("send_cancel_plans error: {:?}", err);
+                                    // }
+                                    cancel_plans_buffer
+                                        .lock()
+                                        .await
+                                        .insert_plan(plan_id, worker);
                                 }
                             } else {
                                 error!(
@@ -392,12 +399,18 @@ pub mod tests {
         //////////////// For Regular /////////////////
         let phase = JobRole::Regular;
         let judge = MainJudgment::new(Arc::new(result_service), &phase);
-
+        let cancel_plans_buffer: Arc<TokioMutex<CancelPlanBuffer>> =
+            Arc::new(TokioMutex::new(CancelPlanBuffer::default()));
         // Test apply_for_results
         let _worker_infos = Arc::new(WorkerInfoStorage::default());
         assert_eq!(
             judge
-                .apply_for_regular(&task_benchmark, &vec![], _worker_infos.clone())
+                .apply_for_regular(
+                    &task_benchmark,
+                    &vec![],
+                    _worker_infos.clone(),
+                    cancel_plans_buffer.clone()
+                )
                 .await?,
             JudgmentsResult::Unfinished
         );
@@ -423,6 +436,7 @@ pub mod tests {
                     job_result_eth.clone(),
                 ],
                 _worker_infos,
+                cancel_plans_buffer.clone(),
             )
             .await?;
         println!("Judge Eth res: {:?}", res);
@@ -442,6 +456,7 @@ pub mod tests {
                 &task_latest_block,
                 &vec![job_result_dot],
                 _worker_infos.clone(),
+                cancel_plans_buffer.clone(),
             )
             .await?;
         println!("Judge Dot res: {:?}", res);
@@ -456,7 +471,12 @@ pub mod tests {
         );
         info!("job_result: {:?}", job_result_dot);
         let res = judge
-            .apply_for_regular(&task_latest_block, &vec![job_result_dot], _worker_infos)
+            .apply_for_regular(
+                &task_latest_block,
+                &vec![job_result_dot],
+                _worker_infos,
+                cancel_plans_buffer.clone(),
+            )
             .await?;
         println!("Judge Dot res: {:?}", res);
         assert_eq!(res, JudgmentsResult::Pass,);

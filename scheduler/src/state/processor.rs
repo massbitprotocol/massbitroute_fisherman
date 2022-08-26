@@ -12,7 +12,9 @@ use common::jobs::JobResult;
 use sea_orm::DatabaseConnection;
 
 use crate::models::workers::WorkerInfoStorage;
+use crate::service::delivery::CancelPlanBuffer;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive()]
 pub struct ProcessorState {
@@ -32,6 +34,7 @@ impl ProcessorState {
         job_service: Arc<JobService>,
         result_service: Arc<JobResultService>,
         worker_pool: Arc<WorkerInfoStorage>,
+        cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>>,
     ) -> ProcessorState {
         //For verification processor
         let mut report_adapters = get_report_adapters(connection.clone());
@@ -44,11 +47,16 @@ impl ProcessorState {
             result_cache,
             MainJudgment::new(result_service.clone(), &JobRole::Verification),
             worker_pool.clone(),
+            cancel_plans_buffer.clone(),
         );
         //For regular processor
         let judgment = MainJudgment::new(result_service.clone(), &JobRole::Regular);
-        let regular_processor =
-            RegularReportProcessor::new(report_adapters.clone(), judgment, worker_pool);
+        let regular_processor = RegularReportProcessor::new(
+            report_adapters.clone(),
+            judgment,
+            worker_pool,
+            cancel_plans_buffer,
+        );
         ProcessorState {
             connection,
             regular_processor: Arc::new(regular_processor),

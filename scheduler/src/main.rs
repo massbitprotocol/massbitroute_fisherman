@@ -10,7 +10,7 @@ use scheduler::models::workers::WorkerInfoStorage;
 use scheduler::provider::scanner::ProviderScanner;
 use scheduler::server_builder::ServerBuilder;
 use scheduler::server_config::AccessControl;
-use scheduler::service::delivery::JobDelivery;
+use scheduler::service::delivery::{CancelPlanBuffer, JobDelivery};
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
@@ -71,6 +71,8 @@ async fn main() -> Result<(), anyhow::Error> {
     log::debug!("Init with {:?} workers", all_workers.len());
     let worker_infos = Arc::new(WorkerInfoStorage::new(all_workers));
     let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
+    let cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>> =
+        Arc::new(Mutex::new(CancelPlanBuffer::default()));
 
     let scheduler_service = SchedulerServiceBuilder::default().build();
     let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
@@ -107,7 +109,7 @@ async fn main() -> Result<(), anyhow::Error> {
         worker_infos.clone(),
         provider_storage.clone(),
     );
-    let mut job_delivery = JobDelivery::new(assigment_buffer.clone());
+    let job_delivery = JobDelivery::new(assigment_buffer.clone(), cancel_plans_buffer.clone());
 
     // Check worker status task
     let worker_health = WorkerHealthService::new(worker_infos.clone(), result_cache.clone());
@@ -125,6 +127,7 @@ async fn main() -> Result<(), anyhow::Error> {
         job_service.clone(),
         result_service.clone(),
         worker_infos,
+        cancel_plans_buffer,
     );
     info!("Init http service ");
     let server = ServerBuilder::default()

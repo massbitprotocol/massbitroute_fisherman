@@ -2,6 +2,7 @@ use crate::models::job_result::ProviderTask;
 use crate::models::workers::WorkerInfoStorage;
 use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
+use crate::service::delivery::CancelPlanBuffer;
 use crate::service::judgment::MainJudgment;
 use async_trait::async_trait;
 use common::jobs::JobResult;
@@ -10,12 +11,14 @@ use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Default)]
 pub struct RegularReportProcessor {
     report_adapters: Vec<Arc<dyn Appender>>,
     judgment: MainJudgment,
     worker_pool: Arc<WorkerInfoStorage>,
+    cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>>,
 }
 
 impl RegularReportProcessor {
@@ -23,11 +26,13 @@ impl RegularReportProcessor {
         report_adapters: Vec<Arc<dyn Appender>>,
         judgment: MainJudgment,
         worker_pool: Arc<WorkerInfoStorage>,
+        cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>>,
     ) -> Self {
         RegularReportProcessor {
             report_adapters,
             judgment,
             worker_pool,
+            cancel_plans_buffer,
         }
     }
     pub fn add_adapter(&mut self, adapter: Arc<dyn Appender>) {
@@ -74,7 +79,12 @@ impl ReportProcessor for RegularReportProcessor {
         for (key, results) in provider_task_results {
             match self
                 .judgment
-                .apply_for_regular(&key, &results, self.worker_pool.clone())
+                .apply_for_regular(
+                    &key,
+                    &results,
+                    self.worker_pool.clone(),
+                    self.cancel_plans_buffer.clone(),
+                )
                 .await
             {
                 Ok(_res) => {}

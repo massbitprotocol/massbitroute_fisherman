@@ -20,6 +20,7 @@ pub use serde::{Deserialize, Serialize};
 use crate::models::workers::WorkerInfoStorage;
 use anyhow::anyhow;
 
+use crate::service::delivery::CancelPlanBuffer;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -35,6 +36,7 @@ pub struct VerificationReportProcessor {
     judgment: MainJudgment,
     _active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
     worker_pool: Arc<WorkerInfoStorage>,
+    cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>>,
 }
 
 impl VerificationReportProcessor {
@@ -46,6 +48,7 @@ impl VerificationReportProcessor {
         result_cache: Arc<JobResultCache>,
         judgment: MainJudgment,
         worker_pool: Arc<WorkerInfoStorage>,
+        cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>>,
     ) -> Self {
         VerificationReportProcessor {
             report_adapters,
@@ -56,6 +59,7 @@ impl VerificationReportProcessor {
             judgment,
             _active_plans: Default::default(),
             worker_pool,
+            cancel_plans_buffer,
         }
     }
     pub fn add_adapter(&mut self, adapter: Arc<dyn Appender>) {
@@ -297,10 +301,12 @@ impl VerificationReportProcessor {
             match res {
                 Ok(_) => {
                     if let Some(worker) = self.worker_pool.get_worker(worker_id).await {
-                        let res = worker.send_cancel_plans(&vec![plan.plan_id.clone()]).await;
-                        if let Err(err) = res {
-                            error!("Cancel plans return error: {}", err);
-                        }
+                        //let res = worker.send_cancel_plans(&vec![plan.plan_id.clone()]).await;
+
+                        self.cancel_plans_buffer
+                            .lock()
+                            .await
+                            .insert_plan(plan.plan_id.clone(), worker);
                     }
                 }
                 Err(err) => {

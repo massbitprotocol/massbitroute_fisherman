@@ -17,7 +17,7 @@ pub mod tasks;
 use server_config::Config;
 
 pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
-pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds
+pub const DELIVERY_PERIOD: u64 = 10; //In seconds
 pub const JUDGMENT_PERIOD: u64 = 10;
 pub const RESULT_CACHE_MAX_LENGTH: usize = 10;
 lazy_static! {

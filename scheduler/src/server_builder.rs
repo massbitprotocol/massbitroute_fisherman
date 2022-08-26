@@ -317,6 +317,7 @@ mod tests {
     use std::env;
 
     use crate::models::job_result_cache::JobResultCache;
+    use crate::service::delivery::CancelPlanBuffer;
     use crate::service::report_portal::ReportRecord;
     use chrono::FixedOffset;
     use common::logger::init_logger;
@@ -324,6 +325,7 @@ mod tests {
     use std::time::Duration;
     use test_util::helper::{load_env, mock_db_connection};
     use tokio::fs;
+    use tokio::sync::Mutex;
     use tokio::time::{sleep, Instant};
 
     #[tokio::test]
@@ -487,6 +489,8 @@ mod tests {
         let access_control = AccessControl::default();
         let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
         let provider_storage = Arc::new(ProviderStorage::default());
+        let cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>> =
+            Arc::new(Mutex::new(CancelPlanBuffer::default()));
 
         let scheduler_state = SchedulerState::new(
             arc_conn.clone(),
@@ -507,6 +511,7 @@ mod tests {
             job_service.clone(),
             result_service.clone(),
             worker_infos.clone(),
+            cancel_plans_buffer.clone(),
         );
         let server = ServerBuilder::default()
             .with_entry_point(&socket_addr)
@@ -598,7 +603,8 @@ mod tests {
         let access_control = AccessControl::default();
         let worker_infos = Arc::new(WorkerInfoStorage::new(vec![]));
         let provider_storage = Arc::new(ProviderStorage::default());
-
+        let cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>> =
+            Arc::new(Mutex::new(CancelPlanBuffer::default()));
         let scheduler_state = SchedulerState::new(
             arc_conn.clone(),
             plan_service.clone(),
@@ -618,6 +624,7 @@ mod tests {
             job_service.clone(),
             result_service.clone(),
             worker_infos.clone(),
+            cancel_plans_buffer.clone(),
         );
         let server = ServerBuilder::default()
             .with_entry_point(&socket_addr)
