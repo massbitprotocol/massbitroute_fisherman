@@ -15,7 +15,10 @@ export SCHEDULER_ENDPOINT=0.0.0.0:3031
 export SCHEDULER_CONFIG=/opt/fisherman/configs/scheduler.json
 export URL_PORTAL=https://portal.$DOMAIN
 export COMMON_CONFIG_FILE=/opt/fisherman/common.json
-export ENVIRONMENT=production
+# ENVIRONMENT=production/release/docker_test/local
+#export ENVIRONMENT=production
+# SCHEMA=https/http
+export SCHEMA=https
 
 cd /opt/fisherman
 ./scheduler

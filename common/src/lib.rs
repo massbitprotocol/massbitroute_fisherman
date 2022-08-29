@@ -60,6 +60,7 @@ impl Config {
 pub enum Environment {
     Local,
     DockerTest,
+    Release,
     Production,
 }
 
@@ -68,6 +69,7 @@ impl ToString for Environment {
         match self {
             Environment::Local => "local".to_string(),
             Environment::DockerTest => "docker_test".to_string(),
+            Environment::Release => "release".to_string(),
             Environment::Production => "production".to_string(),
         }
     }
@@ -82,6 +84,24 @@ impl FromStr for Environment {
             "docker_test" => Ok(Environment::DockerTest),
             "production" => Ok(Environment::Production),
             _ => Err(anyhow!("Cannot parse {s} to Environment")),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Schema {
+    Https,
+    Http,
+}
+
+impl FromStr for Schema {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "https" => Ok(Schema::Https),
+            "http" => Ok(Schema::Http),
+            _ => Err(anyhow!("Cannot parse {s} to Schema")),
         }
     }
 }

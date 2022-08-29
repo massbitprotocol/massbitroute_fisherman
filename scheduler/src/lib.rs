@@ -1,7 +1,7 @@
 extern crate diesel;
 extern crate diesel_migrations;
 
-use common::Environment;
+use common::Schema;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::env;
@@ -85,8 +85,10 @@ lazy_static! {
     pub static ref IS_REGULAR_REPORT: bool =
         env::var("IS_REGULAR_REPORT").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_REGULAR_REPORT, e.g. true");
     pub static ref BUILD_VERSION: String = format!("{}", env!("BUILD_VERSION"));
-    pub static ref ENVIRONMENT: Environment = Environment::from_str(
-        &env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT")).expect("Cannot parse var ENVIRONMENT");
+    // pub static ref ENVIRONMENT: Environment = Environment::from_str(
+    //     &env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT")).expect("Cannot parse var ENVIRONMENT");
+    pub static ref SCHEMA: Schema = Schema::from_str(
+        &env::var("SCHEMA").expect("There is no env var SCHEMA")).expect("Cannot parse var SCHEMA");
 }
 
 pub trait TemplateRender {
@@ -95,12 +97,14 @@ pub trait TemplateRender {
         handlebars: &Handlebars,
         context: &Value,
     ) -> Result<String, anyhow::Error> {
-        let template = if *ENVIRONMENT == Environment::DockerTest {
-            template.replace("https", "http")
-        } else {
-            template.to_string()
+        let template = match *SCHEMA {
+            Schema::Https => template
+                .replace("http://", "https://")
+                .replace("ws://", "wss://"),
+            Schema::Http => template
+                .replace("https://", "http://")
+                .replace("wss://", "ws://"),
         };
-
         // render without register
         handlebars
             .render_template(&template, context)
