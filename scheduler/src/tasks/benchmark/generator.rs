@@ -11,11 +11,11 @@ use crate::tasks::generator::TaskApplicant;
 use common::component::{ComponentInfo, ComponentType};
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job};
-use common::tasks::{LoadConfigs, TaskConfigTrait, TemplateRender};
+use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::workers::MatchedWorkers;
 use common::{NetworkType, PlanId, Timestamp, DOMAIN};
 
-use crate::CONFIG_BENCHMARK_DIR;
+use crate::{TemplateRender, CONFIG_BENCHMARK_DIR, SCHEME};
 use handlebars::Handlebars;
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -124,7 +124,6 @@ impl TaskConfigTrait for BenchmarkConfig {
         true
     }
 }
-impl TemplateRender for BenchmarkConfig {}
 
 impl LoadConfigs<BenchmarkConfig> for BenchmarkConfig {}
 
@@ -143,7 +142,7 @@ impl BenchmarkGenerator {
         }
     }
     fn create_context(component: &ComponentInfo) -> Value {
-        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
+        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str(),"scheme": SCHEME.to_http_string()});
         if let Some(obj) = context["provider"].as_object_mut() {
             match component.component_type {
                 ComponentType::Node => obj.insert(String::from("type"), Value::from("node")),
