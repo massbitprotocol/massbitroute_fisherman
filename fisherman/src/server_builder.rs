@@ -12,6 +12,7 @@ use crate::services::WebService;
 use crate::state::WorkerState;
 use crate::BUILD_VERSION;
 use common::workers::WorkerStateParam;
+use common::{JobId, PlanId};
 use serde_json::json;
 use std::default::Default;
 use tokio::sync::Mutex;
@@ -70,6 +71,12 @@ impl WorkerServer {
             .or(self
                 .create_route_handle_jobs(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
+            .or(self
+                .create_route_cancel_jobs(self.web_service.clone(), self.worker_state.clone())
+                .with(&cors))
+            .or(self
+                .create_route_cancel_plans(self.web_service.clone(), self.worker_state.clone())
+                .with(&cors))
             .or(self.create_version().with(&cors))
             .or(self
                 .create_route_update_jobs(self.web_service.clone(), self.worker_state.clone())
@@ -114,7 +121,7 @@ impl WorkerServer {
         service: Arc<WebService>,
         state: Arc<Mutex<WorkerState>>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path!("jobs_handle")
+        warp::path!("handle_jobs")
             .and(WorkerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
@@ -127,6 +134,47 @@ impl WorkerServer {
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move { clone_service.handle_jobs(jobs, clone_state).await }
+            })
+    }
+    fn create_route_cancel_jobs(
+        &self,
+        service: Arc<WebService>,
+        state: Arc<Mutex<WorkerState>>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("cancel_jobs")
+            .and(WorkerServer::log_headers())
+            .and(warp::post())
+            .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
+            .and_then(move |jobs: Vec<JobId>| {
+                info!(
+                    "#### Received {} cancel_jobs request body {:?} ####",
+                    &jobs.len(),
+                    &jobs
+                );
+                let clone_service = service.clone();
+                let clone_state = state.clone();
+                async move { clone_service.cancel_jobs(jobs, clone_state).await }
+            })
+    }
+
+    fn create_route_cancel_plans(
+        &self,
+        service: Arc<WebService>,
+        state: Arc<Mutex<WorkerState>>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("cancel_plans")
+            .and(WorkerServer::log_headers())
+            .and(warp::post())
+            .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
+            .and_then(move |plans: Vec<PlanId>| {
+                info!(
+                    "#### Received {} plans_cancel request body {:?} ####",
+                    &plans.len(),
+                    &plans
+                );
+                let clone_service = service.clone();
+                let clone_state = state.clone();
+                async move { clone_service.cancel_plans(plans, clone_state).await }
             })
     }
     fn create_route_update_jobs(
@@ -283,7 +331,7 @@ mod tests {
         assert_eq!(resp, SimpleResponse { success: true });
 
         // Test Job handler
-        let url = format!("http://localhost:{}/jobs_handle", local_port);
+        let url = format!("http://localhost:{}/handle_jobs", local_port);
         let body = r###"
         [
             {

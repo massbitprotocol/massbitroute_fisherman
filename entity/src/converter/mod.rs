@@ -13,7 +13,7 @@ use common::tasks::ping::JobPingResult;
 use common::util::get_current_time;
 use common::workers::WorkerInfo;
 use core::default::Default;
-use log::debug;
+
 use sea_orm::ActiveValue::Set;
 use sea_orm::NotSet;
 use serde_json::Value;
@@ -36,7 +36,7 @@ impl From<&WorkerInfo> for workers::ActiveModel {
 
 impl From<&Job> for jobs::ActiveModel {
     fn from(job: &Job) -> Self {
-        debug!("job.job_detail: {:?}", job.job_detail);
+        //debug!("job.job_detail: {:?}", job.job_detail);
         let job_detail = serde_json::to_value(&job.job_detail).unwrap();
 
         //debug!("from job_detail: {:?}", job_detail);

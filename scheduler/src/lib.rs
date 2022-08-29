@@ -17,7 +17,7 @@ pub mod tasks;
 use server_config::Config;
 
 pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
-pub const JOB_DELIVERY_PERIOD: u64 = 10; //In seconds
+pub const DELIVERY_PERIOD: u64 = 10; //In seconds
 pub const JUDGMENT_PERIOD: u64 = 10;
 pub const RESULT_CACHE_MAX_LENGTH: usize = 10;
 lazy_static! {
@@ -65,7 +65,7 @@ lazy_static! {
         env::var("LATEST_BLOCK_CACHING_DURATION").ok().and_then(|val|val.parse::<i64>().ok()).unwrap_or(10000);
     //Worker configurations
     pub static ref WORKER_PATH_JOBS_HANDLE: String =
-        env::var("WORKER_PATH_JOBS_HANDLE").unwrap_or_else(|_| String::from("jobs_handle"));
+        env::var("WORKER_PATH_JOBS_HANDLE").unwrap_or_else(|_| String::from("handle_jobs"));
     pub static ref WORKER_PATH_JOBS_UPDATE: String =
         env::var("WORKER_PATH_JOBS_UPDATE").unwrap_or_else(|_| String::from("jobs_update"));
     pub static ref WORKER_PATH_JOB_UPDATE: String =

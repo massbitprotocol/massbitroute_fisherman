@@ -1,7 +1,7 @@
 use crate::component::Zone;
 use crate::jobs::Job;
 use crate::models::TimeFrames;
-use crate::{ComponentInfo, IPAddress, WorkerId, COMMON_CONFIG};
+use crate::{ComponentInfo, IPAddress, PlanId, WorkerId, COMMON_CONFIG};
 use anyhow::anyhow;
 use rand::Rng;
 use reqwest::Body;
@@ -10,7 +10,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, Eq, PartialEq, Hash)]
 pub struct WorkerInfo {
     /*
      * In register phase WorkerId is default (empty),
@@ -23,7 +23,7 @@ pub struct WorkerInfo {
     pub worker_spec: WorkerSpec,
     pub available_time_frame: Option<TimeFrames>,
 }
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, Eq, PartialEq, Hash)]
 pub struct WorkerSpec {
     cpus: u16,      //Number of cpus
     ram: u32,       //Ram capacity in Mb
@@ -70,7 +70,7 @@ impl WorkerRegisterResult {
 }
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerStateParam {}
-#[derive(Default, Debug, Deserialize, Serialize, Clone)]
+#[derive(Default, Debug, Deserialize, Serialize, Clone, Eq, PartialEq, Hash)]
 pub struct Worker {
     pub worker_info: WorkerInfo,
 }
@@ -98,41 +98,25 @@ impl Worker {
     pub fn get_host(&self) -> String {
         format!("{}.gw.mbr.massbitroute.net", self.worker_info.worker_id)
     }
-    pub async fn send_job(&self, job: &Job) -> Result<(), anyhow::Error> {
-        let client_builder = reqwest::ClientBuilder::new();
-        let client = client_builder.danger_accept_invalid_certs(true).build()?;
-        let url = self.get_url("jobs_handle");
-        log::debug!(
-            "Send 1 jobs to worker {:?} by url {:?}",
-            &self.worker_info,
-            url.as_str()
-        );
-        let request_builder = client
-            .post(self.worker_info.url.as_str())
-            .header("content-type", "application/json")
-            .body(serde_json::to_string(&vec![job])?)
-            .timeout(Duration::from_millis(
-                COMMON_CONFIG.default_http_request_timeout_ms,
-            ));
-        match request_builder.send().await {
-            Ok(res) => {
-                log::debug!("Worker response: {:?}", res);
-                Ok(())
-            }
-            Err(err) => {
-                log::debug!("Error:{:?}", &err);
-                Err(anyhow!(format!("{:?}", &err)))
-            }
-        }
-    }
+
     pub async fn send_jobs(&self, jobs: &Vec<Job>) -> Result<(), anyhow::Error> {
+        let path = "handle_jobs";
+        let body = serde_json::to_string(jobs)?;
+        self.send_post_request(path, &body).await
+    }
+
+    pub async fn send_cancel_plans(&self, plans: &Vec<PlanId>) -> Result<(), anyhow::Error> {
+        let path = "cancel_plans";
+        let body = serde_json::to_string(plans)?;
+        self.send_post_request(path, &body).await
+    }
+
+    pub async fn send_post_request(&self, path: &str, body: &str) -> Result<(), anyhow::Error> {
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
-        let url = self.get_url("jobs_handle");
-        let body = serde_json::to_string(jobs)?;
+        let url = self.get_url(path);
         log::debug!(
-            "Send {} jobs to worker {:?} by url {:?} and body {:?}",
-            jobs.len(),
+            "Send request {path} to worker {:?} by url {:?} and body {:?}",
             &self.worker_info,
             url.as_str(),
             &body
@@ -141,17 +125,25 @@ impl Worker {
             .post(url.as_str())
             .header("content-type", "application/json")
             .header("Host", self.get_host())
-            .body(body)
+            .body(body.to_string())
             .timeout(Duration::from_millis(
                 COMMON_CONFIG.default_http_request_timeout_ms,
             ));
         match request_builder.send().await {
             Ok(res) => {
-                log::debug!("Worker response: {:?}", res);
-                Ok(())
+                if res.status().is_success() {
+                    log::debug!("Worker response: {:?}", res);
+                    Ok(())
+                } else {
+                    Err(anyhow!(format!(
+                        "Worker response error: {:?} and body: {:?}",
+                        res.status(),
+                        res.text().await
+                    )))
+                }
             }
             Err(err) => {
-                log::error!("Error:{:?}", &err);
+                log::error!("Error: {:?}", &err);
                 Err(anyhow!(format!("{:?}", &err)))
             }
         }

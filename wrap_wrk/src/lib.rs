@@ -21,12 +21,12 @@ impl WrkBenchmark {
         connection: u32,
         duration: String,
         rate: u32,
-        timeout: Option<u32>,
+        timeout: String,
         url: String,
         body: Option<String>,
         method: &str,
         headers: &HashMap<String, String>,
-    ) -> Result<(String,String), Error> {
+    ) -> Result<(String, String), Error> {
         println!("current_dir: {}", self.current_dir);
         println!("wrk_path: {}", self.wrk_path);
         println!("script: {}", self.script);
@@ -38,11 +38,12 @@ impl WrkBenchmark {
         println!("rate: {:?}", rate);
         println!("body: {:?}", body);
         println!("method: {:?}", method);
+        println!("timeout: {:?}", timeout);
 
         let mut org_cmd = Command::new(&self.wrk_path);
         let mut cmd = org_cmd.current_dir(&self.current_dir).arg("--latency");
-        if let Some(timeout) = timeout {
-            cmd = cmd.arg("--timeout").arg(format!("{}", timeout));
+        if !timeout.is_empty() {
+            cmd = cmd.arg("--timeout").arg(timeout);
         }
         for (key, value) in headers {
             cmd = cmd.arg("-H").arg(format!("{}: {}", key, value));
@@ -70,7 +71,7 @@ impl WrkBenchmark {
         println!("stdout: {}", stdout);
         println!("stderr: {}", stderr);
 
-        Ok((stdout,stderr))
+        Ok((stdout, stderr))
         //         let stdout = "thread addr: 34.142.136.135:443
         // thread addr: 34.142.136.135:443
         // thread addr: 34.142.136.135:443

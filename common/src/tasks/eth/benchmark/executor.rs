@@ -72,6 +72,7 @@ impl BenchmarkExecutor {
                 body,
             } = job_detail;
             let duration = format!("{}s", duration / 1000i64);
+            let timeout = format!("{}s", timeout / 1000i64);
             let mut benchmark = WrkBenchmark::new(
                 script,
                 WRK_NAME.to_string(),

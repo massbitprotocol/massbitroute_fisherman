@@ -55,9 +55,21 @@ impl ReportCheck for WebsocketJudgment {
         log::debug!("{:?}", &first_result);
         //For websocket only check if worker can connect to provider and get data
         if let JobResultDetail::Websocket(_web_socket_result) = &first_result.result_detail {
+            // if _web_socket_result.error_code == 0 {
+            //     Ok(JudgmentsResult::Pass)
+            // } else {
+            //     let failed_reason = format!(
+            //         "error_code: {}, message: {}",
+            //         _web_socket_result.error_code, _web_socket_result.message
+            //     );
+            //     Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+            // }
             Ok(JudgmentsResult::Pass)
         } else {
-            let failed_reason = format!("Result type should be Websocket");
+            let failed_reason = format!(
+                "Result type should be Websocket instead {:?}",
+                first_result.result_detail
+            );
             Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
         }
     }

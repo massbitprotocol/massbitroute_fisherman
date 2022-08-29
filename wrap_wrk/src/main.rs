@@ -41,7 +41,7 @@ mod test {
             connection,
             duration.to_string(),
             rate,
-            None,
+            "".to_string(),
             dapi_url.to_string(),
             Some(body.to_string()),
             method,

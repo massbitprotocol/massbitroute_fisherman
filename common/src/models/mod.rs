@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /*
  * Store time frame information
  */
-#[derive(Clone, Serialize, Deserialize, Debug, Default)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, Eq, PartialEq, Hash)]
 pub struct TimeFrames {}
 
 pub use plan_entity::PlanEntity;

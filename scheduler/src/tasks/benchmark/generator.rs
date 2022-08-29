@@ -52,7 +52,7 @@ pub struct BenchmarkConfig {
     #[serde(default)]
     benchmark_rate: u32,
     #[serde(default)]
-    timeout: Option<u32>,
+    timeout: Timestamp,
     #[serde(default)]
     script: String,
     #[serde(default)]
@@ -191,7 +191,7 @@ impl BenchmarkGenerator {
                 );
                 job.parallelable = false;
                 job.component_url = job_url;
-                job.timeout = config.timeout.unwrap_or_default() as Timestamp;
+                job.timeout = config.timeout;
                 job.repeat_number = 0;
                 job.interval = 0;
                 job

@@ -1,7 +1,8 @@
 use common::jobs::Job;
 use common::util::get_current_time;
 
-use log::{debug, trace};
+use common::{JobId, PlanId};
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -49,8 +50,23 @@ impl JobBuffer {
         }
         self.jobs.len()
     }
+
+    pub fn cancel_jobs(&mut self, jobs: Vec<JobId>) -> usize {
+        let start_len = self.jobs.len();
+        info!("Remove jobs: {jobs:?} in {:?}", self.jobs);
+        self.jobs.retain(|job| !jobs.contains(&job.job_id));
+        start_len - self.jobs.len()
+    }
+
+    pub fn cancel_plans(&mut self, plans: Vec<PlanId>) -> usize {
+        let start_len = self.jobs.len();
+        info!("Remove plans: {plans:?} in {:?}", self.jobs);
+        self.jobs.retain(|job| !plans.contains(&job.plan_id));
+        start_len - self.jobs.len()
+    }
+
     pub fn pop_job(&mut self) -> Option<Job> {
-        debug!("Jobs in queue: {}", self.jobs.len());
+        debug!("Jobs in queue {}", self.jobs.len());
         let first_expected_time = self.jobs.front().and_then(|job| {
             log::trace!(
                 "Found new job with expected runtime {}: {:?}",

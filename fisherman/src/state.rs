@@ -1,5 +1,6 @@
 use crate::models::job::JobBuffer;
 use common::jobs::Job;
+use common::{JobId, PlanId};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -16,6 +17,18 @@ impl WorkerState {
         {
             let mut lock = self.job_buffer.lock().await;
             lock.add_jobs(jobs)
+        }
+    }
+    pub async fn cancel_jobs(&mut self, jobs: Vec<JobId>) -> usize {
+        {
+            let mut lock = self.job_buffer.lock().await;
+            lock.cancel_jobs(jobs)
+        }
+    }
+    pub async fn cancel_plans(&mut self, plans: Vec<PlanId>) -> usize {
+        {
+            let mut lock = self.job_buffer.lock().await;
+            lock.cancel_plans(plans)
         }
     }
 }
