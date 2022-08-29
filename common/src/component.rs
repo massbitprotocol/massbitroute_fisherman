@@ -1,4 +1,4 @@
-use crate::{ComponentId, NetworkType, UrlType};
+use crate::{ComponentId, NetworkType};
 use crate::{Deserialize, Serialize};
 use anyhow::{anyhow, Error};
 
@@ -128,21 +128,6 @@ impl Display for BlockChainFamily {
 }
 
 impl ComponentInfo {
-    pub fn get_url(&self) -> UrlType {
-        format!("https://{}", self.ip)
-    }
-
-    pub fn get_host_header(&self, domain: &String) -> String {
-        match self.component_type {
-            ComponentType::Node => {
-                format!("{}.node.mbr.{}", self.id, domain)
-            }
-            ComponentType::Gateway => {
-                format!("{}.gw.mbr.{}", self.id, domain)
-            }
-        }
-    }
-
     pub fn get_chain_id(&self) -> String {
         format!("{}.{}", self.blockchain, self.network)
     }

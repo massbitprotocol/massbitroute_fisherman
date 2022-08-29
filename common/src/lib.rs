@@ -2,7 +2,11 @@ pub mod component;
 pub mod job_action;
 pub mod job_manage;
 pub mod jobs;
+
+use anyhow::anyhow;
 pub use logger;
+use std::str::FromStr;
+
 pub mod models;
 pub mod task_spawn;
 pub mod tasks;
@@ -49,5 +53,35 @@ impl Config {
         });
         let config: Config = serde_json::from_str(&*json).unwrap_or_default();
         config
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Environment {
+    Local,
+    DockerTest,
+    Production,
+}
+
+impl ToString for Environment {
+    fn to_string(&self) -> String {
+        match self {
+            Environment::Local => "local".to_string(),
+            Environment::DockerTest => "docker_test".to_string(),
+            Environment::Production => "production".to_string(),
+        }
+    }
+}
+
+impl FromStr for Environment {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "local" => Ok(Environment::Local),
+            "docker_test" => Ok(Environment::DockerTest),
+            "production" => Ok(Environment::Production),
+            _ => Err(anyhow!("Cannot parse {s} to Environment")),
+        }
     }
 }

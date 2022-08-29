@@ -11,11 +11,11 @@ use crate::tasks::generator::TaskApplicant;
 use common::component::{ComponentInfo, ComponentType};
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job};
-use common::tasks::{LoadConfigs, TaskConfigTrait, TemplateRender};
+use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::workers::MatchedWorkers;
 use common::{NetworkType, PlanId, Timestamp, DOMAIN};
 
-use crate::CONFIG_BENCHMARK_DIR;
+use crate::{TemplateRender, CONFIG_BENCHMARK_DIR};
 use handlebars::Handlebars;
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -124,7 +124,6 @@ impl TaskConfigTrait for BenchmarkConfig {
         true
     }
 }
-impl TemplateRender for BenchmarkConfig {}
 
 impl LoadConfigs<BenchmarkConfig> for BenchmarkConfig {}
 

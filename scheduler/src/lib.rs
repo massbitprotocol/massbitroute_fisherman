@@ -1,6 +1,9 @@
 extern crate diesel;
 extern crate diesel_migrations;
+
+use common::Environment;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 use std::env;
 
 pub mod handler;
@@ -14,7 +17,14 @@ pub mod service;
 pub mod state;
 pub mod tasks;
 
+use crate::tasks::benchmark::generator::BenchmarkConfig;
+use anyhow::anyhow;
+use common::tasks::http_request::HttpRequestJobConfig;
+use common::tasks::websocket_request::JobWebsocketConfig;
+use handlebars::Handlebars;
+use serde_json::{Map, Value};
 use server_config::Config;
+use std::str::FromStr;
 
 pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const DELIVERY_PERIOD: u64 = 10; //In seconds
@@ -75,4 +85,95 @@ lazy_static! {
     pub static ref IS_REGULAR_REPORT: bool =
         env::var("IS_REGULAR_REPORT").ok().and_then(|val|val.parse::<bool>().ok()).expect("There is no env var IS_REGULAR_REPORT, e.g. true");
     pub static ref BUILD_VERSION: String = format!("{}", env!("BUILD_VERSION"));
+    pub static ref ENVIRONMENT: Environment = Environment::from_str(
+        &env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT")).expect("Cannot parse var ENVIRONMENT");
 }
+
+pub trait TemplateRender {
+    fn generate_url(
+        template: &str,
+        handlebars: &Handlebars,
+        context: &Value,
+    ) -> Result<String, anyhow::Error> {
+        let template = if *ENVIRONMENT == Environment::DockerTest {
+            template.replace("https", "http")
+        } else {
+            template.to_string()
+        };
+
+        // render without register
+        handlebars
+            .render_template(&template, context)
+            .map_err(|err| anyhow!("{}", err))
+    }
+    fn generate_header(
+        templates: &Map<String, Value>,
+        handlebars: &Handlebars,
+        context: &Value,
+    ) -> HashMap<String, String> {
+        let mut headers = HashMap::new();
+        for (key, value) in templates.iter() {
+            if let Some(val) = value.as_str() {
+                match handlebars.render_template(val, &context) {
+                    Ok(header_value) => {
+                        headers.insert(key.clone(), header_value);
+                    }
+                    Err(err) => {
+                        log::debug!("Render template error {:?}", &err);
+                    }
+                }
+            } else {
+                log::warn!("Value {:?} is not string value", value);
+            };
+        }
+        log::debug!("Generated headers {:?}", &headers);
+        headers
+    }
+    fn generate_body(
+        template: &Value,
+        handlebars: &Handlebars,
+        context: &Value,
+    ) -> Result<Value, anyhow::Error> {
+        Self::render_template_value(handlebars, template, context)
+        //.map(|value| value.to_string())
+    }
+
+    fn render_template_value(
+        handlebars: &Handlebars,
+        value: &Value,
+        context: &Value,
+    ) -> Result<serde_json::Value, anyhow::Error> {
+        match value {
+            Value::String(val) => {
+                let value = handlebars
+                    .render_template(val.as_str(), context)
+                    .unwrap_or(val.clone());
+                Ok(Value::String(value))
+            }
+            Value::Array(arrs) => {
+                let mut vecs = Vec::new();
+                for item in arrs.iter() {
+                    if let Ok(item_value) = Self::render_template_value(handlebars, item, context) {
+                        vecs.push(item_value);
+                    }
+                }
+                Ok(Value::Array(vecs))
+            }
+            Value::Object(map) => {
+                let mut rendered_map: Map<String, Value> = Map::new();
+                for (key, item) in map.iter() {
+                    if let Ok(item_value) = Self::render_template_value(handlebars, item, context) {
+                        rendered_map.insert(key.clone(), item_value);
+                    }
+                }
+                Ok(Value::Object(rendered_map))
+            }
+            Value::Number(val) => Ok(Value::from(val.clone())),
+            Value::Bool(val) => Ok(Value::from(val.clone())),
+            Value::Null => Ok(Value::Null),
+        }
+    }
+}
+impl TemplateRender for JobWebsocketConfig {}
+impl TemplateRender for HttpRequestJobConfig {}
+impl TemplateRender for BenchmarkConfig {}

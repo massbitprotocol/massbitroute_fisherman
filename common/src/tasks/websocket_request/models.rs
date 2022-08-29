@@ -130,6 +130,7 @@ impl fmt::Display for JobWebsocketConfig {
 }
 
 impl LoadConfigs<JobWebsocketConfig> for JobWebsocketConfig {}
+
 impl JobWebsocketConfig {
     // pub fn read_config(path: &str, phase: &JobRole) -> Vec<JobWebsocketConfig> {
     //     let json_content = std::fs::read_to_string(path).unwrap_or_default();
