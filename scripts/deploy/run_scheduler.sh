@@ -17,8 +17,8 @@ export URL_PORTAL=https://portal.$DOMAIN
 export COMMON_CONFIG_FILE=/opt/fisherman/common.json
 # ENVIRONMENT=production/release/docker_test/local
 #export ENVIRONMENT=production
-# SCHEMA=https/http
-export SCHEMA=https
+# SCHEME=https/http
+export SCHEME=https
 
 cd /opt/fisherman
 ./scheduler

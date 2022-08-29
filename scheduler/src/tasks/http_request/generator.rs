@@ -2,7 +2,7 @@ use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use crate::{TemplateRender, CONFIG, CONFIG_HTTP_REQUEST_DIR};
+use crate::{TemplateRender, CONFIG, CONFIG_HTTP_REQUEST_DIR, SCHEME};
 use anyhow::Error;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
@@ -46,7 +46,7 @@ impl HttpRequestGenerator {
     }
 
     fn create_context(component: &ComponentInfo) -> Value {
-        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
+        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str(),"scheme": SCHEME.to_http_string() });
         if let Some(obj) = context["provider"].as_object_mut() {
             match component.component_type {
                 ComponentType::Node => obj.insert(String::from("type"), Value::from("node")),

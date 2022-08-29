@@ -89,18 +89,33 @@ impl FromStr for Environment {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Schema {
+pub enum Scheme {
     Https,
     Http,
 }
 
-impl FromStr for Schema {
+impl Scheme {
+    pub fn to_http_string(&self) -> String {
+        match self {
+            Scheme::Https => "https".to_string(),
+            Scheme::Http => "http".to_string(),
+        }
+    }
+    pub fn to_ws_string(&self) -> String {
+        match self {
+            Scheme::Https => "wss".to_string(),
+            Scheme::Http => "ws".to_string(),
+        }
+    }
+}
+
+impl FromStr for Scheme {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "https" => Ok(Schema::Https),
-            "http" => Ok(Schema::Http),
+            "https" => Ok(Scheme::Https),
+            "http" => Ok(Scheme::Http),
             _ => Err(anyhow!("Cannot parse {s} to Schema")),
         }
     }

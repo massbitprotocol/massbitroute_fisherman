@@ -1,7 +1,7 @@
 extern crate diesel;
 extern crate diesel_migrations;
 
-use common::Schema;
+use common::Scheme;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::env;
@@ -87,8 +87,8 @@ lazy_static! {
     pub static ref BUILD_VERSION: String = format!("{}", env!("BUILD_VERSION"));
     // pub static ref ENVIRONMENT: Environment = Environment::from_str(
     //     &env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT")).expect("Cannot parse var ENVIRONMENT");
-    pub static ref SCHEMA: Schema = Schema::from_str(
-        &env::var("SCHEMA").expect("There is no env var SCHEMA")).expect("Cannot parse var SCHEMA");
+    pub static ref SCHEME: Scheme = Scheme::from_str(
+        &env::var("SCHEME").expect("There is no env var SCHEME")).expect("Cannot parse var SCHEME");
 }
 
 pub trait TemplateRender {
@@ -97,11 +97,11 @@ pub trait TemplateRender {
         handlebars: &Handlebars,
         context: &Value,
     ) -> Result<String, anyhow::Error> {
-        let template = match *SCHEMA {
-            Schema::Https => template
+        let template = match *SCHEME {
+            Scheme::Https => template
                 .replace("http://", "https://")
                 .replace("ws://", "wss://"),
-            Schema::Http => template
+            Scheme::Http => template
                 .replace("https://", "http://")
                 .replace("wss://", "ws://"),
         };

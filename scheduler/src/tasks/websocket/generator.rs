@@ -2,7 +2,7 @@ use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use crate::{TemplateRender, CONFIG, CONFIG_WEBSOCKET_DIR};
+use crate::{TemplateRender, CONFIG, CONFIG_WEBSOCKET_DIR, SCHEME};
 use anyhow::Error;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
@@ -46,7 +46,7 @@ impl WebsocketGenerator {
         }
     }
     fn create_context(component: &ComponentInfo) -> Value {
-        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
+        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str(),"ws_scheme": SCHEME.to_ws_string() });
         if let Some(obj) = context["provider"].as_object_mut() {
             match component.component_type {
                 ComponentType::Node => obj.insert(String::from("type"), Value::from("node")),

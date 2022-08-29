@@ -4,7 +4,7 @@
     "phases": ["verification"],
     "repeat_number": 5,
     "interval": 1000,
-    "url_template": "https://{{provider.ip}}/_rtt",
+    "url_template": "{{scheme}}://{{provider.ip}}/_rtt",
     "assignment": {
       "broadcast": true
     },
