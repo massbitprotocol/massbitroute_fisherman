@@ -97,14 +97,6 @@ pub trait TemplateRender {
         handlebars: &Handlebars,
         context: &Value,
     ) -> Result<String, anyhow::Error> {
-        let template = match *SCHEME {
-            Scheme::Https => template
-                .replace("http://", "https://")
-                .replace("ws://", "wss://"),
-            Scheme::Http => template
-                .replace("https://", "http://")
-                .replace("wss://", "ws://"),
-        };
         // render without register
         handlebars
             .render_template(&template, context)
