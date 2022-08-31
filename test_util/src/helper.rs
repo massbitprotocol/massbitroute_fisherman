@@ -250,7 +250,8 @@ pub fn mock_job(job_name: &JobName, component_url: &str, job_id: &str, phase: &J
             let job_detail = r###"
         {"url": "https://67.219.104.215/", "body": {"id": 1, "method": "eth_getBlockByNumber", "params": ["latest", true], "jsonrpc": "2.0"}, "method": "post", "headers": {"Host": "6e02171a-93b0-4079-91b6-caddc64f5dbc.node.mbr.massbitroute.net", "X-Api-Key": "rLhwVAprTNK8yqYmqSmXug", "content-type": "application/json"}, "chain_info": {"chain": "eth", "network": "mainnet"}, "response_type": "json", "response_values": {"hash": ["result", "hash"], "number": ["result", "number"], "timestamp": ["result", "timestamp"]}}
         "###;
-            let job_latest_block: JobHttpRequest = serde_json::from_str(job_detail).unwrap();
+            let mut job_latest_block: JobHttpRequest = serde_json::from_str(job_detail).unwrap();
+            job_latest_block.url = component_url.to_string();
             Job::new(
                 "http".to_string(),
                 "HttpRequest".to_string(),

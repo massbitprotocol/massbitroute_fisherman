@@ -13,7 +13,7 @@ lazy_static! {
     static ref RUST_LOG_TYPE: String = env::var("RUST_LOG_TYPE").unwrap_or_else(|_| String::from("console")); // If not specified, assume we're logging to console
 }
 
-pub fn init_logger(file_name: &String) -> String {
+pub fn init_logger(file_name: &str) -> String {
     /* Logging to file */
     if RUST_LOG_TYPE.to_lowercase().as_str() == "file" {
         log_to_file(file_name, &RUST_LOG);
