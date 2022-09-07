@@ -144,17 +144,23 @@ impl Into<JobResult> for NewJobResult {
         let return_job_result = self.job_result.clone();
         let result = from_utf8(&*return_job_result.result).unwrap();
         let job_id: JobId = from_utf8(&self.job_id).unwrap().to_string();
+        let chain_info = Some(ChainInfo {
+            chain: BlockChainType::from_str(from_utf8(&self.job.chain).unwrap())
+                .unwrap_or_default(),
+            network: from_utf8(&self.job.network).unwrap().to_string(),
+        });
         let job = self.job.to_job(job_id.clone());
         let is_success = return_job_result.is_success;
 
         let http_response = match job.job_name.as_str() {
             "RoundTripTime" => {
                 if is_success {
-                    let response_duration = Timestamp::from_str(result.trim_matches('\n')).unwrap();
+                    let body = result.trim_matches('\n');
+                    let response_duration = Timestamp::from_str(body).unwrap() / 1000i64;
                     JobHttpResponse {
                         request_timestamp: return_job_result.timestamp as i64,
                         response_duration,
-                        detail: JobHttpResponseDetail::Body(result.to_string()),
+                        detail: JobHttpResponseDetail::Body(body.to_string()),
                         http_code: 200,
                         error_code: 0,
                         message: "".to_string(),
@@ -208,7 +214,7 @@ impl Into<JobResult> for NewJobResult {
             phase: job.phase,
             result_detail: JobResultDetail::HttpRequest(job_http_result),
             receive_timestamp: get_current_time(),
-            chain_info: None,
+            chain_info,
         }
     }
 }
