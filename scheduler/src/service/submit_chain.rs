@@ -1,44 +1,257 @@
-use std::collections::hash_map::Entry;
 use std::fmt::Formatter;
 // Massbit chain
 use codec::Decode;
 
-use crate::SIGNER_PHRASE;
+use crate::{REPORT_CALLBACK, SCHEDULER_AUTHORIZATION, SIGNER_PHRASE};
 use anyhow::anyhow;
-use common::component::ComponentType;
+use common::component::{ChainInfo, ComponentType};
 use common::job_manage::JobDetail::HttpRequest;
-use common::job_manage::JobRole;
-use common::jobs::Job;
-use common::{BlockChainType, ComponentId, JobId, NetworkType, PlanId};
-use log::info;
+use common::job_manage::{JobDetail, JobResultDetail, JobRole};
+use common::jobs::{Job, JobResult};
+use common::tasks::http_request::{
+    HttpResponseValues, JobHttpRequest, JobHttpResponse, JobHttpResponseDetail, JobHttpResult,
+};
+use common::util::get_current_time;
+use common::{BlockChainType, JobId, Timestamp, COMMON_CONFIG};
+use hex::FromHex;
+use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use sp_core::crypto::Pair as _;
 use sp_core::sr25519::Pair;
-use sp_core::Bytes;
+use sp_core::Bytes as SpCoreBytes;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::str::{from_utf8, FromStr};
 use std::sync::mpsc::channel;
-use std::sync::Arc;
+use std::sync::mpsc::Receiver;
+
+use std::thread;
 use std::time::Duration;
 use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{
-    compose_extrinsic, AccountId, AccountInfo, Api, ApiResult, PlainTipExtrinsicParams,
+    compose_extrinsic, AccountId, Api, ApiResult, EventsDecoder, PlainTipExtrinsicParams, Raw,
     UncheckedExtrinsicV4, XtStatus,
 };
-use tokio::sync::RwLock;
+
 use tokio::time::sleep;
 
 pub const MVP_EXTRINSIC_DAPI: &str = "Dapi";
-const MVP_EXTRINSIC_SUBMIT_PROJECT_USAGE: &str = "submit_project_usage";
-const MVP_EVENT_PROJECT_REGISTERED: &str = "ProjectRegistered";
 
 pub const MVP_EXTRINSIC_FISHERMAN: &str = "Fisherman";
 const MVP_EXTRINSIC_CREATE_JOB: &str = "create_job";
-const MVP_EVENT_JOB_SUBMITTED: &str = "ProjectRegistered";
-//const MVP_EVENT_CREATE_JOB: &str = "ProjectRegistered";
+const MVP_EVENT_JOB_RESULT: &str = "NewJobResult";
 
 type ProjectIdString = String;
 type Quota = String;
+type Data = Vec<u8>;
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ResultLatestBlock {
+    hash: Vec<u8>,
+    number: Vec<u8>,
+}
+
+#[derive(Clone, PartialEq, Eq, Decode)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct ReturnJob {
+    plan_id: Data,
+    job_name: Data,
+    provider_id: Data,
+    provider_type: Data,
+    phase: Data,
+    chain: Data,
+    network: Data,
+    response_type: Data,
+    response_values: Data,
+    url: Data,
+    method: ApiMethod,
+    headers: Vec<(Data, Data)>,
+    payload: Data,
+}
+
+impl ReturnJob {
+    fn to_job(&self, job_id: JobId) -> Job {
+        let chain_info = Some(ChainInfo {
+            chain: BlockChainType::from_str(from_utf8(&self.chain).unwrap()).unwrap(),
+            network: from_utf8(&self.network).unwrap().to_string(),
+        });
+
+        let job_detail = JobHttpRequest {
+            url: from_utf8(&self.url).unwrap().to_string(),
+            chain_info,
+            method: self.method.to_string(),
+            headers: Default::default(),
+            body: None,
+            response_type: from_utf8(&self.response_type).unwrap().to_string(),
+            response_values: serde_json::from_str(from_utf8(&self.response_values).unwrap())
+                .unwrap(),
+        };
+        Job {
+            job_id,
+            job_type: "HttpRequest".to_string(),
+            job_name: from_utf8(&self.job_name).unwrap().to_string(),
+            plan_id: from_utf8(&self.plan_id).unwrap().to_string(),
+            component_id: from_utf8(&self.provider_id).unwrap().to_string(),
+            component_type: ComponentType::from_str(from_utf8(&self.provider_type).unwrap())
+                .unwrap(),
+            job_detail: JobDetail::HttpRequest(job_detail),
+            phase: JobRole::from_str(from_utf8(&self.phase).unwrap()).unwrap(),
+            priority: 0,
+            expected_runtime: 0,
+            parallelable: false,
+            timeout: 0,
+            component_url: "".to_string(),
+            repeat_number: 0,
+            interval: 0,
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Decode)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize, Debug))]
+pub enum ApiMethod {
+    Get,
+    Post,
+}
+
+impl ToString for ApiMethod {
+    fn to_string(&self) -> String {
+        match self {
+            ApiMethod::Get => "get".to_string(),
+            ApiMethod::Post => "post".to_string(),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Default, Decode)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct ReturnJobResult {
+    result: Data,
+    timestamp: u128,
+    is_success: bool,
+}
+
+#[derive(Clone, PartialEq, Eq, Decode)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct NewJobResult {
+    job_id: Data,
+    job: ReturnJob,
+    job_result: ReturnJobResult,
+}
+
+impl Into<JobResult> for NewJobResult {
+    fn into(self) -> JobResult {
+        let return_job_result = self.job_result.clone();
+        let result = from_utf8(&*return_job_result.result).unwrap();
+        let job_id: JobId = from_utf8(&self.job_id).unwrap().to_string();
+        let job = self.job.to_job(job_id.clone());
+        let is_success = return_job_result.is_success;
+
+        let http_response = match job.job_name.as_str() {
+            "RoundTripTime" => {
+                if is_success {
+                    let response_duration = Timestamp::from_str(result.trim_matches('\n')).unwrap();
+                    JobHttpResponse {
+                        request_timestamp: return_job_result.timestamp as i64,
+                        response_duration,
+                        detail: JobHttpResponseDetail::Body(result.to_string()),
+                        http_code: 200,
+                        error_code: 0,
+                        message: "".to_string(),
+                    }
+                } else {
+                    JobHttpResponse {
+                        request_timestamp: return_job_result.timestamp as i64,
+                        response_duration: 0,
+                        detail: JobHttpResponseDetail::Body("".to_string()),
+                        http_code: 0,
+                        error_code: 1,
+                        message: "not success".to_string(),
+                    }
+                }
+            }
+            _ => {
+                if is_success {
+                    let response_duration = Timestamp::from_str(result.trim_matches('\n')).unwrap();
+                    JobHttpResponse {
+                        request_timestamp: return_job_result.timestamp as i64,
+                        response_duration,
+                        detail: JobHttpResponseDetail::Values(HttpResponseValues::new(
+                            serde_json::from_str(result).unwrap(),
+                        )),
+                        http_code: 200,
+                        error_code: 0,
+                        message: "".to_string(),
+                    }
+                } else {
+                    JobHttpResponse {
+                        request_timestamp: return_job_result.timestamp as i64,
+                        response_duration: 0,
+                        detail: JobHttpResponseDetail::Values(HttpResponseValues::new(
+                            HashMap::new(),
+                        )),
+                        http_code: 0,
+                        error_code: 1,
+                        message: "not success".to_string(),
+                    }
+                }
+            }
+        };
+        let job_http_result = JobHttpResult::new(job.clone(), http_response);
+        JobResult {
+            plan_id: job.plan_id,
+            job_id,
+            job_name: job.job_name,
+            worker_id: "onchain-worker".to_string(),
+            provider_id: job.component_id,
+            provider_type: job.component_type,
+            phase: job.phase,
+            result_detail: JobResultDetail::HttpRequest(job_http_result),
+            receive_timestamp: get_current_time(),
+            chain_info: None,
+        }
+    }
+}
+
+impl NewJobResult {
+    pub async fn send_results(
+        result_callback: &str,
+        results: Vec<NewJobResult>,
+    ) -> Result<(), anyhow::Error> {
+        // Convert to NewJobResult
+        let results: Vec<JobResult> = results.into_iter().map(|result| result.into()).collect();
+        // send results
+        let call_back = result_callback.to_string();
+        info!("Send {} results to: {}", results.len(), call_back);
+        let client_builder = reqwest::ClientBuilder::new();
+        let client = client_builder.danger_accept_invalid_certs(true).build()?;
+        let body = serde_json::to_string(&results)?;
+        trace!("Body content: {}", body);
+        info!("sending body len: {}", body.len());
+        let result = client
+            .post(call_back)
+            .header("content-type", "application/json")
+            .header("authorization", &*SCHEDULER_AUTHORIZATION)
+            .body(body)
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ))
+            .send()
+            .await;
+        info!("Send response: {:?}", result);
+        match result {
+            Ok(_res) => Ok(()),
+            Err(err) => Err(anyhow!(format!("{:?}", &err))),
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Decode, Debug)]
+pub struct JobResultEventArgs {
+    pub submitter: AccountId,
+    pub job_id: SpCoreBytes,
+}
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Projects(pub HashMap<ProjectIdString, Project>);
@@ -65,8 +278,6 @@ pub struct SubmitData {
     to_block_number: isize,
 }
 
-type Data = Vec<u8>;
-
 #[derive(Clone, Debug)]
 pub struct SubmitJob {
     pub plan_id: Data,
@@ -87,25 +298,26 @@ pub struct SubmitJob {
     pub response_type: Data,
     // json/string
     pub response_values: Data,
+    pub headers: Vec<(Data, Data)>,
 }
 
 impl Default for SubmitJob {
     fn default() -> Self {
-        let default: Data = vec![0; 36];
         SubmitJob {
-            plan_id: default.clone(),
-            job_id: default.clone(),
-            job_name: default.clone(),
-            provider_id: default.clone(),
-            provider_type: default.clone(),
-            phase: default.clone(),
-            url: default.clone(),
-            body: default.clone(),
+            plan_id: vec![],
+            job_id: vec![],
+            job_name: vec![],
+            provider_id: vec![],
+            provider_type: vec![],
+            phase: vec![],
+            url: vec![],
+            body: vec![],
             method: 0,
-            chain: default.clone(),
-            network: default.clone(),
-            response_type: default.clone(),
-            response_values: default.clone(),
+            chain: vec![],
+            network: vec![],
+            response_type: vec![],
+            response_values: vec![],
+            headers: vec![],
         }
     }
 }
@@ -114,29 +326,31 @@ impl Default for SubmitJob {
 #[derive(Decode, Debug)]
 pub struct SubmitJobEventArgs {
     pub submitter: AccountId,
-    pub job_id: Bytes,
-}
-
-#[allow(dead_code)]
-#[derive(Decode, Debug)]
-pub struct JobResultEventArgs {
-    pub plan_id: Bytes,
-    pub job_id: Bytes,
-    pub job_name: Bytes, //For http request use task_name in task config ex: RoundTripTime/LatestBlock
-    pub worker_id: Bytes,
-    pub provider_id: Bytes,
-    pub provider_type: Bytes, //node/gateway
-    pub phase: Bytes,         // regular
-    pub result_detail: Bytes,
-    pub receive_timestamp: u64, //time the worker received result
-    pub chain: Bytes,
-    pub network: Bytes,
+    pub job_id: SpCoreBytes,
 }
 
 impl From<&Job> for SubmitJob {
     fn from(job: &Job) -> Self {
         if let HttpRequest(job_detail) = job.job_detail.clone() {
             let chain_info = job_detail.chain_info.unwrap_or_default();
+            let x_api_key: Data = job_detail
+                .headers
+                .get("x-api-key")
+                .unwrap_or(&"".to_string())
+                .as_bytes()
+                .to_vec();
+            let host = job_detail
+                .headers
+                .get("host")
+                .unwrap_or(&"".to_string())
+                .as_bytes()
+                .to_vec();
+            let content_type = job_detail
+                .headers
+                .get("content-type")
+                .unwrap_or(&"".to_string())
+                .as_bytes()
+                .to_vec();
             SubmitJob {
                 plan_id: job.plan_id.as_bytes().try_into().unwrap(),
                 job_id: job.job_id.as_bytes().try_into().unwrap(),
@@ -149,7 +363,12 @@ impl From<&Job> for SubmitJob {
                     .try_into()
                     .unwrap(),
                 phase: job.phase.to_string().as_bytes().try_into().unwrap(),
-                url: job_detail.url.as_bytes().try_into().unwrap(),
+                url: job_detail
+                    .url
+                    .replace("https", "http")
+                    .as_bytes()
+                    .try_into()
+                    .unwrap(),
                 body: job_detail
                     .body
                     .unwrap_or_default()
@@ -172,6 +391,11 @@ impl From<&Job> for SubmitJob {
                     .as_bytes()
                     .try_into()
                     .unwrap(),
+                headers: vec![
+                    ("x-api-key".as_bytes().try_into().unwrap(), x_api_key),
+                    ("host".as_bytes().try_into().unwrap(), host),
+                    ("content-type".as_bytes().try_into().unwrap(), content_type),
+                ],
             }
         } else {
             SubmitJob::default()
@@ -182,21 +406,10 @@ impl From<&Job> for SubmitJob {
 #[allow(dead_code)]
 #[derive(Decode, Debug)]
 struct ProjectRegisteredEventArgs {
-    project_id: Bytes,
+    project_id: SpCoreBytes,
     account_id: AccountId,
-    chain_id: Bytes,
+    chain_id: SpCoreBytes,
     quota: u64,
-}
-
-impl ProjectRegisteredEventArgs {
-    fn project_id_to_string(&self) -> String {
-        String::from_utf8_lossy(&*self.project_id).to_string()
-    }
-    fn get_blockchain_and_network(&self) -> (String, String) {
-        let chain_id = String::from_utf8_lossy(&*self.chain_id).to_string();
-        let chain_id = chain_id.split(".").collect::<Vec<&str>>();
-        (chain_id[0].to_string(), chain_id[1].to_string())
-    }
 }
 
 impl ChainAdapter {
@@ -220,11 +433,18 @@ impl ChainAdapter {
     pub fn submit_job(&self, job: &Job) -> Result<(), anyhow::Error> {
         info!("Submit job: {:?}", job);
         // set the recipient
-        let api = self.api.as_ref().unwrap().clone();
+        let api = self.api.as_ref().unwrap();
+        let nonce = api.get_nonce();
+        trace!("nonce before: {:?}", nonce);
         let submit_job = SubmitJob::from(job);
         info!(
             "[+] Composed Extrinsic:{}, api:{}, submit_job:{:?}",
             MVP_EXTRINSIC_FISHERMAN, MVP_EXTRINSIC_CREATE_JOB, submit_job
+        );
+        info!(
+            "[+] submit_job.body: {}, submit_job.response_values {},",
+            from_utf8(&submit_job.body).unwrap(),
+            from_utf8(&submit_job.response_values).unwrap()
         );
         // the names are given as strings
         #[allow(clippy::redundant_clone)]
@@ -243,14 +463,10 @@ impl ChainAdapter {
             submit_job.response_type,
             submit_job.response_values,
             submit_job.url,
-            Compact(submit_job.method),
+            submit_job.method,
+            submit_job.headers,
             submit_job.body
         );
-
-        // info!(
-        //     "[+] Composed Extrinsic:{}, api:{}, submit_job:{:?}",
-        //     MVP_EXTRINSIC_FISHERMAN, MVP_EXTRINSIC_CREATE_JOB, submit_job
-        // );
 
         // send and watch extrinsic until InBlock
         let tx_hash = self
@@ -259,132 +475,117 @@ impl ChainAdapter {
             .unwrap()
             .send_extrinsic(xt.hex_encode(), XtStatus::InBlock)?;
         info!("[+] Transaction got included. Hash: {:?}", tx_hash);
+        trace!("nonce after: {:?}", nonce);
         Ok(())
     }
     pub fn submit_jobs(&self, jobs: &[Job]) -> Result<(), anyhow::Error> {
+        if jobs.is_empty() {
+            return Ok(());
+        }
         for job in jobs.iter() {
             if let Err(e) = self.submit_job(job) {
                 info!("submit_jobs error:{:?}", e);
             };
+            //std::thread::sleep(Duration::from_millis(12000));
         }
         Ok(())
     }
 
-    pub async fn subscribe_event_submitted_job(
-        &self,
-        projects: Arc<RwLock<Projects>>,
-    ) -> Result<(), anyhow::Error> {
+    pub async fn subscribe_event_onchain_worker(self) {
         let (events_in, events_out) = channel();
         let api = self
             .api
             .as_ref()
-            .ok_or(anyhow::Error::msg("Error: api is none"))?;
-        api.subscribe_events(events_in)?;
-        let mut retry = 10;
-        loop {
-            let event: ApiResult<ProjectRegisteredEventArgs> = api.wait_for_event(
-                MVP_EXTRINSIC_FISHERMAN,
-                MVP_EVENT_PROJECT_REGISTERED,
-                None,
-                &events_out,
-            );
+            .ok_or(anyhow::Error::msg("Error: api is none"))
+            .unwrap()
+            .clone();
+        let clone_api = api.clone();
+        //api.subscribe_events(events_in)?;
+        let _eventsubscriber = thread::Builder::new()
+            .name("eventsubscriber".to_owned())
+            .spawn(move || {
+                api.subscribe_events(events_in).unwrap();
+            })
+            .unwrap();
+        warn!("[+] Subscribed to events. waiting...");
 
-            match event {
-                Ok(event) => {
-                    info!("Got event: {:?}", event);
-                    {
-                        let mut projects_lock = projects.write().await;
-                        match projects_lock.0.entry(event.project_id_to_string()) {
-                            Entry::Occupied(o) => {
-                                let project = o.into_mut();
-                                project.quota = event.quota.to_string();
-                            }
-                            Entry::Vacant(v) => {
-                                let (blockchain, network) = event.get_blockchain_and_network();
-                                v.insert(Project {
-                                    blockchain,
-                                    network,
-                                    quota: event.quota.to_string(),
-                                    status: "staked".to_string(),
-                                });
-                            }
-                        };
-                        info!("projects quota update by event: {:?}", projects_lock);
-                    }
-                }
-                Err(err) => {
-                    info!("wait_for_event error:{:?}", err);
-                    sleep(Duration::from_millis(1000)).await;
-                    retry -= 1;
-                    if retry <= 0 {
-                        return Err(anyhow::Error::msg(format!(
-                            "wait_for_event error in {} times",
-                            retry
-                        )));
-                    }
-                    continue;
-                }
-            }
-        }
-        Ok(())
+        Self::wait_for_event(
+            &clone_api,
+            MVP_EXTRINSIC_FISHERMAN,
+            MVP_EVENT_JOB_RESULT,
+            None,
+            events_out,
+        )
+        .await;
     }
-    pub async fn subscribe_event_update_quota(
-        &self,
-        projects: Arc<RwLock<Projects>>,
-    ) -> Result<(), anyhow::Error> {
-        let (events_in, events_out) = channel();
-        let api = self
-            .api
-            .as_ref()
-            .ok_or(anyhow::Error::msg("Error: api is none"))?;
-        api.subscribe_events(events_in)?;
-        let mut retry = 10;
-        loop {
-            let event: ApiResult<ProjectRegisteredEventArgs> = api.wait_for_event(
-                MVP_EXTRINSIC_DAPI,
-                MVP_EVENT_PROJECT_REGISTERED,
-                None,
-                &events_out,
-            );
 
-            match event {
-                Ok(event) => {
-                    info!("Got event: {:?}", event);
-                    {
-                        let mut projects_lock = projects.write().await;
-                        match projects_lock.0.entry(event.project_id_to_string()) {
-                            Entry::Occupied(o) => {
-                                let project = o.into_mut();
-                                project.quota = event.quota.to_string();
+    pub async fn wait_for_event(
+        api: &Api<Pair, WsRpcClient, PlainTipExtrinsicParams>,
+        module: &str,
+        variant: &str,
+        decoder: Option<EventsDecoder>,
+        receiver: Receiver<String>,
+    ) {
+        let event_decoder = match decoder {
+            Some(d) => d,
+            None => EventsDecoder::new(api.metadata.clone()),
+        };
+
+        loop {
+            let event_str = receiver.recv();
+            if event_str.is_err() {
+                error!("recv error: {:?}", event_str);
+                sleep(Duration::from_millis(2000)).await;
+                continue;
+            }
+            let event_str = event_str
+                .unwrap()
+                .trim_matches('\"')
+                .trim_start_matches("0x")
+                .to_string();
+            let event_str = Vec::from_hex(event_str);
+            if event_str.is_err() {
+                error!("from_hex error: {:?}", event_str);
+                continue;
+            }
+            let _events = event_decoder.decode_events(&mut event_str.unwrap().as_slice());
+            info!("wait for raw event");
+            match _events {
+                Ok(raw_events) => {
+                    for (phase, event) in raw_events.into_iter() {
+                        info!("Decoded Event: {:?}, {:?}", phase, event);
+                        match event {
+                            Raw::Event(raw) if raw.pallet == module && raw.variant == variant => {
+                                let job_result: ApiResult<NewJobResult> =
+                                    NewJobResult::decode(&mut &raw.data[..]).map_err(|e| e.into());
+                                warn!("job_result: {:?}", job_result);
+                                // Convert to JobResult
+                                match job_result {
+                                    Ok(job_result) => {
+                                        let res = NewJobResult::send_results(
+                                            &REPORT_CALLBACK,
+                                            vec![job_result],
+                                        )
+                                        .await;
+                                        if res.is_err() {
+                                            error!("send_results error: {:?}", res);
+                                        }
+                                    }
+                                    Err(error) => {
+                                        error!("error: {:?}", error);
+                                    }
+                                };
                             }
-                            Entry::Vacant(v) => {
-                                let (blockchain, network) = event.get_blockchain_and_network();
-                                v.insert(Project {
-                                    blockchain,
-                                    network,
-                                    quota: event.quota.to_string(),
-                                    status: "staked".to_string(),
-                                });
+                            Raw::Error(runtime_error) => {
+                                error!("Some extrinsic Failed: {:?}", runtime_error);
                             }
-                        };
-                        info!("projects quota update by event: {:?}", projects_lock);
+                            _ => debug!("ignoring unsupported module event: {:?}", event),
+                        }
                     }
                 }
-                Err(err) => {
-                    info!("wait_for_event error:{:?}", err);
-                    sleep(Duration::from_millis(1000)).await;
-                    retry -= 1;
-                    if retry <= 0 {
-                        return Err(anyhow::Error::msg(format!(
-                            "wait_for_event error in {} times",
-                            retry
-                        )));
-                    }
-                    continue;
-                }
+                Err(error) => error!("couldn't decode event record list: {:?}", error),
             }
         }
-        Ok(())
     }
 }
 
@@ -401,6 +602,7 @@ mod test {
     use common::logger::init_logger;
 
     use sp_keyring::AccountKeyring;
+    use std::str;
     use substrate_api_client::rpc::WsRpcClient;
     use substrate_api_client::Api;
     use substrate_api_client::{AccountInfo, PlainTipExtrinsicParams};
@@ -410,17 +612,32 @@ mod test {
     async fn test_call_chain() {
         load_env();
         init_logging();
-        let mut job = mock_job(
+        let mut job1 = mock_job(
             &JobName::RoundTripTime,
             "http://34.116.86.153/_rtt",
-            "job_id1",
+            "job_id_rtt1",
+            &Default::default(),
+        );
+        let mut job2 = mock_job(
+            &JobName::LatestBlock,
+            "https://34.101.146.31",
+            "job_id_latest_block",
             &Default::default(),
         );
         // Submit job
         let adapter = ChainAdapter::new();
-        adapter.submit_jobs(&vec![job]);
+        adapter.submit_jobs(&vec![job2, job1]);
+    }
+
+    #[tokio::test]
+    async fn test_listen_event() {
+        load_env();
+        init_logging();
+        let adapter = ChainAdapter::new();
 
         // listen event
+        //str::from_utf8()
+        adapter.subscribe_event_onchain_worker().await;
     }
 
     #[tokio::test]

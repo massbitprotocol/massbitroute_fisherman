@@ -89,6 +89,9 @@ lazy_static! {
     //     &env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT")).expect("Cannot parse var ENVIRONMENT");
     pub static ref SCHEME: Scheme = Scheme::from_str(
         &env::var("SCHEME").expect("There is no env var SCHEME")).expect("Cannot parse var SCHEME");
+    pub static ref IS_REGULAR_WORKER_ONCHAIN: bool =
+        env::var("IS_REGULAR_WORKER_ONCHAIN").ok().and_then(|val|val.parse::<bool>().ok()).unwrap_or(true);
+
 }
 
 pub trait TemplateRender {
