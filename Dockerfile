@@ -6,9 +6,13 @@ WORKDIR /usr/src
 
 ## Install target platform (Cross-Compilation) --> Needed for Alpine
 RUN rustup target add x86_64-unknown-linux-musl
+RUN apt-get update -q
+RUN apt-get upgrade -y
+RUN apt-get install -y libprotobuf-c-dev protobuf-compiler
 
 COPY . /usr/src/
 # This is the actual application build.
+
 RUN cargo build  --release
 
 
