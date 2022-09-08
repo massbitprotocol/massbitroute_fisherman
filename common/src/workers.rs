@@ -3,6 +3,7 @@ use crate::jobs::Job;
 use crate::models::TimeFrames;
 use crate::{ComponentInfo, IPAddress, PlanId, WorkerId, COMMON_CONFIG};
 use anyhow::anyhow;
+use log::info;
 use rand::Rng;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
@@ -100,6 +101,7 @@ impl Worker {
     }
 
     pub async fn send_jobs(&self, jobs: &Vec<Job>) -> Result<(), anyhow::Error> {
+        info!("Jobs are sent to worker: {}", jobs.len());
         let path = "handle_jobs";
         let body = serde_json::to_string(jobs)?;
         self.send_post_request(path, &body).await

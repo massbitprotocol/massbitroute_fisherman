@@ -1,7 +1,7 @@
 extern crate diesel;
 extern crate diesel_migrations;
 
-use common::Scheme;
+use common::{Environment, Scheme};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::env;
@@ -30,6 +30,7 @@ pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const DELIVERY_PERIOD: u64 = 10; //In seconds
 pub const JUDGMENT_PERIOD: u64 = 10;
 pub const RESULT_CACHE_MAX_LENGTH: usize = 10;
+
 lazy_static! {
     pub static ref COMPONENT_NAME: String = String::from("[Scheduler]");
     pub static ref SCHEDULER_ENDPOINT: String =
@@ -58,7 +59,8 @@ lazy_static! {
         env::var("SCHEDULER_AUTHORIZATION").expect("There is no env var SCHEDULER_AUTHORIZATION");
     pub static ref URL_PORTAL: String =
         env::var("URL_PORTAL").expect("There is no env var URL_PORTAL, e.g. https://portal.massbitroute.net");
-
+    pub static ref URL_CHAIN: String =
+        env::var("URL_CHAIN").unwrap_or_else(|_| "ws://chain.massbitroute.net".to_string());
     pub static ref URL_NODES_LIST: String = format!("{}/{}",*URL_PORTAL,
         env::var("PATH_NODES_LIST").expect("There is no env var PATH_NODES_LIST, e.g. mbr/node/list/verify"));
     pub static ref URL_GATEWAYS_LIST: String = format!("{}/{}",*URL_PORTAL,

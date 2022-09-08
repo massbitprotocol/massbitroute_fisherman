@@ -14,7 +14,9 @@ use scheduler::service::delivery::{CancelPlanBuffer, JobDelivery};
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
-use scheduler::{DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
+use scheduler::{
+    BUILD_VERSION, DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST,
+};
 
 use migration::{Migrator, MigratorTrait};
 use scheduler::models::job_result_cache::JobResultCache;
@@ -35,6 +37,7 @@ async fn main() -> Result<(), anyhow::Error> {
     dotenv::dotenv().ok();
     // Init logger
     let _res = init_logger(&String::from("Fisherman Scheduler"));
+    info!("BUILD_VERSION: {}", &*BUILD_VERSION);
 
     // let _matches = create_scheduler_app().get_matches();
     // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());

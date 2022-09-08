@@ -7,7 +7,7 @@ use common::jobs::{Job, JobAssignment};
 use common::workers::Worker;
 use common::{PlanId, WorkerId};
 use futures_util::future::{join, join_all};
-use log::error;
+use log::{error, info};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
@@ -94,14 +94,28 @@ impl JobDelivery {
                 for (id, jobs) in worker_jobs.into_iter() {
                     if *IS_REGULAR_WORKER_ONCHAIN {
                         let (regular_jobs, verify_jobs) = Self::separate_regular_verify_jobs(jobs);
-                        // Decentralize workers
-                        let _res = adapter.submit_jobs(&regular_jobs);
-                        if let Some(worker) = worker_pool.get(&id) {
-                            // Centralize workers
-                            let worker_cloned = worker.clone();
+                        info!(
+                            "Number of regular and verify jobs: {} and {}.",
+                            regular_jobs.len(),
+                            verify_jobs.len()
+                        );
+                        // Send verify job
+                        if !verify_jobs.is_empty() {
+                            if let Some(worker) = worker_pool.get(&id) {
+                                // Centralize workers
+                                let worker_cloned = worker.clone();
+                                let handler = tokio::spawn(async move {
+                                    // Process each socket concurrently.
+                                    worker_cloned.send_jobs(&verify_jobs).await
+                                });
+                                handlers.push(handler);
+                            }
+                        }
+                        if !regular_jobs.is_empty() {
+                            // Decentralize workers
+                            let adapter_clone = adapter.clone();
                             let handler = tokio::spawn(async move {
-                                // Process each socket concurrently.
-                                worker_cloned.send_jobs(&verify_jobs).await
+                                adapter_clone.submit_jobs(&regular_jobs).await
                             });
                             handlers.push(handler);
                         }

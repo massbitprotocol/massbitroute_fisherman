@@ -2,7 +2,7 @@ use std::fmt::Formatter;
 // Massbit chain
 use codec::Decode;
 
-use crate::{REPORT_CALLBACK, SCHEDULER_AUTHORIZATION, SIGNER_PHRASE};
+use crate::{REPORT_CALLBACK, SCHEDULER_AUTHORIZATION, SIGNER_PHRASE, URL_CHAIN};
 use anyhow::anyhow;
 use common::component::{ChainInfo, ComponentType};
 use common::job_manage::JobDetail::HttpRequest;
@@ -270,7 +270,7 @@ pub struct Project {
     pub status: String,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ChainAdapter {
     pub ws_rpc_client: Option<WsRpcClient>,
     pub api: Option<Api<Pair, WsRpcClient, PlainTipExtrinsicParams>>,
@@ -423,8 +423,13 @@ impl ChainAdapter {
         info!("signer phrase: {}", &*SIGNER_PHRASE);
         let (derive_signer, _) = Pair::from_string_with_seed(&*SIGNER_PHRASE, None).unwrap();
         info!("derive_signer address:{:?}", derive_signer.public());
-        let node_ip = "wss://chain-beta.massbitroute.net";
-        let node_port = "443";
+        let node_ip = &*URL_CHAIN;
+        let node_port = if node_ip.starts_with("wss") {
+            "443"
+        } else {
+            "9944"
+        };
+
         let url = format!("{}:{}", node_ip, node_port);
         println!("Interacting with node on {}\n", url);
         let client = WsRpcClient::new(&url);
@@ -484,7 +489,7 @@ impl ChainAdapter {
         trace!("nonce after: {:?}", nonce);
         Ok(())
     }
-    pub fn submit_jobs(&self, jobs: &[Job]) -> Result<(), anyhow::Error> {
+    pub async fn submit_jobs(&self, jobs: &[Job]) -> Result<(), anyhow::Error> {
         if jobs.is_empty() {
             return Ok(());
         }
@@ -635,10 +640,11 @@ mod test {
         adapter.submit_jobs(&vec![job2, job1]);
     }
 
+    #[ignore]
     #[tokio::test]
     async fn test_listen_event() {
         load_env();
-        init_logging();
+        //init_logging();
         let adapter = ChainAdapter::new();
 
         // listen event
@@ -646,45 +652,6 @@ mod test {
         adapter.subscribe_event_onchain_worker().await;
     }
 
-    #[tokio::test]
-    async fn test_call_chain_example() {
-        //env_logger::init();
-        init_logger("test_chain");
-        let url = get_node_url_from_cli();
-
-        let client = WsRpcClient::new(&url);
-        let mut api = Api::<_, _, PlainTipExtrinsicParams>::new(client).unwrap();
-
-        // get some plain storage value
-        let result: u128 = api
-            .get_storage_value("Balances", "TotalIssuance", None)
-            .unwrap()
-            .unwrap();
-        println!("[+] TotalIssuance is {}", result);
-
-        let proof = api
-            .get_storage_value_proof("Balances", "TotalIssuance", None)
-            .unwrap();
-        println!("[+] StorageValueProof: {:?}", proof);
-
-        // get StorageMap
-        let account = AccountKeyring::Alice.public();
-        let result: AccountInfo = api
-            .get_storage_map("System", "Account", account, None)
-            .unwrap()
-            .or_else(|| Some(AccountInfo::default()))
-            .unwrap();
-        println!("[+] AccountInfo for Alice is {:?}", result);
-
-        // get StorageMap key prefix
-        let result = api.get_storage_map_key_prefix("System", "Account").unwrap();
-        println!("[+] key prefix for System Account map is {:?}", result);
-
-        // get Alice's AccountNonce with api.get_nonce()
-        let signer = AccountKeyring::Alice.pair();
-        api.signer = Some(signer);
-        println!("[+] Alice's Account Nonce is {}", api.get_nonce().unwrap());
-    }
     pub fn get_node_url_from_cli() -> String {
         let node_ip = "wss://chain.massbitroute.net";
         let node_port = "443";

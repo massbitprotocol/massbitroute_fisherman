@@ -10,8 +10,8 @@ use fisherman::server_config::AccessControl;
 use fisherman::services::{JobExecution, JobResultReporter, WebServiceBuilder};
 use fisherman::state::WorkerState;
 use fisherman::{
-    ENVIRONMENT, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID,
-    WORKER_IP, WORKER_SERVICE_ENDPOINT, ZONE,
+    BUILD_VERSION, ENVIRONMENT, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT,
+    WORKER_ID, WORKER_IP, WORKER_SERVICE_ENDPOINT, ZONE,
 };
 use futures_util::future::join3;
 use log::{debug, error, info, warn};
@@ -29,6 +29,7 @@ async fn main() {
     let _ = dotenv::from_filename(".env_fisherman");
     // Init logger
     let _res = init_logger(&String::from("Fisherman-worker"));
+    info!("BUILD_VERSION: {}", &*BUILD_VERSION);
     // Create job queue
     //Call to scheduler to register worker
     if let Ok(WorkerRegisterResult {
