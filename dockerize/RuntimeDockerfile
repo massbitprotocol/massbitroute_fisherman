@@ -1,0 +1,16 @@
+# ##### Runtime
+FROM debian AS runtime
+
+#COPY scripts/benchmark /usr/local/bin/benchmark
+#COPY target/release/scheduler /usr/local/bin
+#COPY target/release/fisherman /usr/local/bin
+#COPY scripts/build_docker/services /etc/services
+COPY ./benchmark /usr/local/bin/benchmark
+COPY ./scheduler /usr/local/bin
+COPY ./fisherman /usr/local/bin
+COPY ./services /etc/services
+RUN apt update && apt install supervisor -y
+EXPOSE 80
+
+# Run the application
+CMD ["supervisord", "-n"]
