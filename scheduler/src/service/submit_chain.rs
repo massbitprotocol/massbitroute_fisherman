@@ -284,7 +284,7 @@ pub struct SubmitData {
     to_block_number: isize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct SubmitJob {
     pub plan_id: Data,
     pub job_id: Data,
@@ -305,27 +305,6 @@ pub struct SubmitJob {
     // json/string
     pub response_values: Data,
     pub headers: Vec<(Data, Data)>,
-}
-
-impl Default for SubmitJob {
-    fn default() -> Self {
-        SubmitJob {
-            plan_id: vec![],
-            job_id: vec![],
-            job_name: vec![],
-            provider_id: vec![],
-            provider_type: vec![],
-            phase: vec![],
-            url: vec![],
-            body: vec![],
-            method: 0,
-            chain: vec![],
-            network: vec![],
-            response_type: vec![],
-            response_values: vec![],
-            headers: vec![],
-        }
-    }
 }
 
 #[allow(dead_code)]
@@ -424,13 +403,12 @@ impl ChainAdapter {
         let (derive_signer, _) = Pair::from_string_with_seed(&*SIGNER_PHRASE, None).unwrap();
         info!("derive_signer address:{:?}", derive_signer.public());
         let node_ip = &*URL_CHAIN;
-        let node_port = if node_ip.starts_with("wss") {
-            "443"
+        let url = if node_ip.starts_with("wss") {
+            format!("{}:443", node_ip)
         } else {
-            "9944"
+            node_ip.to_string()
         };
 
-        let url = format!("{}:{}", node_ip, node_port);
         println!("Interacting with node on {}\n", url);
         let client = WsRpcClient::new(&url);
         let api = Api::<_, _, PlainTipExtrinsicParams>::new(client.clone())
