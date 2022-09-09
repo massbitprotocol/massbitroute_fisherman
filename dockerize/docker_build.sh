@@ -1,4 +1,4 @@
-#docker build -f RustBuilderDockerfile -t rustbuilder:1.61.0 bash .
+#docker build -f RustBuilderDockerfile -t rustbuilder:1.61.0 .
 docker run -it -name rustbuilder -v $(pwd)/..:/fisherman rustbuilder:1.61.0 bash -c 'cd /fisherman && cargo build --release'
 docker exec -it rustbuilder bash -c 'cd /fisherman && cargo build --release'
 
