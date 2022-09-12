@@ -1,4 +1,5 @@
 #!/bin/bash
 
 cd ../..
-docker build -t massbit/massbitroute_fisherman:v0.1.0-dev .
+cargo build
+docker build -t massbit/massbitroute_fisherman:v0.1.1-web3-grant .

@@ -5,7 +5,7 @@ use crate::{DELIVERY_PERIOD, IS_REGULAR_WORKER_ONCHAIN};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
 use common::workers::Worker;
-use common::{PlanId, WorkerId};
+use common::{task_spawn, PlanId, WorkerId};
 use futures_util::future::{join, join_all};
 use log::{error, info};
 use std::collections::HashMap;
@@ -70,7 +70,10 @@ impl JobDelivery {
 
         let cancel_plans_buffer = self.cancel_plans_buffer.clone();
         let assignment_buffer = self.assignment_buffer.clone();
+        //
+        log::info!("Create task_assignment_buffer");
         let task_assignment_buffer = task::spawn(async move {
+            log::info!("Run task_assignment_buffer");
             let mut worker_pool: HashMap<WorkerId, Arc<Worker>> = HashMap::default();
             loop {
                 let assignments = assignment_buffer.lock().await.pop_all();
@@ -106,7 +109,7 @@ impl JobDelivery {
                                 let worker_cloned = worker.clone();
                                 let handler = tokio::spawn(async move {
                                     // Process each socket concurrently.
-                                    worker_cloned.send_jobs(&verify_jobs).await
+                                    let _res = worker_cloned.send_jobs(&verify_jobs).await;
                                 });
                                 handlers.push(handler);
                             }
@@ -114,23 +117,23 @@ impl JobDelivery {
                         if !regular_jobs.is_empty() {
                             // Decentralize workers
                             let adapter_clone = adapter.clone();
-                            let handler = tokio::spawn(async move {
-                                adapter_clone.submit_jobs(&regular_jobs).await
+                            let _handler = task_spawn::spawn_blocking(async move {
+                                let _res = adapter_clone.submit_jobs(&regular_jobs).await;
                             });
-                            handlers.push(handler);
+                            //handlers.push(handler);
                         }
                         continue;
                     }
 
-                    if let Some(worker) = worker_pool.get(&id) {
-                        // Centralize workers
-                        let worker_cloned = worker.clone();
-                        let handler = tokio::spawn(async move {
-                            // Process each socket concurrently.
-                            worker_cloned.send_jobs(&jobs).await
-                        });
-                        handlers.push(handler);
-                    }
+                    // if let Some(worker) = worker_pool.get(&id) {
+                    //     // Centralize workers
+                    //     let worker_cloned = worker.clone();
+                    //     let handler = tokio::spawn(async move {
+                    //         // Process each socket concurrently.
+                    //         worker_cloned.send_jobs(&jobs).await
+                    //     });
+                    //     handlers.push(handler);
+                    // }
                 }
                 if !handlers.is_empty() {
                     join_all(handlers).await;
@@ -141,6 +144,7 @@ impl JobDelivery {
 
         let task_cancel_plans_buffer = task::spawn(async move {
             loop {
+                log::info!("Run task_cancel_plans_buffer");
                 let cancel_plans = cancel_plans_buffer.lock().await.pop_all();
                 for (worker, plans) in cancel_plans.into_iter() {
                     let res = worker.send_cancel_plans(&plans).await;

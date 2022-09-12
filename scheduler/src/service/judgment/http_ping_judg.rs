@@ -12,7 +12,7 @@ use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;
-use log::{debug, trace};
+use log::trace;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -20,7 +20,6 @@ use std::default::Default;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::sync::Arc;
-use support::sp_tracing::info;
 use tokio::sync::Mutex;
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]

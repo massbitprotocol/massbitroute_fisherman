@@ -270,10 +270,10 @@ pub struct Project {
     pub status: String,
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct ChainAdapter {
-    pub ws_rpc_client: Option<WsRpcClient>,
-    pub api: Option<Api<Pair, WsRpcClient, PlainTipExtrinsicParams>>,
+    pub ws_rpc_client: WsRpcClient,
+    pub api: Api<Pair, WsRpcClient, PlainTipExtrinsicParams>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
@@ -409,20 +409,20 @@ impl ChainAdapter {
             node_ip.to_string()
         };
 
-        println!("Interacting with node on {}\n", url);
+        info!("Interacting with node on {}\n", url);
         let client = WsRpcClient::new(&url);
         let api = Api::<_, _, PlainTipExtrinsicParams>::new(client.clone())
             .map(|api| api.set_signer(derive_signer))
-            .ok();
+            .expect("Cannot create api");
         ChainAdapter {
-            ws_rpc_client: Some(client),
+            ws_rpc_client: client,
             api,
         }
     }
     pub fn submit_job(&self, job: &Job) -> Result<(), anyhow::Error> {
         info!("Submit job: {:?}", job);
         // set the recipient
-        let api = self.api.as_ref().unwrap();
+        let api = &self.api;
         let nonce = api.get_nonce();
         trace!("nonce before: {:?}", nonce);
         let submit_job = SubmitJob::from(job);
@@ -460,8 +460,6 @@ impl ChainAdapter {
         // send and watch extrinsic until InBlock
         let tx_hash = self
             .api
-            .as_ref()
-            .unwrap()
             .send_extrinsic(xt.hex_encode(), XtStatus::InBlock)?;
         info!("[+] Transaction got included. Hash: {:?}", tx_hash);
         trace!("nonce after: {:?}", nonce);
@@ -482,12 +480,8 @@ impl ChainAdapter {
 
     pub async fn subscribe_event_onchain_worker(self) {
         let (events_in, events_out) = channel();
-        let api = self
-            .api
-            .as_ref()
-            .ok_or(anyhow::Error::msg("Error: api is none"))
-            .unwrap()
-            .clone();
+        let api = self.api;
+
         let clone_api = api.clone();
         //api.subscribe_events(events_in)?;
         let _eventsubscriber = thread::Builder::new()

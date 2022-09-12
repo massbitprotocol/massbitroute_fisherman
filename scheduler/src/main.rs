@@ -18,6 +18,7 @@ use scheduler::{
     BUILD_VERSION, DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST,
 };
 
+use common::task_spawn;
 use migration::{Migrator, MigratorTrait};
 use scheduler::models::job_result_cache::JobResultCache;
 use scheduler::persistence::services::job_result_service::JobResultService;
@@ -123,8 +124,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let task_worker_health = task::spawn(async move { worker_health.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
     let task_job_generator = task::spawn(async move { job_generator.run().await });
-    let task_job_delivery = task::spawn(async move { job_delivery.run().await });
-    let task_subscribe_event_onchain_worker = task::spawn(async move {
+    let task_job_delivery = task_spawn::spawn_blocking(async move { job_delivery.run().await });
+    let task_subscribe_event_onchain_worker = task_spawn::spawn_blocking(async move {
         let adapter = ChainAdapter::new();
         adapter.subscribe_event_onchain_worker().await
     });
@@ -145,9 +146,10 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_scheduler_state(scheduler_state)
         .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
-    //let task_serve = server.serve();
+
     let task_serve = task::spawn(async move { server.serve().await });
     // Run all spawn task
+
     let tasks = vec![
         task_provider_scanner,
         task_job_generator,
@@ -156,7 +158,7 @@ async fn main() -> Result<(), anyhow::Error> {
         task_worker_health,
         task_subscribe_event_onchain_worker,
     ];
-    let _res = join_all(tasks).await;
 
+    let _res = join_all(tasks).await;
     Ok(())
 }

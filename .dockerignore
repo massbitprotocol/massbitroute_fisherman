@@ -17,6 +17,7 @@ logs/
 /scripts/test/git/
 /scripts/test/gwman/
 /scripts/test/monitor/
+/scripts/test/docker_build.sh
 
 #Docker build
 /scripts/

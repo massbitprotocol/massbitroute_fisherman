@@ -1,3 +1,4 @@
+use futures::executor::block_on;
 use futures::future::{FutureExt, TryFutureExt};
 use std::future::Future as Future03;
 use std::panic::AssertUnwindSafe;
@@ -36,4 +37,18 @@ pub fn spawn_thread(
         f()
     })
     .unwrap()
+}
+
+/// Aborts on panic.
+pub fn spawn_blocking<T: Send + 'static>(
+    f: impl Future03<Output = T> + Send + 'static,
+) -> JoinHandle<T> {
+    tokio::task::spawn_blocking(move || block_on(abort_on_panic(f)))
+}
+
+/// Does not abort on panic, panics result in an `Err` in `JoinHandle`.
+pub fn spawn_blocking_allow_panic<R: 'static + Send>(
+    f: impl 'static + FnOnce() -> R + Send,
+) -> JoinHandle<R> {
+    tokio::task::spawn_blocking(f)
 }
