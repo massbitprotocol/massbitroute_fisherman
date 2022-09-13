@@ -27,3 +27,6 @@ logs/
 /scripts/test/docker-gateway/docker-compose.yaml
 /scripts/test/docker-node/docker-compose.yaml
 /.env_fisherman
+/mbr_stats/.env.docker
+/mbr_stats/.env-dev
+/mbr_stats/.env-net
