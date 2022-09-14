@@ -29,6 +29,7 @@ COPY scripts/benchmark /usr/local/bin/benchmark
 # Copy application binary from builder image
 COPY --from=builder /usr/src/target/release/scheduler /usr/local/bin
 COPY --from=builder /usr/src/target/release/fisherman /usr/local/bin
+COPY --from=builder /usr/src/target/release/mbr_stats /usr/local/bin
 COPY scripts/build_docker/services /etc/services
 RUN apt update && apt install supervisor -y
 EXPOSE 80
