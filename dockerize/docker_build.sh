@@ -1,5 +1,6 @@
 #docker build -f RustBuilderDockerfile -t rustbuilder:1.61.0 .
-docker run -it -name rustbuilder -v $(pwd)/..:/fisherman rustbuilder:1.61.0 bash -c 'cd /fisherman && cargo build --release'
+#docker run -it --name rustbuilder -v $(pwd)/..:/fisherman rustbuilder:1.61.0 bash -c 'cd /fisherman && cargo build --release'
+docker-compose -f docker-compose.yml up -d
 docker exec -it rustbuilder bash -c 'cd /fisherman && cargo build --release'
 
 cp -r ../scripts/benchmark .
