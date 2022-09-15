@@ -2,12 +2,13 @@ use clap::{Arg, Command};
 use log::info;
 use logger::init_logger;
 use mbr_stats::component_stats::ComponentStats;
-use mbr_stats::{SIGNER_PHRASE, URL_CHAIN};
+use mbr_stats::{Environment, ENVIRONMENT, SIGNER_PHRASE, URL_CHAIN};
 
 #[tokio::main]
 async fn main() {
     // Load env file
-    let res = dotenv::dotenv();
+    let env_name = &*ENVIRONMENT.to_string();
+    let res = dotenv::from_filename(format!(".env.{}", env_name));
     println!("Load dotenv: {:?}", res);
 
     info!("Start mbr stats");

@@ -15,9 +15,8 @@ use prometheus_http_query::{Aggregate, Client as PrometheusClient, InstantVector
 use regex::Regex;
 use serde_json::Value;
 
-use sp_keyring::AccountKeyring;
 use std::convert::TryInto;
-use std::fmt::{format, Formatter};
+use std::fmt::Formatter;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use substrate_api_client::rpc::WsRpcClient;
@@ -100,14 +99,15 @@ pub struct ComponentStats {
     pub chain_adapter: Arc<ChainAdapter>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct DataCollectionAdapter {
-    client: Option<PrometheusClient>,
+    client: PrometheusClient,
 }
 
 impl std::fmt::Debug for DataCollectionAdapter {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "DataCollectionAdapter<>")
+        let url = self.client.base_url();
+        write!(f, "DataCollectionAdapter<{}>", url)
     }
 }
 
@@ -134,7 +134,7 @@ impl ComponentStats {
         } else {
             path.to_string()
         };
-
+        info!("Massbit chain path: {}", url,);
         // RPSee client for subscribe new block
         let json_rpc_client = WsClientBuilder::default()
             .build(&url)
@@ -144,7 +144,7 @@ impl ComponentStats {
             "Massbit chain path: {}, chain client: {:?}",
             url, json_rpc_client,
         );
-
+        info!("signer_phrase:{:?}", signer_phrase);
         let (derive_signer, _) = Pair::from_string_with_seed(signer_phrase, None).unwrap();
 
         info!("derive_signer address:{:?}", derive_signer.public());
@@ -230,17 +230,14 @@ impl ComponentStats {
             .with("code", "2xx")
             .try_into()?;
         let q = sum(q, Some(Aggregate::By(&["filter"])));
-        let response = self
-            .gateway_adapters
-            .get(chain_id)
-            .unwrap()
-            .client
-            .as_ref()
-            .ok_or(anyhow::Error::msg("None client"))?
-            .query(q, Some(time), None)
-            .await?;
+        let adapter = self.gateway_adapters.get(chain_id).unwrap();
+        info!(
+            "time: {}, data_name: {}, filter_name: {},filter_value:{}, adapter: {:?}",
+            time, data_name, filter_name, filter_value, adapter
+        );
+        let res = adapter.client.query(q, Some(time), None).await?;
 
-        let res = if let Some(instant) = response.as_instant() {
+        let res = if let Some(instant) = res.as_instant() {
             Ok({
                 let mut projects: HashMap<String, usize> = HashMap::new();
                 for iv in instant.iter() {
@@ -251,7 +248,7 @@ impl ComponentStats {
                         {
                             match projects.entry(project_id) {
                                 Entry::Occupied(o) => {
-                                    let mut tmp = o.into_mut();
+                                    let tmp = o.into_mut();
                                     *tmp += value;
                                 }
                                 Entry::Vacant(v) => {
@@ -304,44 +301,41 @@ impl ComponentStats {
                         if last_count_block == -1 {
                             last_count_block = block_number;
                             continue;
-                        } else {
-                            if block_number - last_count_block >= NUMBER_BLOCK_FOR_COUNTING {
-                                // Set new count block
-                                let current_count_block =
-                                    last_count_block + NUMBER_BLOCK_FOR_COUNTING;
-                                // Fixme: need decode block for getting timestamp. For now use system time.
-                                let current_count_block_timestamp =
-                                    (SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())
-                                        as TimeStamp;
+                        } else if block_number - last_count_block >= NUMBER_BLOCK_FOR_COUNTING {
+                            // Set new count block
+                            let current_count_block = last_count_block + NUMBER_BLOCK_FOR_COUNTING;
+                            // Fixme: need decode block for getting timestamp. For now use system time.
+                            let current_count_block_timestamp =
+                                (SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())
+                                    as TimeStamp;
 
-                                // Get request number
-                                let projects_request = self
-                                    .get_request_number(
-                                        "filter",
-                                        PROJECT_FILTER,
-                                        DATA_NAME,
-                                        current_count_block_timestamp,
-                                        &chain_id,
-                                    )
-                                    .await;
+                            // Get request number
+                            let projects_request = self
+                                .get_request_number(
+                                    "filter",
+                                    PROJECT_FILTER,
+                                    DATA_NAME,
+                                    current_count_block_timestamp,
+                                    &chain_id,
+                                )
+                                .await;
 
-                                match projects_request {
-                                    Ok(projects_request) => {
-                                        info!("projects_request: {:?}", projects_request);
-                                        let project_quota = self.projects.clone();
-                                        if let Err(e) = self
-                                            .chain_adapter
-                                            .submit_projects_usage(project_quota, projects_request)
-                                            .await
-                                        {
-                                            info!("Submit projects usage error: {:?}", e)
-                                        }
+                            match projects_request {
+                                Ok(projects_request) => {
+                                    info!("projects_request: {:?}", projects_request);
+                                    let project_quota = self.projects.clone();
+                                    if let Err(e) = self
+                                        .chain_adapter
+                                        .submit_projects_usage(project_quota, projects_request)
+                                        .await
+                                    {
+                                        info!("Submit projects usage error: {:?}", e)
                                     }
-
-                                    Err(e) => info!("get_request_number error: {}", e),
                                 }
-                                last_count_block = current_count_block;
+
+                                Err(e) => info!("get_request_number error: {}", e),
                             }
+                            last_count_block = current_count_block;
                         }
                     }
                 }
@@ -454,7 +448,9 @@ impl StatsBuilder {
                     chain_id.clone(),
                     Arc::new(DataCollectionAdapter {
                         //data: Default::default(),
-                        client: Self::get_prometheus_client(&url).await.ok(),
+                        client: Self::get_prometheus_client(&url)
+                            .await
+                            .expect(&format!("Cannot get prometheus_client by url: {}", url)),
                     }),
                 );
             }

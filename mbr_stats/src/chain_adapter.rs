@@ -4,11 +4,8 @@ use std::fmt::Formatter;
 use codec::Decode;
 use jsonrpsee::core::client::Client as JsonRpcClient;
 
-use anyhow::anyhow;
-use jsonrpsee::http_client::transport::Error;
 use log::info;
 use serde::{Deserialize, Serialize};
-use sp_core::crypto::Pair as _;
 use sp_core::sr25519::Pair;
 use sp_core::Bytes;
 use std::collections::HashMap;
@@ -16,9 +13,11 @@ use std::fmt::Debug;
 use std::sync::mpsc::channel;
 use std::sync::Arc;
 use substrate_api_client::rpc::WsRpcClient;
-use substrate_api_client::{compose_extrinsic, AccountId, Api, ApiResult, UncheckedExtrinsicV4, XtStatus, PlainTipExtrinsicParams};
+use substrate_api_client::{
+    compose_extrinsic, AccountId, Api, ApiResult, PlainTipExtrinsicParams, UncheckedExtrinsicV4,
+    XtStatus,
+};
 use tokio::sync::RwLock;
-use crate::{SIGNER_PHRASE, URL_CHAIN};
 
 pub const MVP_EXTRINSIC_DAPI: &str = "Dapi";
 const MVP_EXTRINSIC_SUBMIT_PROJECT_USAGE: &str = "submit_project_usage";
@@ -63,11 +62,11 @@ struct ProjectRegisteredEventArgs {
 
 impl ProjectRegisteredEventArgs {
     fn project_id_to_string(&self) -> String {
-        String::from_utf8_lossy(&*self.project_id).to_string()
+        String::from_utf8_lossy(&self.project_id).to_string()
     }
     fn get_blockchain_and_network(&self) -> (String, String) {
-        let chain_id = String::from_utf8_lossy(&*self.chain_id).to_string();
-        let chain_id = chain_id.split(".").collect::<Vec<&str>>();
+        let chain_id = String::from_utf8_lossy(&self.chain_id).to_string();
+        let chain_id = chain_id.split('.').collect::<Vec<&str>>();
         (chain_id[0].to_string(), chain_id[1].to_string())
     }
 }
@@ -83,7 +82,7 @@ impl ChainAdapter {
         let id: [u8; 36] = project_id.as_bytes().try_into()?;
         // the names are given as strings
         #[allow(clippy::redundant_clone)]
-        let xt: UncheckedExtrinsicV4<_,_> = compose_extrinsic!(
+        let xt: UncheckedExtrinsicV4<_, _> = compose_extrinsic!(
             api,
             MVP_EXTRINSIC_DAPI,
             MVP_EXTRINSIC_SUBMIT_PROJECT_USAGE,
@@ -178,7 +177,6 @@ impl ChainAdapter {
                 }
             }
         }
-        Ok(())
     }
 }
 

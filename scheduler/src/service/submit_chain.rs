@@ -40,6 +40,7 @@ pub const MVP_EXTRINSIC_DAPI: &str = "Dapi";
 pub const MVP_EXTRINSIC_FISHERMAN: &str = "Fisherman";
 const MVP_EXTRINSIC_CREATE_JOB: &str = "create_job";
 const MVP_EVENT_JOB_RESULT: &str = "NewJobResult";
+const SEND_JOB_INTERVAL: u64 = 2000; //ms
 
 type ProjectIdString = String;
 type Quota = String;
@@ -424,7 +425,7 @@ impl ChainAdapter {
         // set the recipient
         let api = &self.api;
         let nonce = api.get_nonce();
-        trace!("nonce before: {:?}", nonce);
+        warn!("nonce before: {:?}", nonce);
         let submit_job = SubmitJob::from(job);
         info!(
             "[+] Composed Extrinsic:{}, api:{}, submit_job:{:?}",
@@ -473,7 +474,7 @@ impl ChainAdapter {
             if let Err(e) = self.submit_job(job) {
                 info!("submit_jobs error:{:?}", e);
             };
-            //std::thread::sleep(Duration::from_millis(12000));
+            sleep(Duration::from_millis(SEND_JOB_INTERVAL)).await;
         }
         Ok(())
     }
@@ -609,7 +610,7 @@ mod test {
         );
         // Submit job
         let adapter = ChainAdapter::new();
-        adapter.submit_jobs(&vec![job2, job1]);
+        adapter.submit_jobs(&vec![job2, job1]).await;
     }
 
     #[ignore]

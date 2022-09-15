@@ -8,5 +8,5 @@ cp ../target/release/scheduler .
 cp ../target/release/fisherman .
 cp ../target/release/mbr_stats .
 cp ../scripts/build_docker/services .
-docker build -f RuntimeDockerfile -t massbit/massbitroute_fisherman:${1-v0.1.0-dev} .
+docker build -f RuntimeDockerfile -t massbit/massbitroute_fisherman:${1-v0.1.1-web3-grant} .
 rm -rf ./benchmark ./scheduler ./fisherman ./services ./mbr_stats
