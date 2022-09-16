@@ -65,9 +65,7 @@ impl JobDelivery {
             cancel_plans_buffer,
         }
     }
-    pub async fn run(&self) {
-        let adapter = ChainAdapter::new();
-
+    pub async fn run(&self, chain_adapter: Arc<ChainAdapter>) {
         let cancel_plans_buffer = self.cancel_plans_buffer.clone();
         let assignment_buffer = self.assignment_buffer.clone();
         //
@@ -116,7 +114,7 @@ impl JobDelivery {
                         }
                         if !regular_jobs.is_empty() {
                             // Decentralize workers
-                            let adapter_clone = adapter.clone();
+                            let adapter_clone = chain_adapter.clone();
                             let _handler = task_spawn::spawn_blocking(async move {
                                 let _res = adapter_clone.submit_jobs(&regular_jobs).await;
                             });

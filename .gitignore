@@ -32,3 +32,4 @@ logs/
 /mbr_stats/.env-net
 /mbr_stats/.env.docker_test
 /mbr_stats/.env.local
+/scheduler/.env.docker_test

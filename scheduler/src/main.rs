@@ -119,14 +119,17 @@ async fn main() -> Result<(), anyhow::Error> {
     // Check worker status task
     let worker_health = WorkerHealthService::new(worker_infos.clone(), result_cache.clone());
     // For onchain workers
+    let chain_adapter = Arc::new(ChainAdapter::new());
+    let clone_chain_adapter = chain_adapter.clone();
 
     // Spawn tasks
     let task_worker_health = task::spawn(async move { worker_health.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
     let task_job_generator = task::spawn(async move { job_generator.run().await });
-    let task_job_delivery = task_spawn::spawn_blocking(async move { job_delivery.run().await });
+    let task_job_delivery =
+        task_spawn::spawn_blocking(async move { job_delivery.run(chain_adapter.clone()).await });
     let task_subscribe_event_onchain_worker = task_spawn::spawn_blocking(async move {
-        let adapter = ChainAdapter::new();
+        let adapter = clone_chain_adapter.clone();
         adapter.subscribe_event_onchain_worker().await
     });
 

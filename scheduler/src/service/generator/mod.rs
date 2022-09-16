@@ -160,7 +160,7 @@ pub mod tests {
     use itertools::Itertools;
     use log::info;
     use test_util::helper::{
-        init_logging, load_env, mock_component_info, mock_db_connection, mock_worker, CountItems,
+        load_env, mock_component_info, mock_db_connection, mock_worker, CountItems,
     };
     use tokio::task;
     use JobGeneratorTrait;

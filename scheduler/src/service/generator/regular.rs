@@ -145,7 +145,7 @@ impl RegularJobGenerator {
             }
             let task_type = task.get_type();
             // Check if there is task result
-            let latest_task_update = latest_update
+            let mut latest_task_update = latest_update
                 .iter()
                 .filter(|(key, _)| key.task_type.as_str() == task_type.as_str())
                 .map(|(key, value)| (key.task_name.clone(), value.clone()))

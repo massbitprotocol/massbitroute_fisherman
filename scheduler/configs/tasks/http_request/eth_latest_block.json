@@ -72,7 +72,7 @@
     },
     "assignment": {
       "broadcast": false,
-      "worker_number": 1,
+      "worker_number": 0,
       "nearby_only": true,
       "by_distance": false
     },

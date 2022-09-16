@@ -319,8 +319,8 @@ mod tests {
     use crate::models::job_result_cache::JobResultCache;
     use crate::service::delivery::CancelPlanBuffer;
     use crate::service::report_portal::ReportRecord;
-    use chrono::FixedOffset;
-    use common::logger::init_logger;
+
+    //use common::logger::init_logger;
     use serde_json::json;
     use std::time::Duration;
     use test_util::helper::{load_env, mock_db_connection};

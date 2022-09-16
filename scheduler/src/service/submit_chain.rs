@@ -21,9 +21,12 @@ use sp_core::sr25519::Pair;
 use sp_core::Bytes as SpCoreBytes;
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::num::ParseIntError;
 use std::str::{from_utf8, FromStr};
+
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
+use std::sync::Arc;
 
 use std::thread;
 use std::time::Duration;
@@ -35,12 +38,14 @@ use substrate_api_client::{
 
 use tokio::time::sleep;
 
+//static SUBMIT_JOB_RUNNING: AtomicBool = AtomicBool::new(false);
+
 pub const MVP_EXTRINSIC_DAPI: &str = "Dapi";
 
 pub const MVP_EXTRINSIC_FISHERMAN: &str = "Fisherman";
 const MVP_EXTRINSIC_CREATE_JOB: &str = "create_job";
 const MVP_EVENT_JOB_RESULT: &str = "NewJobResult";
-const SEND_JOB_INTERVAL: u64 = 2000; //ms
+const SEND_JOB_INTERVAL: u64 = 1000; //ms
 
 type ProjectIdString = String;
 type Quota = String;
@@ -179,16 +184,28 @@ impl Into<JobResult> for NewJobResult {
             }
             _ => {
                 if is_success {
-                    let response_duration = Timestamp::from_str(result.trim_matches('\n')).unwrap();
-                    JobHttpResponse {
-                        request_timestamp: return_job_result.timestamp as i64,
-                        response_duration,
-                        detail: JobHttpResponseDetail::Values(HttpResponseValues::new(
-                            serde_json::from_str(result).unwrap(),
-                        )),
-                        http_code: 200,
-                        error_code: 0,
-                        message: "".to_string(),
+                    let response_duration = Timestamp::from_str(result.trim_matches('\n'));
+                    match response_duration {
+                        Ok(response_duration) => JobHttpResponse {
+                            request_timestamp: return_job_result.timestamp as i64,
+                            response_duration,
+                            detail: JobHttpResponseDetail::Values(HttpResponseValues::new(
+                                serde_json::from_str(result).unwrap(),
+                            )),
+                            http_code: 200,
+                            error_code: 0,
+                            message: "".to_string(),
+                        },
+                        Err(err) => JobHttpResponse {
+                            request_timestamp: return_job_result.timestamp as i64,
+                            response_duration: 0,
+                            detail: JobHttpResponseDetail::Values(HttpResponseValues::new(
+                                HashMap::new(),
+                            )),
+                            http_code: 0,
+                            error_code: 1,
+                            message: format!("cannot parse result {}, error: {}", result, err),
+                        },
                     }
                 } else {
                     JobHttpResponse {
@@ -420,12 +437,14 @@ impl ChainAdapter {
             api,
         }
     }
-    pub fn submit_job(&self, job: &Job) -> Result<(), anyhow::Error> {
+    pub async fn submit_job(&self, job: &Job) -> Result<(), anyhow::Error> {
+        // while SUBMIT_JOB_RUNNING.load(Ordering::Relaxed) {
+        //     sleep(Duration::from_millis(SEND_JOB_INTERVAL)).await;
+        // }
+        // SUBMIT_JOB_RUNNING.store(true, Ordering::Relaxed);
         info!("Submit job: {:?}", job);
         // set the recipient
-        let api = &self.api;
-        let nonce = api.get_nonce();
-        warn!("nonce before: {:?}", nonce);
+        info!("nonce before: {:?}", &self.api.get_nonce());
         let submit_job = SubmitJob::from(job);
         info!(
             "[+] Composed Extrinsic:{}, api:{}, submit_job:{:?}",
@@ -439,7 +458,7 @@ impl ChainAdapter {
         // the names are given as strings
         #[allow(clippy::redundant_clone)]
         let xt: UncheckedExtrinsicV4<_, _> = compose_extrinsic!(
-            api,
+            &self.api,
             MVP_EXTRINSIC_FISHERMAN,
             MVP_EXTRINSIC_CREATE_JOB,
             submit_job.plan_id,
@@ -459,11 +478,12 @@ impl ChainAdapter {
         );
 
         // send and watch extrinsic until InBlock
-        let tx_hash = self
-            .api
-            .send_extrinsic(xt.hex_encode(), XtStatus::InBlock)?;
-        info!("[+] Transaction got included. Hash: {:?}", tx_hash);
-        trace!("nonce after: {:?}", nonce);
+        let tx_hash = self.api.send_extrinsic(xt.hex_encode(), XtStatus::InBlock);
+        info!("nonce after: {:?}", &self.api.get_nonce());
+        sleep(Duration::from_millis(SEND_JOB_INTERVAL)).await;
+        // SUBMIT_JOB_RUNNING.store(false, Ordering::Relaxed);
+
+        info!("[+] Transaction got included. Hash: {:?}", tx_hash?);
         Ok(())
     }
     pub async fn submit_jobs(&self, jobs: &[Job]) -> Result<(), anyhow::Error> {
@@ -471,30 +491,29 @@ impl ChainAdapter {
             return Ok(());
         }
         for job in jobs.iter() {
-            if let Err(e) = self.submit_job(job) {
+            if let Err(e) = self.submit_job(job).await {
                 info!("submit_jobs error:{:?}", e);
             };
-            sleep(Duration::from_millis(SEND_JOB_INTERVAL)).await;
         }
         Ok(())
     }
 
-    pub async fn subscribe_event_onchain_worker(self) {
+    pub async fn subscribe_event_onchain_worker(&self) {
         let (events_in, events_out) = channel();
-        let api = self.api;
 
+        let api = Arc::new(self.api.clone());
         let clone_api = api.clone();
         //api.subscribe_events(events_in)?;
         let _eventsubscriber = thread::Builder::new()
             .name("eventsubscriber".to_owned())
             .spawn(move || {
-                api.subscribe_events(events_in).unwrap();
+                clone_api.subscribe_events(events_in).unwrap();
             })
             .unwrap();
         warn!("[+] Subscribed to events. waiting...");
 
         Self::wait_for_event(
-            &clone_api,
+            &api,
             MVP_EXTRINSIC_FISHERMAN,
             MVP_EVENT_JOB_RESULT,
             None,
@@ -582,27 +601,20 @@ impl std::fmt::Debug for ChainAdapter {
 #[cfg(test)]
 mod test {
     use super::*;
-    use clap::{load_yaml, App};
-    use common::logger::init_logger;
 
-    use sp_keyring::AccountKeyring;
-    use std::str;
-    use substrate_api_client::rpc::WsRpcClient;
-    use substrate_api_client::Api;
-    use substrate_api_client::{AccountInfo, PlainTipExtrinsicParams};
     use test_util::helper::{init_logging, load_env, mock_job, JobName};
 
     #[tokio::test]
     async fn test_call_chain() {
         load_env();
         init_logging();
-        let mut job1 = mock_job(
+        let job1 = mock_job(
             &JobName::RoundTripTime,
             "http://34.116.86.153/_rtt",
             "job_id_rtt1",
             &Default::default(),
         );
-        let mut job2 = mock_job(
+        let job2 = mock_job(
             &JobName::LatestBlock,
             "https://34.101.146.31",
             "job_id_latest_block",
@@ -610,26 +622,21 @@ mod test {
         );
         // Submit job
         let adapter = ChainAdapter::new();
-        adapter.submit_jobs(&vec![job2, job1]).await;
+        adapter
+            .submit_jobs(&vec![job2, job1])
+            .await
+            .expect("submit_jobs error");
     }
 
     #[ignore]
     #[tokio::test]
     async fn test_listen_event() {
         load_env();
-        //init_logging();
+        init_logging();
         let adapter = ChainAdapter::new();
 
         // listen event
         //str::from_utf8()
         adapter.subscribe_event_onchain_worker().await;
-    }
-
-    pub fn get_node_url_from_cli() -> String {
-        let node_ip = "wss://chain.massbitroute.net";
-        let node_port = "443";
-        let url = format!("{}:{}", node_ip, node_port);
-        println!("Interacting with node on {}\n", url);
-        url
     }
 }
