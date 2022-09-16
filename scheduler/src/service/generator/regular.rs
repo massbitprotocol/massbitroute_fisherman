@@ -146,10 +146,10 @@ impl RegularJobGenerator {
             let task_type = task.get_type();
             // Check if there is task result
             let mut latest_task_update = latest_update
-                .iter()
+                .iter_mut()
                 .filter(|(key, _)| key.task_type.as_str() == task_type.as_str())
-                .map(|(key, value)| (key.task_name.clone(), value.clone()))
-                .collect::<HashMap<String, Timestamp>>();
+                .map(|(key, value)| (key.task_name.clone(), value))
+                .collect::<HashMap<String, &mut Timestamp>>();
             debug!(
                 "latest_task_update of task {} for provider {} {}: {:?}",
                 &task_type,

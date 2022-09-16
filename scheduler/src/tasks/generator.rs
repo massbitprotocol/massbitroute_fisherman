@@ -49,15 +49,19 @@ pub trait TaskApplicant: Sync + Send {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-        mut latest_update: HashMap<String, Timestamp>,
+        mut latest_update: HashMap<String, &mut Timestamp>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
         let task_name = self.get_type();
         let timestamp = latest_update
             .get_mut(&task_name)
             .ok_or_else(|| anyhow!("cannot get task {} update time in cache", task_name))?;
-        if (get_current_time() - *timestamp) > (CONFIG.generate_new_regular_timeout * 1000) {
-            *timestamp = get_current_time();
-            self.apply(plan, component, phase, workers, &HashMap::default())
+        if (get_current_time() - **timestamp) > (CONFIG.generate_new_regular_timeout * 1000) {
+            let res = self.apply(plan, component, phase, workers, &HashMap::default());
+            if res.is_ok() {
+                // Update record time
+                **timestamp = get_current_time();
+            }
+            res
         } else {
             Ok(JobAssignmentBuffer::default())
         }
