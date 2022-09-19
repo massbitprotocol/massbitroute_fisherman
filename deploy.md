@@ -19,7 +19,6 @@ cd script/deploy
 bash deploy_scheduler.sh
 ```
 ## Fisherman worker module
-## Scheduler
 ```bash
 cd script/deploy
 bash deploy_worker.sh
