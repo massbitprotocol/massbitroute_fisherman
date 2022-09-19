@@ -3,7 +3,7 @@ use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
 use crate::{TemplateRender, CONFIG, CONFIG_HTTP_REQUEST_DIR, SCHEME};
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
@@ -156,7 +156,7 @@ impl TaskApplicant for HttpRequestGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-        latest_update: HashMap<String, Timestamp>,
+        mut latest_update: HashMap<String, &mut Timestamp>,
     ) -> Result<JobAssignmentBuffer, Error> {
         let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);
@@ -176,12 +176,11 @@ impl TaskApplicant for HttpRequestGenerator {
                 continue;
             }
             let latest_update_timestamp = latest_update
-                .get(&config.name)
-                .map(|val| val.clone())
-                .unwrap_or_default();
+                .get_mut(&config.name)
+                .ok_or(anyhow!("Cannot get latest update"))?;
             //Check time_to_timeout > 0: timeout; <=0 not yet.
             let time_pass_timeout = get_current_time()
-                - latest_update_timestamp
+                - **latest_update_timestamp
                 - config.interval
                 - CONFIG.generate_new_regular_timeout * 1000;
             if time_pass_timeout < 0 {
@@ -198,6 +197,7 @@ impl TaskApplicant for HttpRequestGenerator {
             );
             if let Ok(job) = self.generate_job(plan_id, component, phase.clone(), config, &context)
             {
+                **latest_update_timestamp = get_current_time();
                 assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
             }
         }
