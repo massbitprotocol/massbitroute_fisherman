@@ -1,10 +1,10 @@
 version: '3.8'
 services:
-  rustbuilder:
+  fishermanbuilder:
     privileged: true
     restart: unless-stopped
-    image: rustbuilder:1.61.0
-    container_name: rustbuilder
+    image: ${BUILDER_IMAGE}
+    container_name: ${BUILDER_CONTAINER}
     command: "sleep infinity"
     volumes:
       - ..:/fisherman
