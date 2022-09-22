@@ -45,4 +45,7 @@ lazy_static! {
     pub static ref SCHEDULER_AUTHORIZATION: String =
         env::var("SCHEDULER_AUTHORIZATION").expect("There is no env var SCHEDULER_AUTHORIZATION");
     pub static ref BUILD_VERSION: String = format!("{}", env!("BUILD_VERSION"));
+    pub static ref CONFIG_DIR: String =
+        env::var("SCHEDULER_CONFIG_DIR").unwrap_or_else(|_| String::from("configs/"));
+    pub static ref LOG_CONFIG: String = format!("{}log.yaml",&*CONFIG_DIR);
 }

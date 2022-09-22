@@ -3,7 +3,7 @@ use crate::persistence::services::job_result_service::JobResultService;
 
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
 use crate::service::report_portal::{ReportRecord, StoreReport};
-use crate::{CONFIG_DIR, IS_REGULAR_REPORT, PORTAL_AUTHORIZATION};
+use crate::{CONFIG_TASK_DIR, IS_REGULAR_REPORT, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 
@@ -56,7 +56,8 @@ impl LatestJudgmentCache {
 
 impl MainJudgment {
     pub fn new(result_service: Arc<JobResultService>, phase: &JobRole) -> Self {
-        let judgments = get_report_judgments(CONFIG_DIR.as_str(), result_service.clone(), phase);
+        let judgments =
+            get_report_judgments(CONFIG_TASK_DIR.as_str(), result_service.clone(), phase);
         MainJudgment {
             _result_service: result_service,
             judgments,

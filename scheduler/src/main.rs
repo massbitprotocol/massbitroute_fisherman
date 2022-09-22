@@ -15,7 +15,7 @@ use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
 use scheduler::{
-    BUILD_VERSION, DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST,
+    BUILD_VERSION, DATABASE_URL, LOG_CONFIG, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST,
 };
 
 use common::task_spawn;
@@ -37,7 +37,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // Load env file
     dotenv::dotenv().ok();
     // Init logger
-    let _res = init_logger(&String::from("Fisherman Scheduler"));
+    let _res = init_logger(&String::from("Fisherman Scheduler"), Some(&*LOG_CONFIG));
     info!("BUILD_VERSION: {}", &*BUILD_VERSION);
 
     // let _matches = create_scheduler_app().get_matches();

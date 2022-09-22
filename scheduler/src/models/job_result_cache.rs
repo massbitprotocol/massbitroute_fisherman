@@ -63,11 +63,11 @@ impl JobResultCache {
                     }
                     Some(current_value) => {
                         let TaskResultCache {
-                            mut results,
+                            results: mut results_queue,
                             update_time,
                         } = task_result;
                         current_value.update_time = update_time;
-                        current_value.append(&mut results);
+                        current_value.append(&mut results_queue);
                         while current_value.len() > RESULT_CACHE_MAX_LENGTH {
                             current_value.pop_front();
                         }

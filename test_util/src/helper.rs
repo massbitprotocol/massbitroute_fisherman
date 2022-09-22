@@ -23,7 +23,7 @@ pub fn load_env() {
 }
 
 pub fn init_logging() {
-    let _res = init_logger(&String::from("Testing"));
+    let _res = init_logger(&String::from("Testing"), None);
 }
 
 pub enum JobName {

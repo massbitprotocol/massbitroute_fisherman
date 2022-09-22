@@ -333,7 +333,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::CONFIG_DIR;
+    use crate::CONFIG_TASK_DIR;
 
     use test_util::helper::{load_env, mock_db_connection, mock_job_result, JobName};
 
@@ -344,7 +344,7 @@ pub mod tests {
         let db_conn = mock_db_connection();
         let result_service = JobResultService::new(Arc::new(db_conn));
         let judge = HttpLatestBlockJudgment::new(
-            CONFIG_DIR.as_str(),
+            CONFIG_TASK_DIR.as_str(),
             &JobRole::Verification,
             Arc::new(result_service),
         );
