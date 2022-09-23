@@ -1,0 +1,33 @@
+refresh_rate: 15 seconds
+appenders:
+  stdout:
+    kind: console
+  requests:
+    kind: rolling_file
+    append: false
+    path: "log/fisherman.log"
+    policy:
+      kind: compound
+      trigger:
+        kind: size
+        limit: 10mb
+      roller:
+        kind: fixed_window
+        base: 1
+        count: 100
+        pattern: "logs/fisherman.{}.gz"
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S.%3f %Z)} {l} [{t} - {T}] {m}{n}"
+
+root:
+  level: info
+  appenders:
+    - stdout
+
+loggers:
+  substrate_api_client:
+    level: warn
+  ws:
+    level: warn
+  ac_node_api:
+    level: warn

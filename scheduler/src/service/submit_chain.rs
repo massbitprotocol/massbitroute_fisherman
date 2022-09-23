@@ -243,10 +243,20 @@ impl NewJobResult {
         results: Vec<NewJobResult>,
     ) -> Result<(), anyhow::Error> {
         // Convert to NewJobResult
-        let results: Vec<JobResult> = results.into_iter().map(|result| result.into()).collect();
+        let mut results: Vec<JobResult> = results.into_iter().map(|result| result.into()).collect();
         // send results
+        // Edit for gran only
+        let mut filtered_results = HashMap::new();
+        for result in results {
+            let values = filtered_results
+                .entry(result.job_id.clone())
+                .or_insert_with(|| result);
+        }
+        let results: Vec<JobResult> = filtered_results.values().cloned().collect();
+        // End Edit for gran only
         let call_back = result_callback.to_string();
         info!("Send {} results to: {}", results.len(), call_back);
+        debug!("Results: {:?}", results);
         let client_builder = reqwest::ClientBuilder::new();
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         let body = serde_json::to_string(&results)?;
@@ -553,6 +563,7 @@ impl ChainAdapter {
             }
             let _events = event_decoder.decode_events(&mut event_str.unwrap().as_slice());
             info!("wait for raw event");
+            let mut vec_job_results = Vec::new();
             match _events {
                 Ok(raw_events) => {
                     for (phase, event) in raw_events.into_iter() {
@@ -565,14 +576,15 @@ impl ChainAdapter {
                                 // Convert to JobResult
                                 match job_result {
                                     Ok(job_result) => {
-                                        let res = NewJobResult::send_results(
-                                            &REPORT_CALLBACK,
-                                            vec![job_result],
-                                        )
-                                        .await;
-                                        if res.is_err() {
-                                            error!("send_results error: {:?}", res);
-                                        }
+                                        vec_job_results.push(job_result);
+                                        // let res = NewJobResult::send_results(
+                                        //     &REPORT_CALLBACK,
+                                        //     vec![job_result],
+                                        // )
+                                        // .await;
+                                        // if res.is_err() {
+                                        //     error!("send_results error: {:?}", res);
+                                        // }
                                     }
                                     Err(error) => {
                                         error!("error: {:?}", error);
@@ -587,6 +599,10 @@ impl ChainAdapter {
                     }
                 }
                 Err(error) => error!("couldn't decode event record list: {:?}", error),
+            }
+            let res = NewJobResult::send_results(&REPORT_CALLBACK, vec_job_results).await;
+            if res.is_err() {
+                error!("send_results error: {:?}", res);
             }
         }
     }

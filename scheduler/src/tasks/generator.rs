@@ -19,6 +19,7 @@ use anyhow::anyhow;
 use common::util::get_current_time;
 use common::workers::{MatchedWorkers, Worker};
 use common::{PlanId, Timestamp};
+use log::info;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -52,10 +53,18 @@ pub trait TaskApplicant: Sync + Send {
         mut latest_update: HashMap<String, &mut Timestamp>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
         let task_name = self.get_type();
+        let current_time = get_current_time();
         let timestamp = latest_update
             .get_mut(&task_name)
             .ok_or_else(|| anyhow!("cannot get task {} update time in cache", task_name))?;
-        if (get_current_time() - **timestamp) > (CONFIG.generate_new_regular_timeout * 1000) {
+        info!(
+            "Time from the latest update {}, componen: {}, task_name: {}",
+            current_time - **timestamp,
+            component.id,
+            task_name
+        );
+        // Remove renew time
+        if (current_time - **timestamp) > (CONFIG.generate_new_regular_timeout * 1000) {
             let res = self.apply(plan, component, phase, workers, &HashMap::default());
             if res.is_ok() {
                 // Update record time
