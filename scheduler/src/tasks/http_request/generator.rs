@@ -13,7 +13,7 @@ use common::util::get_current_time;
 use common::workers::MatchedWorkers;
 use common::{BlockChainType, PlanId, Timestamp, DOMAIN};
 use handlebars::Handlebars;
-use log::{debug, trace};
+use log::{debug, info, trace};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::Path;
@@ -175,30 +175,31 @@ impl TaskApplicant for HttpRequestGenerator {
                 trace!("Can not apply config {:?} for {:?}", config, component);
                 continue;
             }
-            let latest_update_timestamp = latest_update
-                .get_mut(&config.name)
-                .ok_or(anyhow!("Cannot get latest update"))?;
+            info!("task_configs config: {}", config);
+            // let latest_update_timestamp = latest_update
+            //     .get_mut(&config.name)
+            //     .ok_or(anyhow!("Cannot get latest update"))?;
             //Check time_to_timeout > 0: timeout; <=0 not yet.
-            let time_pass_timeout = get_current_time()
-                - **latest_update_timestamp
-                - config.interval
-                - CONFIG.generate_new_regular_timeout * 1000;
+            // let time_pass_timeout = get_current_time()
+            //     - **latest_update_timestamp
+            //     - config.interval
+            //     - CONFIG.generate_new_regular_timeout * 1000;
             //Fix for grand only
             // if time_pass_timeout < 0 {
             //     //Job for current config is already generated or received result recently
             //     continue;
             // }
-            debug!(
-                "time_to_timeout: {}. Generate task {}.{} for {} with config {}",
-                time_pass_timeout,
-                self.get_type(),
-                &config.name,
-                component,
-                config
-            );
+            // debug!(
+            //     "time_to_timeout: {}. Generate task {}.{} for {} with config {}",
+            //     time_pass_timeout,
+            //     self.get_type(),
+            //     &config.name,
+            //     component,
+            //     config
+            // );
             if let Ok(job) = self.generate_job(plan_id, component, phase.clone(), config, &context)
             {
-                **latest_update_timestamp = get_current_time();
+                // **latest_update_timestamp = get_current_time();
                 assignment_buffer.assign_job(job, workers, &Some(config.assignment.clone()));
             }
         }
