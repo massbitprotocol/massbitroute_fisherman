@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  fishermanbuilder:
+    privileged: true
+    restart: unless-stopped
+    image: ${BUILDER_IMAGE}
+    container_name: ${BUILDER_CONTAINER}
+    command: "sleep infinity"
+    volumes:
+      - ..:/fisherman
