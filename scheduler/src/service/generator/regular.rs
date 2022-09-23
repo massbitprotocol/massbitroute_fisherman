@@ -14,7 +14,7 @@ use common::jobs::Job;
 use common::util::{get_current_time, warning_if_error};
 use common::workers::MatchedWorkers;
 use common::{ComponentId, Timestamp};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use sea_orm::{DatabaseConnection, TransactionTrait};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -79,6 +79,7 @@ impl RegularJobGenerator {
                     .await
                 {
                     total_assignment_buffer.append(assignment_buffer);
+                } else {
                 }
             }
             //info!("There is {} jobs in cache.", cache.get_jobs_number(),);
@@ -178,35 +179,41 @@ impl RegularJobGenerator {
             }
 
             if !is_generated {
-                if let Ok(applied_jobs) = task.apply_with_cache(
+                let res = task.apply_with_cache(
                     &plan_id,
                     &provider,
                     JobRole::Regular,
                     &matched_workers,
                     latest_task_update,
-                ) {
-                    if applied_jobs.jobs.len() > 0 {
-                        debug!(
-                            "Generated {} regular jobs for provider {}, {:?}",
-                            &applied_jobs.jobs.len(),
-                            &provider.component_type.to_string(),
-                            &provider.ip
-                        );
-                        //Update provider_result_cache
-                        for job in applied_jobs.jobs.iter() {
-                            let task_key = TaskKey {
-                                task_type: job.job_type.clone(),
-                                task_name: job.job_name.clone(),
-                            };
-                            let current_time = get_current_time();
+                );
+                match res {
+                    Ok(applied_jobs) => {
+                        if applied_jobs.jobs.len() > 0 {
                             debug!(
-                                "Set update time of task {:?} for provider {} to {}",
-                                &task_key, &provider.ip, current_time
+                                "Generated {} regular jobs for provider {}, {:?}",
+                                &applied_jobs.jobs.len(),
+                                &provider.component_type.to_string(),
+                                &provider.ip
                             );
-                            latest_update.insert(task_key, current_time);
+                            //Update provider_result_cache
+                            for job in applied_jobs.jobs.iter() {
+                                let task_key = TaskKey {
+                                    task_type: job.job_type.clone(),
+                                    task_name: job.job_name.clone(),
+                                };
+                                let current_time = get_current_time();
+                                debug!(
+                                    "Set update time of task {:?} for provider {} to {}",
+                                    &task_key, &provider.ip, current_time
+                                );
+                                latest_update.insert(task_key, current_time);
+                            }
                         }
+                        assignment_buffer.append(applied_jobs);
                     }
-                    assignment_buffer.append(applied_jobs);
+                    Err(err) => {
+                        error!("apply_with_cache error: {:?}", err);
+                    }
                 }
             }
         }
