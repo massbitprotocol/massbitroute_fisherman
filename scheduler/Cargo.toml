@@ -17,7 +17,7 @@ serde_json = "1.0"
 anyhow = "1.0"
 async-trait = "0.1.56"
 serde = { version = "1.0", features = ["derive"] }
-clap = "3.0"
+#clap = "3.0"
 reqwest =  { version = "0.11" , features = ["multipart","native-tls"] }
 tokio = { version = "1.16" , features = ["full"] }
 futures-util = "0.3"
@@ -30,13 +30,82 @@ warp = "0.3"
 slog = "2.7"
 lazy_static = "1.4"
 strum_macros = "0.24"
-strum = "0.24"
+#strum = "0.24"
 local-ip-address = "0.4"
 dotenv = "0.15"
 uuid = "1.1.0"
 sea-orm = {version = "0.8.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros"]}
 histogram = "0.6.9"
 rand = "0.8.5"
+
+# Substrate dependencies
+jsonrpsee = "0.15"
+ws              = { version = "0.9.1", optional = true, features = ["ssl"] }
+hex             = { version = "0.4.2", default-features = false }
+primitive-types = { version = "0.6.1", optional = true, features = ["codec"] }
+sp-keyring = { version = "6.0.0", git = "https://github.com/paritytech/substrate.git", branch = "master" }
+[dependencies.substrate-api-client]
+git = "https://github.com/scs/substrate-api-client.git"
+branch = "master"
+
+[dependencies.sp-core]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+package = "sp-core"
+default-features = false
+features = ["full_crypto"]
+
+[dependencies.codec]
+package = "parity-scale-codec"
+features = ["derive"]
+version = "3.0.0"
+default-features = false
+
+
+[dependencies.sp-version]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+package = "sp-version"
+optional = true
+
+[dependencies.balances]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+package = "pallet-balances"
+optional = true
+
+[dependencies.system]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+package = "frame-system"
+optional = true
+
+[dependencies.sp-runtime]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+package = "sp-runtime"
+default-features=false
+
+[dependencies.support]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+package = "frame-support"
+default-features=false
+
+[dependencies.sp-std]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+package = "sp-std"
+default-features = false
+
+[dependencies.sc-rpc-api]
+git = "https://github.com/paritytech/substrate.git"
+branch = "master"
+optional = true
+
+sp-runtime-interface = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "master" }
+ws = { version = "0.9.2", optional = true, features = ["ssl"] }
+
 
 [dev-dependencies]
 sea-orm = {version = "0.8.0", features = [ "mock" ]}
@@ -45,6 +114,28 @@ pretty_assertions = "0.7"
 httpmock = "0.6"
 itertools = "0.10"
 serde_derive = "1.0"
+clap = { version = "2.33", features = ["yaml"] }
 
 [build-dependencies]
 chrono = "0.4"
+
+[features]
+default = ["std"]
+std = [
+    "sc-rpc-api",
+    "sp-core/std",
+    "codec/std",
+#    "metadata/std",
+    "sp-version",
+    "balances",
+    "system",
+    "sp-runtime/std",
+    "support/std",
+    "sp-std/std",
+    "serde/std",
+    "ws",
+    "hex/std",
+    "primitive-types",
+]
+# need to add this for the app_crypto macro
+full_crypto = []

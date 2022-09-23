@@ -319,8 +319,8 @@ mod tests {
     use crate::models::job_result_cache::JobResultCache;
     use crate::service::delivery::CancelPlanBuffer;
     use crate::service::report_portal::ReportRecord;
-    use chrono::FixedOffset;
-    use common::logger::init_logger;
+
+    //use common::logger::init_logger;
     use serde_json::json;
     use std::time::Duration;
     use test_util::helper::{load_env, mock_db_connection};
@@ -675,15 +675,5 @@ mod tests {
         assert_eq!(resp, SimpleResponse { success: true });
 
         Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_version() {
-        let _res = init_logger(&String::from("Testing-Scheduler"));
-        info!("***time");
-        let time = chrono::offset::Local::now()
-            .with_timezone(&FixedOffset::east(7 * 60 * 60))
-            .to_string();
-        println!("time: {}", time);
     }
 }

@@ -2,7 +2,7 @@ use common::logger::init_logger;
 //use diesel::r2d2::ConnectionManager;
 //use diesel::{r2d2, PgConnection};
 //use diesel_migrations::embed_migrations;
-use futures_util::future::join5;
+use futures_util::future::join_all;
 use log::info;
 use scheduler::models::jobs::JobAssignmentBuffer;
 use scheduler::models::providers::ProviderStorage;
@@ -14,8 +14,11 @@ use scheduler::service::delivery::{CancelPlanBuffer, JobDelivery};
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
-use scheduler::{DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
+use scheduler::{
+    BUILD_VERSION, DATABASE_URL, LOG_CONFIG, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST,
+};
 
+use common::task_spawn;
 use migration::{Migrator, MigratorTrait};
 use scheduler::models::job_result_cache::JobResultCache;
 use scheduler::persistence::services::job_result_service::JobResultService;
@@ -24,6 +27,7 @@ use scheduler::persistence::services::provider_service::ProviderService;
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
 use scheduler::service::check_worker_health::WorkerHealthService;
+use scheduler::service::submit_chain::ChainAdapter;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task;
@@ -33,7 +37,8 @@ async fn main() -> Result<(), anyhow::Error> {
     // Load env file
     dotenv::dotenv().ok();
     // Init logger
-    let _res = init_logger(&String::from("Fisherman Scheduler"));
+    let _res = init_logger(&String::from("Fisherman Scheduler"), Some(&*LOG_CONFIG));
+    info!("BUILD_VERSION: {}", &*BUILD_VERSION);
 
     // let _matches = create_scheduler_app().get_matches();
     // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
@@ -113,12 +118,20 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Check worker status task
     let worker_health = WorkerHealthService::new(worker_infos.clone(), result_cache.clone());
+    // For onchain workers
+    let chain_adapter = Arc::new(ChainAdapter::new());
+    let clone_chain_adapter = chain_adapter.clone();
 
     // Spawn tasks
     let task_worker_health = task::spawn(async move { worker_health.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
     let task_job_generator = task::spawn(async move { job_generator.run().await });
-    let task_job_delivery = task::spawn(async move { job_delivery.run().await });
+    let task_job_delivery =
+        task_spawn::spawn_blocking(async move { job_delivery.run(chain_adapter.clone()).await });
+    let task_subscribe_event_onchain_worker = task_spawn::spawn_blocking(async move {
+        let adapter = clone_chain_adapter.clone();
+        adapter.subscribe_event_onchain_worker().await
+    });
 
     let processor_state = ProcessorState::new(
         arc_conn.clone(),
@@ -136,102 +149,19 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_scheduler_state(scheduler_state)
         .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
-    let task_serve = server.serve();
 
+    let task_serve = task::spawn(async move { server.serve().await });
     // Run all spawn task
-    let _res = join5(
+
+    let tasks = vec![
         task_provider_scanner,
         task_job_generator,
         task_job_delivery,
         task_serve,
         task_worker_health,
-    )
-    .await;
+        task_subscribe_event_onchain_worker,
+    ];
 
+    let _res = join_all(tasks).await;
     Ok(())
 }
-
-// fn create_scheduler_app() -> Command<'static> {
-//     Command::new("check-kind")
-//         .version("0.1")
-//         .about("fisherman-scheduler")
-//         .arg(
-//             Arg::new("list-node-id-file")
-//                 .short('n')
-//                 .long("list-node-id-file")
-//                 .value_name("list-node-id-file")
-//                 .help("Input list-node-id file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("list-gateway-id-file")
-//                 .short('g')
-//                 .long("list-gateway-id-file")
-//                 .value_name("list-gateway-id-file")
-//                 .help("Input list-gateway-id file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("list-dapi-id-file")
-//                 .short('d')
-//                 .long("list-dapi-id-file")
-//                 .value_name("list-dapi-id-file")
-//                 .help("Input list-dapi-id file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("list-user-file")
-//                 .short('u')
-//                 .long("list-user-file")
-//                 .value_name("list-user-file")
-//                 .help("Input list-user file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("check-flow")
-//                 .short('c')
-//                 .long("check-flow")
-//                 .value_name("check-flow")
-//                 .help("Input check-flow file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("base-endpoint")
-//                 .short('b')
-//                 .long("base-endpoint")
-//                 .value_name("base-endpoint")
-//                 .help("Input base-endpoint file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("massbit-chain-endpoint")
-//                 .short('m')
-//                 .long("massbit-chain-endpoint")
-//                 .value_name("massbit-chain-endpoint")
-//                 .help("Input massbit-chain-endpoint")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("signer-phrase")
-//                 .short('s')
-//                 .long("signer-phrase")
-//                 .value_name("signer-phrase")
-//                 .help("Input signer-phrase")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("output")
-//                 .short('o')
-//                 .long("output")
-//                 .value_name("output")
-//                 .help("Output file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("domain")
-//                 .long("domain")
-//                 .value_name("domain")
-//                 .help("domain name")
-//                 .takes_value(true),
-//         )
-// }

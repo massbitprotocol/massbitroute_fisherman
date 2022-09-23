@@ -19,11 +19,11 @@ use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
 pub fn load_env() {
-    dotenv::from_filename(".env_test").expect("Cannot load .env_test");
+    dotenv::from_filename(".env.docker_test").expect("Cannot load .env_test");
 }
 
 pub fn init_logging() {
-    let _res = init_logger(&String::from("Testing"));
+    let _res = init_logger(&String::from("Testing"), None);
 }
 
 pub enum JobName {
@@ -205,7 +205,7 @@ pub fn mock_job(job_name: &JobName, component_url: &str, job_id: &str, phase: &J
     let component = ComponentInfo {
         blockchain: BlockChainType::default(),
         network: "".to_string(),
-        id: job_id.to_string(),
+        id: "component_id".to_string(),
         user_id: "".to_string(),
         ip: "".to_string(),
         zone: Default::default(),
@@ -248,13 +248,14 @@ pub fn mock_job(job_name: &JobName, component_url: &str, job_id: &str, phase: &J
         }
         JobName::LatestBlock => {
             let job_detail = r###"
-        {"url": "https://67.219.104.215/", "body": {"id": 1, "method": "eth_getBlockByNumber", "params": ["latest", true], "jsonrpc": "2.0"}, "method": "post", "headers": {"Host": "6e02171a-93b0-4079-91b6-caddc64f5dbc.node.mbr.massbitroute.net", "X-Api-Key": "rLhwVAprTNK8yqYmqSmXug", "content-type": "application/json"}, "chain_info": {"chain": "eth", "network": "mainnet"}, "response_type": "json", "response_values": {"hash": ["result", "hash"], "number": ["result", "number"], "timestamp": ["result", "timestamp"]}}
+        {"url": "", "body": {"id": 1, "method": "eth_getBlockByNumber", "params": ["latest", true], "jsonrpc": "2.0"}, "method": "post", "headers": {"host": "058a6e94-8b65-46ad-ab52-240a7cb2c36a.node.mbr.massbitroute.net", "x-api-key": "lSP1lFN9I_izEzRi_jBapA", "content-type": "application/json"}, "chain_info": {"chain": "eth", "network": "mainnet"}, "response_type": "json", "response_values": {"hash": ["result", "hash"], "number": ["result", "number"], "timestamp": ["result", "timestamp"]}}
         "###;
-            let job_latest_block: JobHttpRequest = serde_json::from_str(job_detail).unwrap();
+            let mut job_latest_block: JobHttpRequest = serde_json::from_str(job_detail).unwrap();
+            job_latest_block.url = component_url.to_string();
             Job::new(
                 "http".to_string(),
                 "HttpRequest".to_string(),
-                "RoundTripTime".to_string(),
+                "LatestBlock".to_string(),
                 &component,
                 JobDetail::HttpRequest(job_latest_block),
                 phase.clone(),

@@ -27,3 +27,10 @@ logs/
 /scripts/test/docker-gateway/docker-compose.yaml
 /scripts/test/docker-node/docker-compose.yaml
 /.env_fisherman
+/mbr_stats/.env.docker
+/mbr_stats/.env-dev
+/mbr_stats/.env-net
+/mbr_stats/.env.docker_test
+/mbr_stats/.env.local
+/scheduler/.env.docker_test
+/scheduler/log/

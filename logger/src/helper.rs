@@ -9,7 +9,7 @@ use log4rs::config::{Appender, Config, Root};
 use log4rs::encode::pattern::PatternEncoder;
 use std::io::Write;
 
-pub fn log_to_file(file_name: &String, log_level: &str) {
+pub fn log_to_file(file_name: &str, log_level: &str) {
     let one_mb = 1000000;
     let trigger = policy::compound::trigger::size::SizeTrigger::new(one_mb * 100); // unit here is Byte
 

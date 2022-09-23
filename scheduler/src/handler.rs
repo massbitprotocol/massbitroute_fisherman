@@ -26,6 +26,7 @@ pub async fn handle_route_reports(
         "#### Received {:?} reports request body  ####",
         &job_results.len()
     );
+    info!("Received reports: {:?}", &job_results);
     if authorization == *SCHEDULER_AUTHORIZATION {
         let clone_service = service.clone();
         let clone_state = state.clone();

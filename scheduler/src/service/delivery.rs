@@ -1,11 +1,13 @@
 use crate::models::jobs::JobAssignmentBuffer;
 
-use crate::DELIVERY_PERIOD;
+use crate::service::submit_chain::ChainAdapter;
+use crate::{DELIVERY_PERIOD, IS_REGULAR_WORKER_ONCHAIN};
+use common::job_manage::JobRole;
 use common::jobs::{Job, JobAssignment};
 use common::workers::Worker;
-use common::{PlanId, WorkerId};
+use common::{task_spawn, PlanId, WorkerId};
 use futures_util::future::{join, join_all};
-use log::error;
+use log::{error, info};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
@@ -63,10 +65,13 @@ impl JobDelivery {
             cancel_plans_buffer,
         }
     }
-    pub async fn run(&self) {
+    pub async fn run(&self, chain_adapter: Arc<ChainAdapter>) {
         let cancel_plans_buffer = self.cancel_plans_buffer.clone();
         let assignment_buffer = self.assignment_buffer.clone();
+        //
+        log::info!("Create task_assignment_buffer");
         let task_assignment_buffer = task::spawn(async move {
+            log::info!("Run task_assignment_buffer");
             let mut worker_pool: HashMap<WorkerId, Arc<Worker>> = HashMap::default();
             loop {
                 let assignments = assignment_buffer.lock().await.pop_all();
@@ -74,6 +79,7 @@ impl JobDelivery {
                 let _undelivered = Vec::<JobAssignment>::default();
                 let mut handlers = Vec::new();
                 let mut worker_jobs = HashMap::<WorkerId, Vec<Job>>::default();
+
                 for job_assign in assignments.into_iter() {
                     let JobAssignment { worker, job, .. } = job_assign;
                     let worker_id = worker.get_id();
@@ -84,15 +90,48 @@ impl JobDelivery {
                     }
                     worker_pool.insert(worker_id, worker);
                 }
+
+                // Send job
                 for (id, jobs) in worker_jobs.into_iter() {
-                    if let Some(worker) = worker_pool.get(&id) {
-                        let worker_cloned = worker.clone();
-                        let handler = tokio::spawn(async move {
-                            // Process each socket concurrently.
-                            worker_cloned.send_jobs(&jobs).await
-                        });
-                        handlers.push(handler);
+                    if *IS_REGULAR_WORKER_ONCHAIN {
+                        let (regular_jobs, verify_jobs) = Self::separate_regular_verify_jobs(jobs);
+                        info!(
+                            "Number of regular and verify jobs: {} and {}.",
+                            regular_jobs.len(),
+                            verify_jobs.len()
+                        );
+                        // Send verify job
+                        if !verify_jobs.is_empty() {
+                            if let Some(worker) = worker_pool.get(&id) {
+                                // Centralize workers
+                                let worker_cloned = worker.clone();
+                                let handler = tokio::spawn(async move {
+                                    // Process each socket concurrently.
+                                    let _res = worker_cloned.send_jobs(&verify_jobs).await;
+                                });
+                                handlers.push(handler);
+                            }
+                        }
+                        if !regular_jobs.is_empty() {
+                            // Decentralize workers
+                            let adapter_clone = chain_adapter.clone();
+                            let _handler = task_spawn::spawn_blocking(async move {
+                                let _res = adapter_clone.submit_jobs(&regular_jobs).await;
+                            });
+                            //handlers.push(handler);
+                        }
+                        continue;
                     }
+
+                    // if let Some(worker) = worker_pool.get(&id) {
+                    //     // Centralize workers
+                    //     let worker_cloned = worker.clone();
+                    //     let handler = tokio::spawn(async move {
+                    //         // Process each socket concurrently.
+                    //         worker_cloned.send_jobs(&jobs).await
+                    //     });
+                    //     handlers.push(handler);
+                    // }
                 }
                 if !handlers.is_empty() {
                     join_all(handlers).await;
@@ -103,6 +142,7 @@ impl JobDelivery {
 
         let task_cancel_plans_buffer = task::spawn(async move {
             loop {
+                log::info!("Run task_cancel_plans_buffer");
                 let cancel_plans = cancel_plans_buffer.lock().await.pop_all();
                 for (worker, plans) in cancel_plans.into_iter() {
                     let res = worker.send_cancel_plans(&plans).await;
@@ -117,14 +157,17 @@ impl JobDelivery {
         let res = join(task_assignment_buffer, task_cancel_plans_buffer).await;
         error!("JobDelivery stop with error: {:?}", res);
     }
-    // fn get_worker(&mut self, worker_id: WorkerId) -> Arc<Worker> {
-    //     if let Some(worker) = self.worker_pool.get(&worker_id) {
-    //         worker.clone()
-    //     } else {
-    //         let worker = Arc::new(Worker::new(worker_info.clone()));
-    //         self.worker_pool
-    //             .insert(worker_info.worker_id.clone(), worker.clone());
-    //         worker
-    //     }
-    // }
+
+    fn separate_regular_verify_jobs(jobs: Vec<Job>) -> (Vec<Job>, Vec<Job>) {
+        let mut regular_jobs = vec![];
+        let mut verify_jobs = vec![];
+        for job in jobs {
+            if job.phase == JobRole::Regular {
+                regular_jobs.push(job);
+            } else {
+                verify_jobs.push(job);
+            }
+        }
+        return (regular_jobs, verify_jobs);
+    }
 }

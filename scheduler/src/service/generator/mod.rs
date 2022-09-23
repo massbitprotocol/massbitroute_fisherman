@@ -7,14 +7,16 @@ use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
 use crate::tasks::generator::get_tasks;
-use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
+use crate::{CONFIG, CONFIG_TASK_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use common::job_manage::JobRole;
 use common::task_spawn;
 use futures_util::future::join;
 use log::{error, info};
+use migration::ColumnSpec::Default;
 pub use regular::RegularJobGenerator;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -63,7 +65,7 @@ impl JobGenerator {
         result_cache: Arc<JobResultCache>,
     ) -> Self {
         //Load config
-        let config_dir = CONFIG_DIR.as_str();
+        let config_dir = CONFIG_TASK_DIR.as_str();
         // let path = format!("{}/task_master.json", config_dir);
         let path = Path::new(config_dir).join("task_master.json");
         let json = std::fs::read_to_string(&path).unwrap_or_else(|err| {
@@ -92,6 +94,7 @@ impl JobGenerator {
             job_service,
             assignments,
             result_cache: result_cache.clone(),
+            generated_provider: Arc::new(Mutex::new(HashSet::new())),
         };
 
         JobGenerator {
@@ -160,7 +163,7 @@ pub mod tests {
     use itertools::Itertools;
     use log::info;
     use test_util::helper::{
-        init_logging, load_env, mock_component_info, mock_db_connection, mock_worker, CountItems,
+        load_env, mock_component_info, mock_db_connection, mock_worker, CountItems,
     };
     use tokio::task;
     use JobGeneratorTrait;

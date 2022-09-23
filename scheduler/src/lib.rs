@@ -30,14 +30,17 @@ pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
 pub const DELIVERY_PERIOD: u64 = 10; //In seconds
 pub const JUDGMENT_PERIOD: u64 = 10;
 pub const RESULT_CACHE_MAX_LENGTH: usize = 10;
+
 lazy_static! {
     pub static ref COMPONENT_NAME: String = String::from("[Scheduler]");
     pub static ref SCHEDULER_ENDPOINT: String =
         env::var("SCHEDULER_ENDPOINT").unwrap_or_else(|_| String::from("0.0.0.0:3031"));
     pub static ref REPORT_CALLBACK: String =
         env::var("REPORT_CALLBACK").expect("There is no env var REPORT_CALLBACK");
-    pub static ref SCHEDULER_CONFIG: String =
-        env::var("SCHEDULER_CONFIG").unwrap_or_else(|_| String::from("configs/scheduler.json"));
+    pub static ref CONFIG_DIR: String =
+        env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/"));
+    pub static ref SCHEDULER_CONFIG: String = format!("{}scheduler.json",&*CONFIG_DIR);
+        //env::var("SCHEDULER_CONFIG").unwrap_or_else(|_| String::from("configs/scheduler.json"));
     pub static ref CONNECTION_POOL_SIZE: u32 = env::var("CONNECTION_POOL_SIZE")
         .ok()
         .and_then(|val| val.parse().ok())
@@ -47,8 +50,9 @@ lazy_static! {
         env::var("REPORT_DIR").expect("There is no env var REPORT_DIR");
     pub static ref SIGNER_PHRASE: String =
         env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
-    pub static ref CONFIG_DIR: String =
-        env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/tasks"));
+    pub static ref CONFIG_TASK_DIR: String = format!("{}tasks",&*CONFIG_DIR);
+    pub static ref LOG_CONFIG: String = format!("{}log.yaml",&*CONFIG_DIR);
+        //env::var("CONFIG_TASK_DIR").unwrap_or_else(|_| String::from("configs/tasks"));
     pub static ref CONFIG_HTTP_REQUEST_DIR: String = String::from("http_request");
     pub static ref CONFIG_BENCHMARK_DIR: String = String::from("benchmark");
     pub static ref CONFIG_WEBSOCKET_DIR: String = String::from("websocket");
@@ -58,7 +62,8 @@ lazy_static! {
         env::var("SCHEDULER_AUTHORIZATION").expect("There is no env var SCHEDULER_AUTHORIZATION");
     pub static ref URL_PORTAL: String =
         env::var("URL_PORTAL").expect("There is no env var URL_PORTAL, e.g. https://portal.massbitroute.net");
-
+    pub static ref URL_CHAIN: String =
+        env::var("URL_CHAIN").unwrap_or_else(|_| "ws://chain.massbitroute.net:9944".to_string());
     pub static ref URL_NODES_LIST: String = format!("{}/{}",*URL_PORTAL,
         env::var("PATH_NODES_LIST").expect("There is no env var PATH_NODES_LIST, e.g. mbr/node/list/verify"));
     pub static ref URL_GATEWAYS_LIST: String = format!("{}/{}",*URL_PORTAL,
@@ -89,6 +94,9 @@ lazy_static! {
     //     &env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT")).expect("Cannot parse var ENVIRONMENT");
     pub static ref SCHEME: Scheme = Scheme::from_str(
         &env::var("SCHEME").expect("There is no env var SCHEME")).expect("Cannot parse var SCHEME");
+    pub static ref IS_REGULAR_WORKER_ONCHAIN: bool =
+        env::var("IS_REGULAR_WORKER_ONCHAIN").ok().and_then(|val|val.parse::<bool>().ok()).unwrap_or(true);
+
 }
 
 pub trait TemplateRender {
