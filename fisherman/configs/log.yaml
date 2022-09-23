@@ -2,10 +2,10 @@ refresh_rate: 15 seconds
 appenders:
   stdout:
     kind: console
-  requests:
+  incoming_outgoing_call:
     kind: rolling_file
     append: false
-    path: "log/fisherman.log"
+    path: "log/incoming_outgoing_call_fisherman.log"
     policy:
       kind: compound
       trigger:
@@ -15,9 +15,9 @@ appenders:
         kind: fixed_window
         base: 1
         count: 100
-        pattern: "logs/fisherman.{}.gz"
+        pattern: "logs/incoming_outgoing_call_fisherman.{}.gz"
     encoder:
-      pattern: "{d(%Y-%m-%d %H:%M:%S.%3f %Z)} {l} [{t} - {T}] {m}{n}"
+      pattern: "{d(%Y-%m-%d %H:%M:%S.%3f %Z)} [{l}] [{t} - {T}] {m}{n}"
 
 root:
   level: info
@@ -25,7 +25,14 @@ root:
     - stdout
 
 loggers:
-  substrate_api_client:
-    level: warn
-  ws:
-    level: warn
+  fisherman::services::reporter:
+    level: debug
+    appenders:
+      - stdout
+      - incoming_outgoing_call
+
+  fisherman::server_builder:
+    level: debug
+    appenders:
+      - stdout
+      - incoming_outgoing_call

@@ -26,6 +26,9 @@ lazy_static! {
     pub static ref ENVIRONMENT: Environment =
         Environment::from_str(&env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT"))
             .expect("Cannot parse var ENVIRONMENT");
+    pub static ref CONFIG_DIR: String =
+        env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/"));
+    pub static ref LOG_CONFIG: String = format!("{}log.yaml", &*CONFIG_DIR);
 }
 
 #[derive(Debug, PartialEq, Eq)]

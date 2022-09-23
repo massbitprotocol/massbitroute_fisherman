@@ -10,8 +10,8 @@ use fisherman::server_config::AccessControl;
 use fisherman::services::{JobExecution, JobResultReporter, WebServiceBuilder};
 use fisherman::state::WorkerState;
 use fisherman::{
-    ENVIRONMENT, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID,
-    WORKER_IP, WORKER_SERVICE_ENDPOINT, ZONE,
+    ENVIRONMENT, LOG_CONFIG, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT,
+    WORKER_ID, WORKER_IP, WORKER_SERVICE_ENDPOINT, ZONE,
 };
 use futures_util::future::join3;
 use log::{debug, error, info, warn};
@@ -28,7 +28,7 @@ async fn main() {
     // Load env file
     let _ = dotenv::from_filename(".env_fisherman");
     // Init logger
-    let _res = init_logger(&String::from("Fisherman-worker"));
+    let _res = init_logger(&String::from("Fisherman-worker"), Some(&*LOG_CONFIG));
     // Create job queue
     //Call to scheduler to register worker
     if let Ok(WorkerRegisterResult {
@@ -122,6 +122,7 @@ mod tests {
     use httpmock::prelude::POST;
     use httpmock::MockServer;
     use std::env;
+    use test_util::helper::load_env;
 
     const MOCK_WORKER_ID: &str = "7c7da61c-aec7-45b1-9e32-7436d4721ce0";
     const MOCK_REPORT_CALLBACK: &str = "http://127.0.0.1:3031/report";
@@ -145,6 +146,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_try_register_success() -> Result<(), Error> {
+        load_env();
         // let _res = init_logger(&String::from("Fisherman-worker"));
         let portal = run_mock_portal_server();
         let url = format!("http://{}", portal.address());

@@ -275,18 +275,14 @@ mod tests {
     use super::*;
 
     use anyhow::Error;
-    use common::logger::init_logger;
     use common::task_spawn;
     use reqwest::Client;
 
     use crate::models::job::JobBuffer;
     use crate::services::WebServiceBuilder;
 
-    use common::jobs::JobResult;
-    use serde_json::json;
     use std::time::Duration;
     use test_util::helper::load_env;
-    use tokio::sync::mpsc::{channel, Receiver, Sender};
 
     use tokio::time::sleep;
 

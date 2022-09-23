@@ -679,7 +679,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_version() {
-        let _res = init_logger(&String::from("Testing-Scheduler"));
+        let _res = init_logger(&String::from("Testing-Scheduler"), None);
         info!("***time");
         let time = chrono::offset::Local::now()
             .with_timezone(&FixedOffset::east(7 * 60 * 60))
