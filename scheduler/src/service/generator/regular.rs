@@ -163,9 +163,17 @@ impl RegularJobGenerator {
             let is_generated;
             {
                 let mut generated_provider = self.generated_provider.lock().await;
+                info!(
+                    "before checking generated_provider: {:?}",
+                    generated_provider
+                );
                 is_generated = generated_provider.contains(&provider.id);
                 if !is_generated {
                     generated_provider.insert(provider.id.clone());
+                    info!(
+                        "after checking generated_provider: {:?}",
+                        generated_provider
+                    );
                 }
             }
 
