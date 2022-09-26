@@ -1,7 +1,7 @@
 #!/bin/bash
 export BUILDER_IMAGE=fishermanbuilder:1.61.0
 export BUILDER_CONTAINER=fishermanbuilder
-export DEFAULT_TAG=v0.1.1-web3-grant
+export DEFAULT_TAG=w3f-milestone-2
 #docker run -it --name rustbuilder -v $(pwd)/..:/fisherman rustbuilder:1.61.0 bash -c 'cd /fisherman && cargo build --release'
 CHECKBUILDER=$(docker image inspect $BUILDER_IMAGE >/dev/null 2>&1 && echo 1 || echo 0)
 if [ "$CHECKBUILDER" == "0" ]; then

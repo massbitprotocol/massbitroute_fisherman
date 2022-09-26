@@ -62,6 +62,7 @@ pub struct ResultLatestBlock {
 pub struct ReturnJob {
     plan_id: Data,
     job_name: Data,
+    job_id: Data,
     provider_id: Data,
     provider_type: Data,
     phase: Data,
@@ -78,30 +79,38 @@ pub struct ReturnJob {
 impl ReturnJob {
     fn to_job(&self, job_id: JobId) -> Job {
         let chain_info = Some(ChainInfo {
-            chain: BlockChainType::from_str(from_utf8(&self.chain).unwrap()).unwrap(),
+            chain: BlockChainType::from_str(from_utf8(&self.chain).unwrap_or_default())
+                .unwrap_or_default(),
             network: from_utf8(&self.network).unwrap().to_string(),
         });
 
         let job_detail = JobHttpRequest {
-            url: from_utf8(&self.url).unwrap().to_string(),
+            url: from_utf8(&self.url).unwrap_or_default().to_string(),
             chain_info,
             method: self.method.to_string(),
             headers: Default::default(),
             body: None,
-            response_type: from_utf8(&self.response_type).unwrap().to_string(),
-            response_values: serde_json::from_str(from_utf8(&self.response_values).unwrap())
-                .unwrap(),
+            response_type: from_utf8(&self.response_type)
+                .unwrap_or_default()
+                .to_string(),
+            response_values: serde_json::from_str(
+                from_utf8(&self.response_values).unwrap_or_default(),
+            )
+            .unwrap_or_default(),
         };
         Job {
             job_id,
             job_type: "HttpRequest".to_string(),
-            job_name: from_utf8(&self.job_name).unwrap().to_string(),
-            plan_id: from_utf8(&self.plan_id).unwrap().to_string(),
-            component_id: from_utf8(&self.provider_id).unwrap().to_string(),
-            component_type: ComponentType::from_str(from_utf8(&self.provider_type).unwrap())
-                .unwrap(),
+            job_name: from_utf8(&self.job_name).unwrap_or_default().to_string(),
+            plan_id: from_utf8(&self.plan_id).unwrap_or_default().to_string(),
+            component_id: from_utf8(&self.provider_id).unwrap_or_default().to_string(),
+            component_type: ComponentType::from_str(
+                from_utf8(&self.provider_type).unwrap_or_default(),
+            )
+            .unwrap_or_default(),
             job_detail: JobDetail::HttpRequest(job_detail),
-            phase: JobRole::from_str(from_utf8(&self.phase).unwrap()).unwrap(),
+            phase: JobRole::from_str(from_utf8(&self.phase).unwrap_or_default())
+                .unwrap_or_default(),
             priority: 0,
             expected_runtime: 0,
             parallelable: false,
@@ -140,16 +149,27 @@ pub struct ReturnJobResult {
 #[derive(Clone, PartialEq, Eq, Decode)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct NewJobResult {
-    job_id: Data,
     job: ReturnJob,
     job_result: ReturnJobResult,
 }
 
+#[derive(Clone, PartialEq, Eq, Decode)]
+#[cfg_attr(feature = "std", derive(Debug))]
+pub struct NewJobResults {
+    results: Vec<(ReturnJob, ReturnJobResult)>,
+}
+
+impl From<(ReturnJob, ReturnJobResult)> for NewJobResult {
+    fn from(data: (ReturnJob, ReturnJobResult)) -> Self {
+        (job, job_result) = data;
+        NewJobResult { job, job_result }
+    }
+}
 impl Into<JobResult> for NewJobResult {
     fn into(self) -> JobResult {
         let return_job_result = self.job_result.clone();
         let result = from_utf8(&*return_job_result.result).unwrap();
-        let job_id: JobId = from_utf8(&self.job_id).unwrap().to_string();
+        let job_id: JobId = from_utf8(&self.job.job_id).unwrap().to_string();
         let chain_info = Some(ChainInfo {
             chain: BlockChainType::from_str(from_utf8(&self.job.chain).unwrap())
                 .unwrap_or_default(),
@@ -570,13 +590,18 @@ impl ChainAdapter {
                         info!("Decoded Event: {:?}, {:?}", phase, event);
                         match event {
                             Raw::Event(raw) if raw.pallet == module && raw.variant == variant => {
-                                let job_result: ApiResult<NewJobResult> =
-                                    NewJobResult::decode(&mut &raw.data[..]).map_err(|e| e.into());
+                                let job_result: ApiResult<NewJobResults> =
+                                    NewJobResults::decode(&mut &raw.data[..]).map_err(|e| e.into());
                                 warn!("job_result: {:?}", job_result);
                                 // Convert to JobResult
                                 match job_result {
-                                    Ok(job_result) => {
-                                        vec_job_results.push(job_result);
+                                    Ok(job_results) => {
+                                        let vec_res: Vec<NewJobResult> = job_results
+                                            .results
+                                            .into_iter()
+                                            .map(|res| NewJobResult::from(res))
+                                            .collect();
+                                        vec_job_results.extend(vec_res);
                                         // let res = NewJobResult::send_results(
                                         //     &REPORT_CALLBACK,
                                         //     vec![job_result],
