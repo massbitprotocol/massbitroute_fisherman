@@ -39,7 +39,7 @@ lazy_static! {
         env::var("REPORT_CALLBACK").expect("There is no env var REPORT_CALLBACK");
     pub static ref CONFIG_DIR: String =
         env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/"));
-    pub static ref SCHEDULER_CONFIG: String = format!("{}scheduler.json",&*CONFIG_DIR);
+    pub static ref SCHEDULER_CONFIG: String = format!("{}/scheduler.json",&*CONFIG_DIR);
         //env::var("SCHEDULER_CONFIG").unwrap_or_else(|_| String::from("configs/scheduler.json"));
     pub static ref CONNECTION_POOL_SIZE: u32 = env::var("CONNECTION_POOL_SIZE")
         .ok()
@@ -50,8 +50,8 @@ lazy_static! {
         env::var("REPORT_DIR").expect("There is no env var REPORT_DIR");
     pub static ref SIGNER_PHRASE: String =
         env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
-    pub static ref CONFIG_TASK_DIR: String = format!("{}tasks",&*CONFIG_DIR);
-    pub static ref LOG_CONFIG: String = format!("{}log.yaml",&*CONFIG_DIR);
+    pub static ref CONFIG_TASK_DIR: String = format!("{}/tasks",&*CONFIG_DIR);
+    pub static ref LOG_CONFIG: String = format!("{}/log.yaml",&*CONFIG_DIR);
         //env::var("CONFIG_TASK_DIR").unwrap_or_else(|_| String::from("configs/tasks"));
     pub static ref CONFIG_HTTP_REQUEST_DIR: String = String::from("http_request");
     pub static ref CONFIG_BENCHMARK_DIR: String = String::from("benchmark");
