@@ -161,7 +161,7 @@ pub struct NewJobResults {
 
 impl From<(ReturnJob, ReturnJobResult)> for NewJobResult {
     fn from(data: (ReturnJob, ReturnJobResult)) -> Self {
-        (job, job_result) = data;
+        let (job, job_result) = data;
         NewJobResult { job, job_result }
     }
 }
