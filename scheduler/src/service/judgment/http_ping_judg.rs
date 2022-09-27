@@ -12,7 +12,7 @@ use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::warning_if_error;
 use common::Timestamp;
 use histogram::Histogram;
-use log::trace;
+use log::{info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -210,7 +210,7 @@ impl ReportCheck for HttpPingJudgment {
         let response_duration_threshold =
             Self::get_threshold_value(&thresholds, &String::from("response_duration"))?;
 
-        trace!("{} Http Ping in cache.", response_durations.len());
+        info!("{} Http Ping in cache.", response_durations.len());
         return if response_durations.len() < number_for_decide as usize {
             Ok(JudgmentsResult::Unfinished)
         } else if response_durations.get_success_percent() < success_percent_threshold as f64 {

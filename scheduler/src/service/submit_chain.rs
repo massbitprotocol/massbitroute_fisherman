@@ -44,7 +44,7 @@ pub const MVP_EXTRINSIC_DAPI: &str = "Dapi";
 
 pub const MVP_EXTRINSIC_FISHERMAN: &str = "Fisherman";
 const MVP_EXTRINSIC_CREATE_JOB: &str = "create_job";
-const MVP_EVENT_JOB_RESULT: &str = "NewJobResult";
+const MVP_EVENT_JOB_RESULT: &str = "NewJobResults";
 const SEND_JOB_INTERVAL: u64 = 1000; //ms
 
 type ProjectIdString = String;
@@ -60,9 +60,9 @@ pub struct ResultLatestBlock {
 #[derive(Clone, PartialEq, Eq, Decode)]
 #[cfg_attr(feature = "std", derive(Debug))]
 pub struct ReturnJob {
+    job_id: Data,
     plan_id: Data,
     job_name: Data,
-    job_id: Data,
     provider_id: Data,
     provider_type: Data,
     phase: Data,
@@ -267,11 +267,19 @@ impl NewJobResult {
         // send results
         // Edit for gran only
         let mut filtered_results = HashMap::new();
+        //Get the error result only
         for result in results {
-            let values = filtered_results
-                .entry(result.job_id.clone())
-                .or_insert_with(|| result);
+            let error_code = match &result.result_detail {
+                JobResultDetail::HttpRequest(http_request) => http_request.response.error_code,
+                _ => 0,
+            };
+            if error_code != 0 {
+                let values = filtered_results
+                    .entry(result.job_id.clone())
+                    .or_insert_with(|| result);
+            }
         }
+        info!("filtered_results: {:?}", filtered_results);
         let results: Vec<JobResult> = filtered_results.values().cloned().collect();
         // End Edit for gran only
         let call_back = result_callback.to_string();

@@ -186,6 +186,11 @@ impl MainJudgment {
             if !judgment.can_apply_for_result(provider_task) {
                 continue;
             }
+            info!(
+                "Regular judge {} apply for results: {:?} ",
+                judgment.get_name(),
+                results
+            );
             let res = judgment.apply_for_results(provider_task, results).await;
             match res {
                 Ok(res) => {
