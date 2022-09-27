@@ -2,14 +2,14 @@ use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use crate::{TemplateRender, CONFIG, CONFIG_HTTP_REQUEST_DIR, SCHEME};
-use anyhow::{anyhow, Error};
+use crate::{TemplateRender, CONFIG_HTTP_REQUEST_DIR, SCHEME};
+use anyhow::Error;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
 use common::tasks::http_request::{HttpRequestJobConfig, JobHttpRequest};
 use common::tasks::{LoadConfigs, TaskConfigTrait};
-use common::util::get_current_time;
+
 use common::workers::MatchedWorkers;
 use common::{BlockChainType, PlanId, Timestamp, DOMAIN};
 use handlebars::Handlebars;
@@ -156,7 +156,7 @@ impl TaskApplicant for HttpRequestGenerator {
         component: &ComponentInfo,
         phase: JobRole,
         workers: &MatchedWorkers,
-        mut latest_update: HashMap<String, &mut Timestamp>,
+        _latest_update: HashMap<String, &mut Timestamp>,
     ) -> Result<JobAssignmentBuffer, Error> {
         let mut assignment_buffer = JobAssignmentBuffer::new();
         let context = Self::create_context(component);

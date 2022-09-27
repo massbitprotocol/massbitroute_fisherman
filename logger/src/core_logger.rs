@@ -7,8 +7,6 @@
 use crate::helper::{log_to_console, log_to_file, message};
 use lazy_static::lazy_static;
 use log::LevelFilter;
-use log4rs::config::Config;
-use log4rs::Error;
 use std::env;
 use std::str::FromStr;
 

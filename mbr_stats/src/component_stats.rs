@@ -48,7 +48,7 @@ const UPDATE_PROJECT_QUOTA_INTERVAL: u64 = 10; //sec
 pub enum ChainId {
     #[strum(serialize = "snake_case")]
     EthMainnet,
-    #[strum(serialize = "snake_case")]
+    // #[strum(serialize = "snake_case")]
     DotMainnet,
 }
 

@@ -52,7 +52,7 @@ pub fn warning_if_error<T>(message: &str, result: anyhow::Result<T, Error>) {
         warn!("{}. Error: {:?}", message, result.err().unwrap())
     }
 }
-
+#[ignore]
 #[test]
 fn test_remove_break_line() {
     let input = "  1\t\n".to_string();
@@ -60,7 +60,7 @@ fn test_remove_break_line() {
     assert_eq!(output.as_str(), "1");
     assert_eq!(remove_break_line(&String::from(" 12 \n")).as_str(), "12")
 }
-
+#[ignore]
 #[test]
 fn test_from_str_radix16() {
     let input = "0x12";

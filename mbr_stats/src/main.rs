@@ -2,7 +2,7 @@ use clap::{Arg, Command};
 use log::info;
 use logger::init_logger;
 use mbr_stats::component_stats::ComponentStats;
-use mbr_stats::{Environment, ENVIRONMENT, LOG_CONFIG, SIGNER_PHRASE, URL_CHAIN};
+use mbr_stats::{ENVIRONMENT, LOG_CONFIG, SIGNER_PHRASE, URL_CHAIN};
 
 #[tokio::main]
 async fn main() {

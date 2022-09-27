@@ -21,7 +21,7 @@ use sp_core::sr25519::Pair;
 use sp_core::Bytes as SpCoreBytes;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::num::ParseIntError;
+
 use std::str::{from_utf8, FromStr};
 
 use std::sync::mpsc::channel;
@@ -263,7 +263,7 @@ impl NewJobResult {
         results: Vec<NewJobResult>,
     ) -> Result<(), anyhow::Error> {
         // Convert to NewJobResult
-        let mut results: Vec<JobResult> = results.into_iter().map(|result| result.into()).collect();
+        let results: Vec<JobResult> = results.into_iter().map(|result| result.into()).collect();
         // send results
         // Edit for gran only
         let mut filtered_results = HashMap::new();
@@ -274,7 +274,7 @@ impl NewJobResult {
                 _ => 0,
             };
             if error_code != 0 {
-                let values = filtered_results
+                filtered_results
                     .entry(result.job_id.clone())
                     .or_insert_with(|| result);
             }
@@ -652,7 +652,7 @@ mod test {
     use super::*;
 
     use test_util::helper::{init_logging, load_env, mock_job, JobName};
-
+    #[ignore]
     #[tokio::test]
     async fn test_call_chain() {
         load_env();

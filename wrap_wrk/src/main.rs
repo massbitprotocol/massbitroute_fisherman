@@ -4,9 +4,9 @@ fn main() {}
 mod test {
     use std::collections::HashMap;
     use wrap_wrk::WrkBenchmark;
-
+    #[ignore]
     #[test]
-    fn test() {
+    fn test_benchmark() {
         let thread = 20;
         let connection = 20;
         let duration = "15s";

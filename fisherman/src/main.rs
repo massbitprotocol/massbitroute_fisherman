@@ -123,6 +123,7 @@ mod tests {
     use httpmock::prelude::POST;
     use httpmock::MockServer;
     use std::env;
+    use test_util::helper::load_env;
 
     const MOCK_WORKER_ID: &str = "7c7da61c-aec7-45b1-9e32-7436d4721ce0";
     const MOCK_REPORT_CALLBACK: &str = "http://127.0.0.1:3031/report";
@@ -147,6 +148,7 @@ mod tests {
     #[tokio::test]
     async fn test_try_register_success() -> Result<(), Error> {
         // let _res = init_logger(&String::from("Fisherman-worker"));
+        load_env();
         let portal = run_mock_portal_server();
         let url = format!("http://{}", portal.address());
         env::set_var("SCHEDULER_ENDPOINT", url);

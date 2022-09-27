@@ -12,7 +12,7 @@ use common::job_manage::JobRole;
 use common::task_spawn;
 use futures_util::future::join;
 use log::{error, info};
-use migration::ColumnSpec::Default;
+
 pub use regular::RegularJobGenerator;
 use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
@@ -169,7 +169,7 @@ pub mod tests {
     use JobGeneratorTrait;
 
     const TEST_TIMEOUT: u64 = 30;
-
+    #[ignore]
     #[tokio::test]
     async fn test_main_generator_verification_node() -> Result<(), Error> {
         load_env();
@@ -271,7 +271,7 @@ pub mod tests {
 
         Ok(())
     }
-
+    #[ignore]
     #[tokio::test]
     async fn test_main_generator_verification_gateway() -> Result<(), Error> {
         load_env();
@@ -370,7 +370,7 @@ pub mod tests {
         }
         Ok(())
     }
-
+    #[ignore]
     #[tokio::test]
     async fn test_main_generator_regular_gateway() -> Result<(), Error> {
         load_env();
@@ -460,7 +460,7 @@ pub mod tests {
 
         Ok(())
     }
-
+    #[ignore]
     #[tokio::test]
     async fn test_main_generator_regular_node() -> Result<(), Error> {
         load_env();

@@ -19,7 +19,7 @@ use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
 pub fn load_env() {
-    dotenv::from_filename(".env.docker_test").expect("Cannot load .env_test");
+    dotenv::from_filename(".env_test").expect("Cannot load .env_test");
 }
 
 pub fn init_logging() {
