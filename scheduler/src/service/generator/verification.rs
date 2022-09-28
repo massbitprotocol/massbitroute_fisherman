@@ -212,14 +212,7 @@ impl VerificationJobGenerator {
                 .result_cache
                 .get_provider_judg_result(&provider_plan.provider.id, &provider_plan.plan.plan_id)
                 .await;
-            //Check if some dependent task' results is missing
-            // if !task.has_all_dependent_results(&provider_plan.plan.plan_id, &map_results) {
-            //     waiting_task.add_task(task.clone());
-            //     log::debug!(
-            //         "Some SubTask {} is not ready for job generation",
-            //         task.get_type()
-            //     );
-            // }
+
             let sub_task_results = map_results
                 .iter()
                 .map(|(key, value)| (key.task_name.clone(), value.clone()))
@@ -247,21 +240,6 @@ impl VerificationJobGenerator {
                     error!("task.apply error: {}", err);
                 }
             }
-            // if let Ok(mut applied_jobs) = task.apply(
-            //     &provider_plan.plan.plan_id,
-            //     &provider_plan.provider,
-            //     JobRole::Verification,
-            //     &matched_workers,
-            //     &sub_task_results,
-            // ) {
-            //     //Todo: Improve this, don't create redundant jobs
-            //     if applied_jobs.jobs.len() > 0 {
-            //         applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
-            //     }
-            //     if applied_jobs.jobs.len() > 0 {
-            //         assignment_buffer.append(applied_jobs);
-            //     }
-            // }
         }
         waiting_task
     }
