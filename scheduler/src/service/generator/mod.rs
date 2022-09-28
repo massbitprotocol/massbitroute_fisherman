@@ -160,14 +160,13 @@ pub mod tests {
     use itertools::Itertools;
     use log::info;
     use test_util::helper::{
-        load_env, mock_component_info, mock_db_connection, mock_worker, CountItems,
+        init_logging, load_env, mock_component_info, mock_db_connection, mock_worker, CountItems,
     };
     use tokio::task;
     use JobGeneratorTrait;
 
     const TEST_TIMEOUT: u64 = 30;
 
-    #[ignore]
     #[tokio::test]
     async fn test_main_generator_verification_node() -> Result<(), Error> {
         load_env();
@@ -242,18 +241,18 @@ pub mod tests {
         loop {
             if now.elapsed().as_secs() > TEST_TIMEOUT {
                 //return Err(anyhow!("Test Timeout"));
-                println!("test main_generator_verification_node timeout");
+                info!("test main_generator_verification_node timeout");
                 assert!(false);
             }
             {
-                println!("lock assigment_buffer");
+                info!("lock assigment_buffer");
                 let lock = assignment.lock().await;
-                println!("assigment_buffer: {:#?}", lock);
+                info!("assigment_buffer: {:#?}", lock);
 
                 for job_assign in lock.list_assignments.iter() {
                     job_names.add_item(job_assign.job.job_name.to_string());
                 }
-                println!(
+                info!(
                     "job_names.sum_len: {}, expect_len: {}",
                     job_names.len(),
                     expect_len
@@ -264,14 +263,14 @@ pub mod tests {
             }
             sleep(Duration::from_secs(1)).await;
         }
-        println!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
+        info!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
         for key in expect_job_names.keys() {
             assert!(job_names.keys().contains(key));
         }
 
         Ok(())
     }
-    #[ignore]
+
     #[tokio::test]
     async fn test_main_generator_verification_gateway() -> Result<(), Error> {
         load_env();
@@ -346,14 +345,14 @@ pub mod tests {
                 return Err(anyhow!("Test Timeout"));
             }
             {
-                println!("lock assigment_buffer");
+                info!("lock assigment_buffer");
                 let lock = assignment.lock().await;
-                println!("assigment_buffer: {:#?}", lock);
+                info!("assigment_buffer: {:#?}", lock);
 
                 for job_assign in lock.list_assignments.iter() {
                     job_names.add_item(job_assign.job.job_name.to_string());
                 }
-                println!(
+                info!(
                     "job_names.sum_len: {}, expect_len: {}",
                     job_names.len(),
                     expect_len
@@ -364,13 +363,13 @@ pub mod tests {
             }
             sleep(Duration::from_secs(1)).await;
         }
-        println!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
+        info!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
         for key in expect_job_names.keys() {
             assert!(job_names.keys().contains(key));
         }
         Ok(())
     }
-    #[ignore]
+
     #[tokio::test]
     async fn test_main_generator_regular_gateway() -> Result<(), Error> {
         load_env();
@@ -449,7 +448,7 @@ pub mod tests {
                     info!("job_names: {:?}", job_names);
                 }
                 if job_names.sum_len() >= expect_len {
-                    println!("assigment_buffer: {:#?}", lock);
+                    info!("assigment_buffer: {:#?}", lock);
                     break;
                 }
             }
@@ -460,7 +459,7 @@ pub mod tests {
 
         Ok(())
     }
-    #[ignore]
+
     #[tokio::test]
     async fn test_main_generator_regular_node() -> Result<(), Error> {
         load_env();

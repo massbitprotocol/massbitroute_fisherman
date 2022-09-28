@@ -10,7 +10,7 @@ use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
 
-use anyhow::anyhow;
+use anyhow::{anyhow, Error};
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::Job;
@@ -19,7 +19,7 @@ use common::util::{get_current_time, warning_if_error};
 use common::workers::MatchedWorkers;
 use common::Timestamp;
 
-use log::{debug, warn};
+use log::{debug, error, trace, warn};
 
 use sea_orm::{DatabaseConnection, TransactionTrait};
 
@@ -225,21 +225,43 @@ impl VerificationJobGenerator {
                 .map(|(key, value)| (key.task_name.clone(), value.clone()))
                 .collect::<HashMap<String, JudgmentsResult>>();
             log::debug!("Generate jobs for task {}", task.get_type());
-            if let Ok(mut applied_jobs) = task.apply(
+            let mut applied_jobs = task.apply(
                 &provider_plan.plan.plan_id,
                 &provider_plan.provider,
                 JobRole::Verification,
                 &matched_workers,
                 &sub_task_results,
-            ) {
-                //Todo: Improve this, don't create redundant jobs
-                if applied_jobs.jobs.len() > 0 {
-                    applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
+            );
+            match applied_jobs {
+                Ok(mut applied_jobs) => {
+                    trace!("applied_jobs: {:?}", applied_jobs);
+                    //Todo: Improve this, don't create redundant jobs
+                    if !applied_jobs.jobs.is_empty() {
+                        applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
+                    }
+                    if !applied_jobs.jobs.is_empty() {
+                        assignment_buffer.append(applied_jobs);
+                    }
                 }
-                if applied_jobs.jobs.len() > 0 {
-                    assignment_buffer.append(applied_jobs);
+                Err(err) => {
+                    error!("task.apply error: {}", err);
                 }
             }
+            // if let Ok(mut applied_jobs) = task.apply(
+            //     &provider_plan.plan.plan_id,
+            //     &provider_plan.provider,
+            //     JobRole::Verification,
+            //     &matched_workers,
+            //     &sub_task_results,
+            // ) {
+            //     //Todo: Improve this, don't create redundant jobs
+            //     if applied_jobs.jobs.len() > 0 {
+            //         applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
+            //     }
+            //     if applied_jobs.jobs.len() > 0 {
+            //         assignment_buffer.append(applied_jobs);
+            //     }
+            // }
         }
         waiting_task
     }
