@@ -25,6 +25,8 @@ root:
     - stdout
 
 loggers:
+  hyper:
+    level: info
   substrate_api_client:
     level: warn
   ws:
@@ -32,10 +34,12 @@ loggers:
   ac_node_api:
     level: warn
   scheduler::service::submit_chain:
+    level: debug
     appenders:
       - stdout
       - incoming_outgoing_call
   scheduler::handler:
+    level: debug
     appenders:
       - stdout
       - incoming_outgoing_call

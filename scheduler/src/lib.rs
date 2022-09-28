@@ -32,14 +32,14 @@ pub const JUDGMENT_PERIOD: u64 = 10;
 pub const RESULT_CACHE_MAX_LENGTH: usize = 10;
 lazy_static! {
     pub static ref CONFIG_DIR: String =
-        env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/"));
-    pub static ref LOG_CONFIG: String = format!("{}log.yaml", &*CONFIG_DIR);
+        env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs"));
+    pub static ref LOG_CONFIG: String = format!("{}/log.yaml", &*CONFIG_DIR);
     pub static ref COMPONENT_NAME: String = String::from("[Scheduler]");
     pub static ref SCHEDULER_ENDPOINT: String =
         env::var("SCHEDULER_ENDPOINT").unwrap_or_else(|_| String::from("0.0.0.0:3031"));
     pub static ref REPORT_CALLBACK: String =
         env::var("REPORT_CALLBACK").expect("There is no env var REPORT_CALLBACK");
-    pub static ref SCHEDULER_CONFIG: String = format!("{}scheduler.json",&*CONFIG_DIR);
+    pub static ref SCHEDULER_CONFIG: String = format!("{}/scheduler.json",&*CONFIG_DIR);
     pub static ref CONNECTION_POOL_SIZE: u32 = env::var("CONNECTION_POOL_SIZE")
         .ok()
         .and_then(|val| val.parse().ok())
@@ -49,7 +49,7 @@ lazy_static! {
         env::var("REPORT_DIR").expect("There is no env var REPORT_DIR");
     pub static ref SIGNER_PHRASE: String =
         env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
-    pub static ref CONFIG_TASK_DIR: String = format!("{}tasks",&*CONFIG_DIR);
+    pub static ref CONFIG_TASK_DIR: String = format!("{}/tasks",&*CONFIG_DIR);
 
     pub static ref CONFIG_HTTP_REQUEST_DIR: String = String::from("http_request");
     pub static ref CONFIG_BENCHMARK_DIR: String = String::from("benchmark");
