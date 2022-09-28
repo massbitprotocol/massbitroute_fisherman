@@ -10,7 +10,7 @@ use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
 
-use anyhow::{anyhow, Error};
+use anyhow::anyhow;
 use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::Job;
@@ -218,7 +218,7 @@ impl VerificationJobGenerator {
                 .map(|(key, value)| (key.task_name.clone(), value.clone()))
                 .collect::<HashMap<String, JudgmentsResult>>();
             log::debug!("Generate jobs for task {}", task.get_type());
-            let mut applied_jobs = task.apply(
+            let applied_jobs = task.apply(
                 &provider_plan.plan.plan_id,
                 &provider_plan.provider,
                 JobRole::Verification,
