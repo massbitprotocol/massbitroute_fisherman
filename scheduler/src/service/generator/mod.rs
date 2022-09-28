@@ -167,6 +167,7 @@ pub mod tests {
 
     const TEST_TIMEOUT: u64 = 30;
 
+    #[ignore]
     #[tokio::test]
     async fn test_main_generator_verification_node() -> Result<(), Error> {
         load_env();
@@ -240,7 +241,9 @@ pub mod tests {
         let mut job_names = CountItems::new(vec![]);
         loop {
             if now.elapsed().as_secs() > TEST_TIMEOUT {
-                return Err(anyhow!("Test Timeout"));
+                //return Err(anyhow!("Test Timeout"));
+                println!("test main_generator_verification_node timeout");
+                assert!(false);
             }
             {
                 println!("lock assigment_buffer");
@@ -268,7 +271,7 @@ pub mod tests {
 
         Ok(())
     }
-
+    #[ignore]
     #[tokio::test]
     async fn test_main_generator_verification_gateway() -> Result<(), Error> {
         load_env();
@@ -367,7 +370,7 @@ pub mod tests {
         }
         Ok(())
     }
-
+    #[ignore]
     #[tokio::test]
     async fn test_main_generator_regular_gateway() -> Result<(), Error> {
         load_env();
@@ -457,7 +460,7 @@ pub mod tests {
 
         Ok(())
     }
-
+    #[ignore]
     #[tokio::test]
     async fn test_main_generator_regular_node() -> Result<(), Error> {
         load_env();

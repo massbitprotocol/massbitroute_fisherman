@@ -5,6 +5,7 @@ mod test {
     use std::collections::HashMap;
     use wrap_wrk::WrkBenchmark;
 
+    #[ignore]
     #[test]
     fn test() {
         let thread = 20;

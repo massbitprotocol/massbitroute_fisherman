@@ -5,7 +5,7 @@ appenders:
   incoming_outgoing_call:
     kind: rolling_file
     append: false
-    path: "log/incoming_outgoing_call_scheduler.log"
+    path: "logs/incoming_outgoing_call_scheduler.log"
     policy:
       kind: compound
       trigger:
@@ -31,3 +31,11 @@ loggers:
     level: warn
   ac_node_api:
     level: warn
+  scheduler::service::submit_chain:
+    appenders:
+      - stdout
+      - incoming_outgoing_call
+  scheduler::handler:
+    appenders:
+      - stdout
+      - incoming_outgoing_call

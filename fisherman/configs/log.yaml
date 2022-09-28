@@ -5,7 +5,7 @@ appenders:
   incoming_outgoing_call:
     kind: rolling_file
     append: false
-    path: "log/incoming_outgoing_call_fisherman.log"
+    path: "logs/incoming_outgoing_call_fisherman.log"
     policy:
       kind: compound
       trigger:
