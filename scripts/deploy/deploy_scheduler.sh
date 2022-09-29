@@ -5,5 +5,6 @@ rsync -avz ../../target/release/scheduler "scheduler:~/"
 rsync -avz ../../scheduler/configs "scheduler:~/"
 rsync -avz ./run_scheduler.sh "scheduler:~/run.sh"
 rsync -avz ../../scheduler/.env_deploy "scheduler:~/.env"
+rsync -avz ../../common/configs/common.json "scheduler:~/"
 
 ssh "scheduler" < update_bin_and_restart_scheduler.sh

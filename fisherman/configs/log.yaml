@@ -1,0 +1,38 @@
+refresh_rate: 15 seconds
+appenders:
+  stdout:
+    kind: console
+  incoming_outgoing_call:
+    kind: rolling_file
+    append: false
+    path: "logs/incoming_outgoing_call_fisherman.log"
+    policy:
+      kind: compound
+      trigger:
+        kind: size
+        limit: 10mb
+      roller:
+        kind: fixed_window
+        base: 1
+        count: 100
+        pattern: "logs/incoming_outgoing_call_fisherman.{}.gz"
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S.%3f %Z)} [{l}] [{t} - {T}] {m}{n}"
+
+root:
+  level: info
+  appenders:
+    - stdout
+
+loggers:
+  fisherman::services::reporter:
+    level: debug
+    appenders:
+      - stdout
+      - incoming_outgoing_call
+
+  fisherman::server_builder:
+    level: debug
+    appenders:
+      - stdout
+      - incoming_outgoing_call

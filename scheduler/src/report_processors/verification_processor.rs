@@ -1,23 +1,30 @@
-use crate::models::job_result::{ProviderTask, StoredJobResult};
+use crate::models::job_result::ProviderTask;
 use crate::models::job_result_cache::{JobResultCache, PlanTaskResultKey};
 use crate::persistence::services::{JobResultService, JobService, PlanService};
 use crate::report_processors::adapters::Appender;
 use crate::report_processors::ReportProcessor;
 use crate::service::judgment::{JudgmentsResult, MainJudgment};
-use crate::service::report_portal::StoreReport;
+use crate::service::report_portal::{ReportFailedReasons, ReportRecord, StoreReport};
 use crate::{IS_VERIFY_REPORT, PORTAL_AUTHORIZATION};
 use async_trait::async_trait;
+
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 use common::models::PlanEntity;
+use common::util::get_datetime_utc_7;
 use common::{ComponentId, PlanId, DOMAIN};
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use sea_orm::DatabaseConnection;
 pub use serde::{Deserialize, Serialize};
-use serde_json::json;
+
+use crate::models::workers::WorkerInfoStorage;
+use anyhow::anyhow;
+
+use crate::service::delivery::CancelPlanBuffer;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::time::Instant;
 
 #[derive(Default)]
 pub struct VerificationReportProcessor {
@@ -28,6 +35,8 @@ pub struct VerificationReportProcessor {
     result_cache: Arc<JobResultCache>,
     judgment: MainJudgment,
     _active_plans: Mutex<HashMap<ComponentId, PlanEntity>>,
+    worker_pool: Arc<WorkerInfoStorage>,
+    cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>>,
 }
 
 impl VerificationReportProcessor {
@@ -38,6 +47,8 @@ impl VerificationReportProcessor {
         result_service: Arc<JobResultService>,
         result_cache: Arc<JobResultCache>,
         judgment: MainJudgment,
+        worker_pool: Arc<WorkerInfoStorage>,
+        cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>>,
     ) -> Self {
         VerificationReportProcessor {
             report_adapters,
@@ -47,6 +58,8 @@ impl VerificationReportProcessor {
             result_cache,
             judgment,
             _active_plans: Default::default(),
+            worker_pool,
+            cancel_plans_buffer,
         }
     }
     pub fn add_adapter(&mut self, adapter: Arc<dyn Appender>) {
@@ -59,22 +72,18 @@ impl ReportProcessor for VerificationReportProcessor {
         true
     }
 
-    async fn process_job(
-        &self,
-        _report: &JobResult,
-        _db_connection: Arc<DatabaseConnection>,
-    ) -> Result<StoredJobResult, anyhow::Error> {
-        todo!()
-    }
     async fn process_jobs(
         &self,
         reports: Vec<JobResult>,
         _db_connection: Arc<DatabaseConnection>,
     ) -> Result<(), anyhow::Error> {
+        let worker_id = reports.get(0).unwrap().worker_id.clone();
+        let now = Instant::now();
         // Separate the results by ProviderTask
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
         let mut plan_ids = HashSet::<PlanId>::new();
 
+        // Add report to provider_task_results and plan_ids
         for report in reports {
             plan_ids.insert(report.plan_id.clone());
             let key = ProviderTask::new(
@@ -94,6 +103,11 @@ impl ReportProcessor for VerificationReportProcessor {
 
         //Discard timeout plan
         let active_plans = self.get_active_plans(&plan_ids).await.unwrap_or_default();
+        info!(
+            "** Time to get_active_plans in process worker {worker_id} results: {:?}",
+            now.elapsed()
+        );
+        let now = Instant::now();
         debug!("Active plans {:?}", &active_plans);
         //get Active jobs base on active plan
         let active_plan_ids = active_plans
@@ -116,6 +130,11 @@ impl ReportProcessor for VerificationReportProcessor {
             })
             .unwrap_or_default();
         debug!("Active jobs {:?}", &map_plan_jobs);
+        info!(
+            "** Time to get_job_by_plan_ids in process worker {worker_id} results: {:?}",
+            now.elapsed()
+        );
+        let now = Instant::now();
 
         //Filter by active plan
         let mut active_provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
@@ -134,7 +153,7 @@ impl ReportProcessor for VerificationReportProcessor {
         }
         debug!("Active task results {:?}", &active_provider_task_results);
 
-        // Get active report for s
+        // Get active report for storage
         let mut active_reports = vec![];
         for job_results in active_provider_task_results.values() {
             active_reports.extend_from_slice(job_results);
@@ -154,10 +173,16 @@ impl ReportProcessor for VerificationReportProcessor {
                 .expect("Cannot append job results");
         }
 
+        info!(
+            "** Time to append_job_results in process worker {worker_id} results: {:?}",
+            now.elapsed()
+        );
+        let now = Instant::now();
+
         for (provider_task, active_results) in active_provider_task_results {
             if let Some(plan_entity) = active_plans.get(&provider_task.provider_id) {
                 if let Some(plan_jobs) = map_plan_jobs.get(&plan_entity.plan_id) {
-                    self.judg_provider_results(
+                    self.judge_provider_results(
                         provider_task,
                         plan_entity,
                         active_results,
@@ -169,7 +194,10 @@ impl ReportProcessor for VerificationReportProcessor {
                 };
             }
         }
-
+        info!(
+            "** Time to judg_provider_results in process worker {worker_id} results: {:?}",
+            now.elapsed()
+        );
         Ok(())
     }
 }
@@ -205,14 +233,19 @@ impl VerificationReportProcessor {
                     .collect::<HashMap<ComponentId, PlanEntity>>()
             })
     }
-    pub async fn judg_provider_results(
+    pub async fn judge_provider_results(
         &self,
         provider_task: ProviderTask,
         plan: &PlanEntity,
         results: Vec<JobResult>,
         plan_jobs: &Vec<Job>,
     ) {
-        let mut message = "Result message: ".to_string();
+        if results.is_empty() {
+            return;
+        }
+        // All worker_id should be the same.
+        let worker_id = results.get(0).unwrap().worker_id.clone();
+
         let plan_results = self
             .judgment
             .apply_for_verify(&provider_task, plan, &results, plan_jobs)
@@ -245,26 +278,42 @@ impl VerificationReportProcessor {
 
         //Handle plan result
         let mut final_result = JudgmentsResult::Pass;
-        for (job_id, plan_result) in plan_results {
-            message.push_str(&format!("{} {:?}; ", job_id, &plan_result));
+
+        let mut reasons = ReportFailedReasons::new(vec![]);
+        for (_job_id, plan_result) in plan_results {
             match plan_result {
                 JudgmentsResult::Pass => continue,
-                JudgmentsResult::Failed => {
-                    final_result = JudgmentsResult::Failed;
+                JudgmentsResult::Failed(sub_reasons) => {
+                    reasons.extend(sub_reasons.clone().into_inner());
                 }
                 JudgmentsResult::Unfinished => {
-                    if final_result == JudgmentsResult::Pass {
-                        final_result = JudgmentsResult::Unfinished;
-                    }
-                }
-                JudgmentsResult::Error => {
-                    final_result = JudgmentsResult::Error;
+                    final_result = JudgmentsResult::Unfinished;
                 }
             }
         }
+        if !reasons.is_empty() {
+            final_result = JudgmentsResult::Failed(reasons);
+        }
+        if final_result.is_concluded() {
+            let res = self
+                .report_judgment_result(&provider_task, plan, final_result)
+                .await;
+            match res {
+                Ok(_) => {
+                    if let Some(worker) = self.worker_pool.get_worker(worker_id).await {
+                        //let res = worker.send_cancel_plans(&vec![plan.plan_id.clone()]).await;
 
-        self.report_judgment_result(&provider_task, plan, final_result, message)
-            .await;
+                        self.cancel_plans_buffer
+                            .lock()
+                            .await
+                            .insert_plan(plan.plan_id.clone(), worker);
+                    }
+                }
+                Err(err) => {
+                    error!("report_judgment_result return error: {}", err);
+                }
+            }
+        }
     }
 
     fn combine_results(
@@ -273,10 +322,6 @@ impl VerificationReportProcessor {
     ) -> JudgmentsResult {
         if results.is_empty() {
             return JudgmentsResult::Unfinished;
-        }
-        // Check if there is error or failed
-        if results.iter().any(|(_key, res)| res.is_failed()) {
-            return JudgmentsResult::Failed;
         }
 
         // Check if all job report
@@ -289,56 +334,75 @@ impl VerificationReportProcessor {
             }
         }
         //Handle plan result
-        for (_, plan_result) in results.iter() {
-            if plan_result == &JudgmentsResult::Unfinished {
-                return JudgmentsResult::Unfinished;
+        let mut final_jug = JudgmentsResult::Pass;
+        let mut reasons = ReportFailedReasons::new(vec![]);
+        for plan_result in results.values() {
+            match plan_result {
+                JudgmentsResult::Pass => continue,
+                JudgmentsResult::Failed(sub_reasons) => {
+                    reasons.extend(sub_reasons.clone().into_inner())
+                }
+                JudgmentsResult::Unfinished => {
+                    final_jug = JudgmentsResult::Unfinished;
+                }
             }
         }
-        JudgmentsResult::Pass
+        if reasons.is_empty() {
+            final_jug
+        } else {
+            JudgmentsResult::Failed(reasons)
+        }
     }
 
     pub async fn report_judgment_result(
         &self,
         provider_task: &ProviderTask,
         plan: &PlanEntity,
-        judg_result: JudgmentsResult,
-        message: String,
-    ) {
-        match judg_result {
-            JudgmentsResult::Failed | JudgmentsResult::Pass | JudgmentsResult::Error => {
-                let mut report = StoreReport::build(
-                    &"Scheduler".to_string(),
-                    &JobRole::Verification,
-                    &*PORTAL_AUTHORIZATION,
-                    &DOMAIN,
-                );
-                report.set_report_data_short(
-                    JudgmentsResult::Pass == judg_result,
-                    &provider_task.provider_id,
-                    &provider_task.provider_type,
-                );
-                info!(
-                    "Send plan report to portal with message {}: {:?}",
-                    message, report
-                );
-                if *IS_VERIFY_REPORT {
-                    let res = report.send_data().await;
-                    info!(
-                        "report_judgment_result Send report to portal res: {:?}",
-                        res
-                    );
-                } else {
-                    let result = json!({
-                        "provider_id":provider_task.provider_id,
-                        "plan_id":plan.plan_id,
-                        "result":judg_result,
-                        "message":message
-                    });
-                    let res = report.write_data(result);
-                    info!("Write report to file res: {:?}", res);
+        judge_result: JudgmentsResult,
+    ) -> Result<(), anyhow::Error> {
+        let mut report = StoreReport::build(
+            &"Scheduler".to_string(),
+            &JobRole::Verification,
+            &*PORTAL_AUTHORIZATION,
+            &DOMAIN,
+        );
+        report.set_report_data_short(
+            &judge_result,
+            &provider_task.provider_id,
+            &provider_task.provider_type,
+        );
+        info!(
+            "*** Send verify report to portal with message {:?}: {:?}",
+            judge_result, report
+        );
+        if *IS_VERIFY_REPORT {
+            let res = report.send_data().await;
+            return match res {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        Ok(())
+                    } else {
+                        Err(anyhow!(format!(
+                            "Portal response error code: {:?} and body: {:?}",
+                            resp.status(),
+                            resp.text().await
+                        )))
+                    }
                 }
-            }
-            _ => {}
+                Err(err) => {
+                    log::error!("Error: {:?}", &err);
+                    Err(anyhow!(format!("{:?}", &err)))
+                }
+            };
         }
+        let report_record = ReportRecord::new(
+            get_datetime_utc_7(),
+            provider_task.provider_id.clone(),
+            plan.plan_id.clone(),
+            judge_result,
+        );
+        let res = report.write_data(report_record);
+        info!("*** Write verify report to file res: {:?}", res);
+        return Ok(());
     }
 }

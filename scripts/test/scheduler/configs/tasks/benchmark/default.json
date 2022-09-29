@@ -1,0 +1,32 @@
+{
+  "name": "benchmark",
+  "active": true,
+  "phases": ["verification"],
+  "provider_types": ["*"],
+  "blockchains": ["*"],
+  "networks": ["*"],
+  "benchmark_thread": 5,
+  "benchmark_connection": 5,
+  "benchmark_duration": 15000,
+  "benchmark_rate": 10,
+  "script": "massbit.lua",
+  "histograms": [90,95,99,100],
+  "http_method": "POST",
+  "url_template":"http://{{provider.ip}}/",
+  "judge_histogram_percentile":  95,
+  "response_threshold": 500,
+  "headers": {
+    "content-type":"application/json",
+    "Connection": "Close",
+    "X-Api-Key": "{{provider.appKey}}",
+    "Host": "{{provider.id}}.{{provider.type}}.mbr.{{domain}}"
+  },
+  "body": {},
+  "assignment": {
+    "broadcast": false,
+    "worker_number": 1,
+    "nearby_only": true,
+    "by_distance": false
+  },
+  "dependencies" : {}
+}

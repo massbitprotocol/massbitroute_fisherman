@@ -9,10 +9,11 @@
   "benchmark_connection": 5,
   "benchmark_duration": 15000,
   "benchmark_rate": 10,
+  "timeout": 10000,
   "script": "massbit.lua",
   "histograms": [90,95,99,100],
   "http_method": "POST",
-  "url_template":"http://{{provider.ip}}/",
+  "url_template":"{{scheme}}://{{provider.ip}}/",
   "judge_histogram_percentile":  95,
   "response_threshold": 500,
   "headers": {

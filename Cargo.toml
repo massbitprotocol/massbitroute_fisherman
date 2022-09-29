@@ -6,6 +6,6 @@ members = [
     "wrap_wrk",
     "migration",
     "entity",
-    #"test_util"
-
+    "test_util",
+    "mbr_stats"
 ]

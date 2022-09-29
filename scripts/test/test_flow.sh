@@ -16,31 +16,34 @@ docker-compose down
   cd docker-gateway || exit
   docker-compose down
 )
+cd ../
 
 
 #-------------------------------------------
 # Docker build
 #-------------------------------------------
 bash docker_build.sh
-
+#bash docker_build_proxy.sh
 #-------------------------------------------
 # Docker up
 #-------------------------------------------
 docker-compose up -d
-sleep 15
-bash 1_pre_config.sh
+truncate -s 0 ./docker-proxy/logs/*.*
+sleep 10
+bash 1_pre_config.sh || exit 1
+if 
 docker exec mbr_db bash -c 'bash /docker-entrypoint-initdb.d/2_clean_node.sh'
 
 #-------------------------------------------
 # Log into Portal
 #-------------------------------------------
-bearer=$(curl -k -s --location --request POST 'https://portal.massbitroute.net/auth/login' --header 'Content-Type: application/json' \
-        --data-raw "{\"username\": \"$TEST_USERNAME\", \"password\": \"$TEST_PASSWORD\"}"| jq  -r ". | .accessToken")
-
-if [[ "$bearer" == "null" ]]; then
-  echo "Getting JWT token: Failed"
-  exit 1
-fi
+bearer=
+while [[ "x$bearer" == "x" ]] || [[ "$bearer" == "null" ]]; do
+  echo "Try login..."
+  bearer=$(curl -k --location --request POST 'https://portal.massbitroute.net/auth/login' --header 'Content-Type: application/json' \
+          --data-raw "{\"username\": \"$TEST_USERNAME\", \"password\": \"$TEST_PASSWORD\"}"| jq  -r ". | .accessToken")
+  sleep 5
+done
 
 userID=$(curl -k 'https://portal.massbitroute.net/user/info' \
   -H 'Accept: application/json, text/plain, */*' \
@@ -49,8 +52,9 @@ userID=$(curl -k 'https://portal.massbitroute.net/user/info' \
 #-------------------------------------------
 # create  node/gw in Portal
 #-------------------------------------------
-echo "Create new node and gw in Portal: In Progress"
-curl -k -s --location --request POST 'https://portal.massbitroute.net/mbr/node' \
+now=$(date)
+echo "Create new node and gw in Portal: In Progress at $now"
+curl -k --location --request POST 'https://portal.massbitroute.net/mbr/node' \
   --header "Authorization: Bearer  $bearer" \
   --header 'Content-Type: application/json' \
   --data-raw "{
@@ -62,7 +66,7 @@ curl -k -s --location --request POST 'https://portal.massbitroute.net/mbr/node' 
       \"dataSourceWs\":\"$dataSourceWs\"
   }" | jq -r '. | .id, .appKey' | sed -z -z 's/\n/,/g;s/,$/,AS\n/' >nodelist.csv
 
-curl -k -s --location --request POST 'https://portal.massbitroute.net/mbr/gateway' \
+curl -k --location --request POST 'https://portal.massbitroute.net/mbr/gateway' \
   --header "Authorization: Bearer  $bearer" \
   --header 'Content-Type: application/json' \
   --data-raw "{
@@ -113,38 +117,47 @@ docker-compose up -d
 while [[ "$node_status" != "approved" ]]; do
   echo "Checking node status: In Progress"
 
-  node_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/node/$NODE_ID" \
+  node_status=$(curl -k --location --request GET "https://portal.massbitroute.net/mbr/node/$NODE_ID" \
     --header "Authorization: Bearer $bearer" | jq -r ". | .status")
 
   echo "---------------------------------"
   echo "Node status: $node_status"
   echo "---------------------------------"
-  sleep 2
+  sleep 10
 done
-echo "Checking node approved status: Passed"
+now=$(date)
+echo "Checking node approved status: Passed at $now"
 
 #-------------------------------------------
 # Test staking for NODES
 #-------------------------------------------
 
+node_staking_response=$(curl --location --request POST 'http://staking.massbitroute.net/massbit/staking-provider' \
+  --header 'Content-Type: application/json' --data-raw "{
+    \"memonic\": \"$MEMONIC\",
+    \"providerId\": \"$NODE_ID\",
+    \"providerType\": \"Node\",
+    \"blockchain\": \"$blockchain\",
+    \"network\": \"mainnet\",
+    \"amount\": \"100\"
+}" | jq -r ". | .status")
+if [[ "$node_staking_response" != "success" ]]; then
+  echo "Node staking: Failed"
+  exit 1
+fi
 while [[ "$node_status" != "staked" ]]; do
-  node_staking_response=$(curl -s --location --request POST 'http://staking.massbitroute.net/massbit/staking-provider' \
-    --header 'Content-Type: application/json' --data-raw "{
-      \"memonic\": \"$MEMONIC\",
-      \"providerId\": \"$NODE_ID\",
-      \"providerType\": \"Node\",
-      \"blockchain\": \"$blockchain\",
-      \"network\": \"mainnet\",
-      \"amount\": \"100\"
-  }" | jq -r ". | .status")
-  if [[ "$node_staking_response" != "success" ]]; then
-    echo "Node staking: Failed"
-  fi
-  sleep 5
-  node_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/node/$NODE_ID" \
+  echo "Checking node status: In Progress"
+
+  node_status=$(curl -k --location --request GET "https://portal.massbitroute.net/mbr/node/$NODE_ID" \
     --header "Authorization: Bearer $bearer" | jq -r ". | .status")
+  now=$(date)
+  echo "---------------------------------"
+  echo "Node status at:$now is $node_status"
+  echo "---------------------------------"
+  sleep 10
 done
-echo "Node staking status: Passed"
+now=$(date)
+echo "Node staked: Passed at $now"
 
 ##-------------------------------------------
 ## Create docker gateway
@@ -159,16 +172,17 @@ docker-compose up -d
 while [[ "$gateway_status" != "approved" ]]; do
   echo "Checking Gateway status: In Progress"
 
-  gateway_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/gateway/$GATEWAY_ID" \
+  gateway_status=$(curl -k --location --request GET "https://portal.massbitroute.net/mbr/gateway/$GATEWAY_ID" \
     --header "Authorization: Bearer $bearer" | jq -r ". | .status")
 
 
   echo "---------------------------------"
   echo "Gateway status: $gateway_status"
   echo "---------------------------------"
-  sleep 2
+  sleep 10
 done
-echo "Checking node verified status: Passed"
+now=$(date)
+echo "Checking node verified status: Passed at $now"
 
 
 
@@ -176,28 +190,38 @@ echo "Checking node verified status: Passed"
 # Test staking for GW
 #-------------------------------------------
 # stake gateway
+now=$(date)
+echo "Wait a minute for staking node..."
+echo "$now"
+gateway_staking_response=$(curl --location --request POST 'http://staking.massbitroute.net/massbit/staking-provider' \
+  --header 'Content-Type: application/json' --data-raw "{
+    \"memonic\": \"$MEMONIC\",
+    \"providerId\": \"$GATEWAY_ID\",
+    \"providerType\": \"Gateway\",
+    \"blockchain\": \"$blockchain\",
+    \"network\": \"mainnet\",
+    \"amount\": \"100\"
+}" | jq -r ". | .status")
+
+
+if [[ "$gateway_staking_response" != "success" ]]; then
+  echo "Gateway staking status: Failed "
+  exit 1
+fi
 while [[ "$gateway_status" != "staked" ]]; do
-  echo "Wait a minute for staking node..."
-  gateway_staking_response=$(curl -s --location --request POST 'http://staking.massbitroute.net/massbit/staking-provider' \
-    --header 'Content-Type: application/json' --data-raw "{
-      \"memonic\": \"$MEMONIC\",
-      \"providerId\": \"$GATEWAY_ID\",
-      \"providerType\": \"Gateway\",
-      \"blockchain\": \"$blockchain\",
-      \"network\": \"mainnet\",
-      \"amount\": \"100\"
-  }" | jq -r ". | .status")
-  if [[ "$gateway_staking_response" != "success" ]]; then
-    echo "Gateway staking status: Failed "
-  fi
-  sleep 5
-  gateway_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/gateway/$GATEWAY_ID" \
+  echo "Checking Gateway status: In Progress"
+
+  gateway_status=$(curl -k --location --request GET "https://portal.massbitroute.net/mbr/gateway/$GATEWAY_ID" \
     --header "Authorization: Bearer $bearer" | jq -r ". | .status")
+
+  now=$(date)
+  echo "---------------------------------"
+  echo "Gateway status at $now is $gateway_status"
+  echo "---------------------------------"
+  sleep 10
 done
-echo "Gateway staking status: Passed"
-
-
-
+now=$(date)
+echo "Gateway staked: Passed at $now"
 
 #-------------------------------------------
 # Turn off NODES/GW
@@ -211,15 +235,16 @@ docker-compose down
 while [[ "$node_status" != "investigate" ]]; do
   echo "Checking node status: In Progress"
 
-  node_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/node/$NODE_ID" \
+  node_status=$(curl -k --location --request GET "https://portal.massbitroute.net/mbr/node/$NODE_ID" \
     --header "Authorization: Bearer $bearer" | jq -r ". | .status")
-
+  now=$(date)
   echo "---------------------------------"
-  echo "Node status: $node_status"
+  echo "Node status at $now is $node_status"
   echo "---------------------------------"
-  sleep 2
+  sleep 10
 done
-echo "Checking node reported status: investigate"
+now=$(date)
+echo "Checking node reported status: investigate at $now"
 
 
 ##-------------------------------------------
@@ -228,13 +253,16 @@ echo "Checking node reported status: investigate"
 while [[ "$gateway_status" != "investigate" ]]; do
   echo "Checking gateway status: In Progress"
 
-  gateway_status=$(curl -k -s --location --request GET "https://portal.massbitroute.net/mbr/gateway/$GATEWAY_ID" \
+  gateway_status=$(curl -k --location --request GET "https://portal.massbitroute.net/mbr/gateway/$GATEWAY_ID" \
     --header "Authorization: Bearer $bearer" | jq -r ". | .status")
 
-
+  now=$(date)
   echo "---------------------------------"
-  echo "Gateway status: $gateway_status"
+  echo "Gateway status at $now is $gateway_status"
   echo "---------------------------------"
-  sleep 2
+  sleep 10
 done
-echo "Checking gateway verified status: investigate"
+now=$(date)
+echo "Checking gateway verified status: investigate at $now"
+
+docker-copose down

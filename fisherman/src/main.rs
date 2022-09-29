@@ -3,17 +3,18 @@ use common::jobs::JobResult;
 use common::logger::init_logger;
 use common::workers::{WorkerInfo, WorkerRegisterResult};
 
+use common::COMMON_CONFIG;
 use fisherman::models::job::JobBuffer;
 use fisherman::server_builder::WebServerBuilder;
 use fisherman::server_config::AccessControl;
 use fisherman::services::{JobExecution, JobResultReporter, WebServiceBuilder};
 use fisherman::state::WorkerState;
 use fisherman::{
-    ENVIRONMENT, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID, WORKER_IP,
-    WORKER_SERVICE_ENDPOINT, ZONE,
+    ENVIRONMENT, LOG_CONFIG, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT,
+    WORKER_ID, WORKER_IP, WORKER_SERVICE_ENDPOINT, ZONE,
 };
 use futures_util::future::join3;
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use reqwest::StatusCode;
 use std::sync::Arc;
 use std::time::Duration;
@@ -25,9 +26,9 @@ use tokio::time::sleep;
 #[tokio::main]
 async fn main() {
     // Load env file
-    dotenv::dotenv().ok();
+    let _ = dotenv::from_filename(".env_fisherman");
     // Init logger
-    let _res = init_logger(&String::from("Fisherman-worker"));
+    let _res = init_logger(&String::from("Fisherman-worker"), LOG_CONFIG.to_str());
     // Create job queue
     //Call to scheduler to register worker
     if let Ok(WorkerRegisterResult {
@@ -79,11 +80,16 @@ async fn try_register() -> Result<WorkerRegisterResult, Error> {
         let request_builder = clone_client
             .post(scheduler_url)
             .header("content-type", "application/json")
-            .body(clone_body);
+            .header("authorization", &*SCHEDULER_AUTHORIZATION)
+            .body(clone_body)
+            .timeout(Duration::from_millis(
+                COMMON_CONFIG.default_http_request_timeout_ms,
+            ));
         debug!("Register worker request builder: {:?}", request_builder);
         let response = request_builder.send().await;
         if response.is_err() {
             sleep(Duration::from_millis(2000)).await;
+            error!("Register worker Error: {:?}", response);
             continue;
         }
         let response = response.unwrap();
@@ -116,6 +122,7 @@ mod tests {
     use httpmock::prelude::POST;
     use httpmock::MockServer;
     use std::env;
+    use test_util::helper::load_env;
 
     const MOCK_WORKER_ID: &str = "7c7da61c-aec7-45b1-9e32-7436d4721ce0";
     const MOCK_REPORT_CALLBACK: &str = "http://127.0.0.1:3031/report";
@@ -139,6 +146,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_try_register_success() -> Result<(), Error> {
+        load_env();
         // let _res = init_logger(&String::from("Fisherman-worker"));
         let portal = run_mock_portal_server();
         let url = format!("http://{}", portal.address());
@@ -147,6 +155,7 @@ mod tests {
         env::set_var("WORKER_ENDPOINT", "WORKER_ENDPOINT");
         env::set_var("WORKER_IP", "WORKER_IP");
         env::set_var("ZONE", "AS");
+        env::set_var("SCHEDULER_AUTHORIZATION", "DEFAULT_SCHEDULER_AUTHORIZATION");
         let res = try_register().await;
         println!("res: {:?}", res);
 

@@ -10,7 +10,10 @@ use warp::http::{HeaderMap, Method};
 
 use crate::services::WebService;
 use crate::state::WorkerState;
+use crate::BUILD_VERSION;
 use common::workers::WorkerStateParam;
+use common::{JobId, PlanId};
+use serde_json::json;
 use std::default::Default;
 use tokio::sync::Mutex;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
@@ -69,6 +72,13 @@ impl WorkerServer {
                 .create_route_handle_jobs(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
             .or(self
+                .create_route_cancel_jobs(self.web_service.clone(), self.worker_state.clone())
+                .with(&cors))
+            .or(self
+                .create_route_cancel_plans(self.web_service.clone(), self.worker_state.clone())
+                .with(&cors))
+            .or(self.create_version().with(&cors))
+            .or(self
                 .create_route_update_jobs(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
             .or(self
@@ -91,6 +101,17 @@ impl WorkerServer {
                 Self::simple_response(true).await
             })
     }
+
+    /// Version API
+    fn create_version(&self) -> impl Filter<Extract = impl warp::Reply, Error = Rejection> + Clone {
+        warp::path!("version").and(warp::get()).map(move || {
+            info!("Receive get version request");
+            let res = json!({ "version": &*BUILD_VERSION });
+            info!("BUILD_VERSION: {}", &*BUILD_VERSION);
+            Ok(warp::reply::json(&res))
+        })
+    }
+
     pub(crate) async fn simple_response(success: bool) -> Result<impl Reply, Rejection> {
         let res = SimpleResponse { success };
         Ok(warp::reply::json(&res))
@@ -100,7 +121,7 @@ impl WorkerServer {
         service: Arc<WebService>,
         state: Arc<Mutex<WorkerState>>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path!("jobs_handle")
+        warp::path!("handle_jobs")
             .and(WorkerServer::log_headers())
             .and(warp::post())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
@@ -113,6 +134,47 @@ impl WorkerServer {
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move { clone_service.handle_jobs(jobs, clone_state).await }
+            })
+    }
+    fn create_route_cancel_jobs(
+        &self,
+        service: Arc<WebService>,
+        state: Arc<Mutex<WorkerState>>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("cancel_jobs")
+            .and(WorkerServer::log_headers())
+            .and(warp::post())
+            .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
+            .and_then(move |jobs: Vec<JobId>| {
+                info!(
+                    "#### Received {} cancel_jobs request body {:?} ####",
+                    &jobs.len(),
+                    &jobs
+                );
+                let clone_service = service.clone();
+                let clone_state = state.clone();
+                async move { clone_service.cancel_jobs(jobs, clone_state).await }
+            })
+    }
+
+    fn create_route_cancel_plans(
+        &self,
+        service: Arc<WebService>,
+        state: Arc<Mutex<WorkerState>>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("cancel_plans")
+            .and(WorkerServer::log_headers())
+            .and(warp::post())
+            .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
+            .and_then(move |plans: Vec<PlanId>| {
+                info!(
+                    "#### Received {} plans_cancel request body {:?} ####",
+                    &plans.len(),
+                    &plans
+                );
+                let clone_service = service.clone();
+                let clone_state = state.clone();
+                async move { clone_service.cancel_plans(plans, clone_state).await }
             })
     }
     fn create_route_update_jobs(
@@ -141,7 +203,7 @@ impl WorkerServer {
             .and(warp::get())
             .and(warp::body::content_length_limit(MAX_JSON_BODY_SIZE).and(warp::body::json()))
             .and_then(move |_param: WorkerStateParam| {
-                info!("#### Received request body ####");
+                info!("#### Received get_state request body ####");
                 let clone_service = service.clone();
                 let clone_state = state.clone();
                 async move { clone_service.get_state(clone_state).await }
@@ -213,18 +275,14 @@ mod tests {
     use super::*;
 
     use anyhow::Error;
-    use common::logger::init_logger;
     use common::task_spawn;
     use reqwest::Client;
 
     use crate::models::job::JobBuffer;
     use crate::services::WebServiceBuilder;
 
-    use common::jobs::JobResult;
-    use serde_json::json;
     use std::time::Duration;
     use test_util::helper::load_env;
-    use tokio::sync::mpsc::{channel, Receiver, Sender};
 
     use tokio::time::sleep;
 
@@ -269,7 +327,7 @@ mod tests {
         assert_eq!(resp, SimpleResponse { success: true });
 
         // Test Job handler
-        let url = format!("http://localhost:{}/jobs_handle", local_port);
+        let url = format!("http://localhost:{}/handle_jobs", local_port);
         let body = r###"
         [
             {

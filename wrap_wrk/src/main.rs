@@ -5,6 +5,7 @@ mod test {
     use std::collections::HashMap;
     use wrap_wrk::WrkBenchmark;
 
+    #[ignore]
     #[test]
     fn test() {
         let thread = 20;
@@ -41,7 +42,7 @@ mod test {
             connection,
             duration.to_string(),
             rate,
-            None,
+            "".to_string(),
             dapi_url.to_string(),
             Some(body.to_string()),
             method,

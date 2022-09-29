@@ -1,0 +1,13 @@
+# ##### Runtime
+FROM debian
+
+COPY ./benchmark /usr/local/bin/benchmark
+COPY ./scheduler /usr/local/bin
+COPY ./fisherman /usr/local/bin
+COPY ./mbr_stats /usr/local/bin
+COPY ./services /etc/services
+RUN apt update && apt install supervisor -y
+EXPOSE 80
+
+# Run the application
+CMD ["supervisord", "-n"]

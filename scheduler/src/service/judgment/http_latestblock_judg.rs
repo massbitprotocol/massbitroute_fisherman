@@ -13,8 +13,8 @@ use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
 };
 use common::tasks::{LoadConfigs, TaskConfigTrait};
-use common::{BlockChainType, ChainId, NetworkType, Timestamp};
-use log::{debug, info};
+use common::{BlockChainType, NetworkType, Timestamp};
+use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -70,6 +70,9 @@ impl LatestBlockResultCache {
      * Use check function here to avoid clone data
      * return true if value is up to date and put it back to cache
      */
+    pub fn get_job_name() -> String {
+        "LatestBlock".to_string()
+    }
     pub fn check_latest_block(
         &self,
         cache_key: CacheKey,
@@ -81,10 +84,14 @@ impl LatestBlockResultCache {
             "Check latest block for blockchain {:?} with values {:?} and thresholds {:?}",
             &cache_key.blockchain, &result_value, &thresholds
         );
-        match cache_key.blockchain.as_str() {
-            "dot" => self.check_latest_dot_block(cache_key, result_value, comparator, thresholds),
+        match &cache_key.blockchain {
+            BlockChainType::Dot => {
+                self.check_latest_dot_block(cache_key, result_value, comparator, thresholds)
+            }
             //Default use eth check
-            _ => self.check_latest_eth_block(cache_key, result_value, comparator, thresholds),
+            BlockChainType::Eth | BlockChainType::Bsc | BlockChainType::Matic => {
+                self.check_latest_eth_block(cache_key, result_value, comparator, thresholds)
+            }
         }
     }
     fn check_latest_eth_block(
@@ -107,10 +114,11 @@ impl LatestBlockResultCache {
             .ok_or(anyhow!("Missing late_duration"))?
             .as_i64()
             .ok_or(anyhow!("Wrong value late_duration"))?;
-        let late_duration = result_value.time / 1000 - latest_block_time; //In seconds
+        let result_value_time = result_value.time / 1000;
+        let late_duration = result_value_time - latest_block_time; //In seconds
         info!(
             "execution_timestamp: {}, block_timestamp: {}, Latest block late_duration/threshold: {}s/{}s",
-            result_value.time / 1000,
+            result_value_time,
             latest_block_time,
             late_duration,
             late_duration_threshold,
@@ -118,7 +126,14 @@ impl LatestBlockResultCache {
 
         if late_duration > late_duration_threshold {
             info!("Judge Failed latest-block for Node eth {:?}", cache_key);
-            Ok(JudgmentsResult::Failed)
+            let failed_reason = format!(
+                "provider latest block timestamp {}, late duration: {} > {}",
+                result_value_time, late_duration, late_duration_threshold
+            );
+            Ok(JudgmentsResult::new_failed(
+                Self::get_job_name(),
+                failed_reason,
+            ))
         } else {
             Ok(JudgmentsResult::Pass)
         }
@@ -144,7 +159,7 @@ impl LatestBlockResultCache {
         }
         //Block in current value newer then caches ones
         if missing_block < 0 {
-            values.insert(cache_key.clone(), result_value);
+            values.insert(cache_key.clone(), result_value.clone());
         }
         let max_block_missing = thresholds
             .get("max_block_missing")
@@ -156,7 +171,14 @@ impl LatestBlockResultCache {
             Ok(JudgmentsResult::Pass)
         } else {
             info!("Judge Failed latest-block for Node Dot {:?}", cache_key);
-            Ok(JudgmentsResult::Failed)
+            let failed_reason = format!(
+                "provider latest block {:?}, late duration: {} > {}",
+                result_value.values, missing_block, max_block_missing
+            );
+            Ok(JudgmentsResult::new_failed(
+                Self::get_job_name(),
+                failed_reason,
+            ))
         }
     }
 }
@@ -166,7 +188,7 @@ pub struct HttpLatestBlockJudgment {
     task_configs: Vec<HttpRequestJobConfig>,
     _result_service: Arc<JobResultService>,
     cache_values: LatestBlockResultCache,
-    comparators: HashMap<ChainId, Arc<dyn Comparator>>,
+    comparators: HashMap<BlockChainType, Arc<dyn Comparator>>,
 }
 
 impl HttpLatestBlockJudgment {
@@ -186,7 +208,7 @@ impl HttpLatestBlockJudgment {
     pub fn get_task_config(
         &self,
         phase: &JobRole,
-        blockchain: &String,
+        blockchain: &BlockChainType,
         network: &String,
         provider_type: &ComponentType,
     ) -> Map<String, Value> {
@@ -205,7 +227,7 @@ impl HttpLatestBlockJudgment {
             .map(|config| config.thresholds.clone())
             .unwrap_or_default()
     }
-    pub fn get_comparator(&self, chain_id: &ChainId) -> Arc<dyn Comparator> {
+    pub fn get_comparator(&self, chain_id: &BlockChainType) -> Arc<dyn Comparator> {
         self.comparators
             .get(chain_id)
             .map(|item| item.clone())
@@ -253,7 +275,8 @@ impl ReportCheck for HttpLatestBlockJudgment {
         // Get newest result from cache
         for result in job_results {
             if result.chain_info.is_none() {
-                return Ok(JudgmentsResult::Error);
+                let failed_reason = format!("There are no chain info in the result: {:?}", result);
+                return Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason));
             }
 
             if let (
@@ -281,9 +304,10 @@ impl ReportCheck for HttpLatestBlockJudgment {
             }
         }
         // Get threshold from config
-        println!(
+        trace!(
             "cache_key: {:?}, latest_job_result: {:?}",
-            cache_key, latest_job_result
+            cache_key,
+            latest_job_result
         );
         let thresholds = self.get_task_config(
             &latest_job_result.phase,
@@ -292,7 +316,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
             &latest_job_result.provider_type,
         );
 
-        println!("get_task_config thresholds: {:?}", thresholds);
+        trace!("get_task_config thresholds: {:?}", thresholds);
 
         // Get threshold from config
         let res = self.cache_values.check_latest_block(
@@ -309,11 +333,9 @@ impl ReportCheck for HttpLatestBlockJudgment {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::CONFIG_DIR;
+    use crate::CONFIG_TASK_DIR;
 
-    use test_util::helper::{
-        load_env, mock_db_connection, mock_job_result, ChainTypeForTest, JobName,
-    };
+    use test_util::helper::{load_env, mock_db_connection, mock_job_result, JobName};
 
     #[tokio::test]
     async fn test_http_latest_block_judgment() -> Result<(), Error> {
@@ -322,12 +344,12 @@ pub mod tests {
         let db_conn = mock_db_connection();
         let result_service = JobResultService::new(Arc::new(db_conn));
         let judge = HttpLatestBlockJudgment::new(
-            CONFIG_DIR.as_str(),
+            CONFIG_TASK_DIR.as_str(),
             &JobRole::Verification,
             Arc::new(result_service),
         );
 
-        println!("Task configs: {:?}", judge.task_configs);
+        info!("Task configs: {:?}", judge.task_configs);
         let task_latest_block = ProviderTask::new(
             "provider_id".to_string(),
             ComponentType::Node,
@@ -354,7 +376,7 @@ pub mod tests {
         // For eth
         let job_result = mock_job_result(
             &JobName::LatestBlock,
-            ChainTypeForTest::Eth,
+            BlockChainType::Eth,
             "",
             Default::default(),
         );
@@ -362,13 +384,13 @@ pub mod tests {
         let res = judge
             .apply_for_results(&task_latest_block, &vec![job_result])
             .await?;
-        println!("Judge res: {:?}", res);
+        info!("Judge res: {:?}", res);
         assert_eq!(res, JudgmentsResult::Pass);
 
         // For dot
         let job_result = mock_job_result(
             &JobName::LatestBlock,
-            ChainTypeForTest::Dot,
+            BlockChainType::Dot,
             "",
             Default::default(),
         );

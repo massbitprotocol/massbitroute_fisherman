@@ -2,19 +2,23 @@ use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
-use crate::service::report_portal::StoreReport;
-use crate::{CONFIG_DIR, IS_REGULAR_REPORT, PORTAL_AUTHORIZATION};
+use crate::service::report_portal::{ReportRecord, StoreReport};
+use crate::{CONFIG_TASK_DIR, IS_REGULAR_REPORT, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
 
 use common::models::PlanEntity;
 use common::{JobId, PlanId, DOMAIN};
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 
+use common::util::get_datetime_utc_7;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+
+use crate::models::workers::WorkerInfoStorage;
+use crate::service::delivery::CancelPlanBuffer;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use tokio::sync::Mutex as TokioMutex;
 
 #[derive(Default)]
 pub struct MainJudgment {
@@ -46,13 +50,14 @@ impl LatestJudgmentCache {
     }
     pub fn get_value(&self, key: &JudgmentKey) -> Option<JudgmentsResult> {
         let values = self.values.lock().unwrap();
-        values.get(key).map(|r| r.clone())
+        values.get(key).cloned()
     }
 }
 
 impl MainJudgment {
     pub fn new(result_service: Arc<JobResultService>, phase: &JobRole) -> Self {
-        let judgments = get_report_judgments(CONFIG_DIR.as_str(), result_service.clone(), phase);
+        let judgments =
+            get_report_judgments(CONFIG_TASK_DIR.as_str(), result_service.clone(), phase);
         MainJudgment {
             _result_service: result_service,
             judgments,
@@ -69,9 +74,7 @@ impl MainJudgment {
         job_id: &JobId,
     ) -> Option<JudgmentsResult> {
         let key = JudgmentKey::new(plan.plan_id.clone(), job_id.clone());
-        self.judgment_result_cache
-            .get_value(&key)
-            .map(|r| r.clone())
+        self.judgment_result_cache.get_value(&key)
     }
     /*
      * for each plan, check result of all judgment,
@@ -104,10 +107,20 @@ impl MainJudgment {
             .unwrap_or_default();
         for judgment in self.judgments.iter() {
             if judgment.can_apply_for_result(provider_task) {
-                currentjob_result = judgment
-                    .apply_for_results(provider_task, &results)
-                    .await
-                    .unwrap_or(JudgmentsResult::Failed);
+                currentjob_result = match judgment.apply_for_results(provider_task, &results).await
+                {
+                    Ok(result) => result,
+                    Err(err) => JudgmentsResult::new_failed(
+                        provider_task.task_name.clone(),
+                        format!(
+                            "Verify judgement {} apply for {} got error: {:?}",
+                            judgment.get_name(),
+                            provider_task.task_name,
+                            err
+                        ),
+                    ),
+                };
+
                 info!(
                     "Verify judgment {} result {:?} for provider {:?} with results {results:?}",
                     judgment.get_name(),
@@ -115,6 +128,7 @@ impl MainJudgment {
                     provider_task,
                 );
                 total_result.insert(job_id.clone(), currentjob_result.clone());
+                break;
             };
         }
 
@@ -150,10 +164,17 @@ impl MainJudgment {
         &self,
         provider_task: &ProviderTask,
         results: &Vec<JobResult>,
+        worker_pool: Arc<WorkerInfoStorage>,
+        cancel_plans_buffer: Arc<TokioMutex<CancelPlanBuffer>>,
     ) -> Result<JudgmentsResult, anyhow::Error> {
         if results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);
         }
+        // This unwrap is safe because results is not empty.
+        // All worker_id and plan in results should be the same.
+        let worker_id = results.get(0).unwrap().worker_id.clone();
+        let plan_id = results.get(0).unwrap().plan_id.clone();
+
         let mut judg_result = JudgmentsResult::Unfinished;
         //Separate jobs by job name
         let provider_type = results
@@ -162,7 +183,7 @@ impl MainJudgment {
             .unwrap_or_default();
 
         for judgment in self.judgments.iter() {
-            if !judgment.can_apply_for_result(&provider_task) {
+            if !judgment.can_apply_for_result(provider_task) {
                 continue;
             }
             let res = judgment.apply_for_results(provider_task, results).await;
@@ -177,7 +198,15 @@ impl MainJudgment {
                         results,
                         err
                     );
-                    judg_result = JudgmentsResult::Error;
+                    judg_result = JudgmentsResult::new_failed(
+                        provider_task.task_name.clone(),
+                        format!(
+                            "Regular judgement {} apply for {} got error: {:?}",
+                            judgment.get_name(),
+                            provider_task.task_name,
+                            err
+                        ),
+                    );
                 }
             }
 
@@ -188,26 +217,59 @@ impl MainJudgment {
                 provider_task.task_name,
                 provider_task.provider_id
             );
-            match judg_result {
-                JudgmentsResult::Failed | JudgmentsResult::Error => {
-                    let mut report = StoreReport::build(
-                        &"Scheduler".to_string(),
-                        &JobRole::Regular,
-                        &*PORTAL_AUTHORIZATION,
-                        &DOMAIN,
+            if let JudgmentsResult::Failed(_) = &judg_result {
+                let mut report = StoreReport::build(
+                    &"Scheduler".to_string(),
+                    &JobRole::Regular,
+                    &*PORTAL_AUTHORIZATION,
+                    &DOMAIN,
+                );
+                report.set_report_data_short(
+                    &judg_result,
+                    &provider_task.provider_id,
+                    &provider_type,
+                );
+                if *IS_REGULAR_REPORT {
+                    debug!("*** Send regular report to portal:{:?}", report);
+                    let res = report.send_data().await;
+                    info!("Send report to portal res: {:?}", res);
+                    match res {
+                        Ok(resp) => {
+                            if resp.status().is_success() {
+                                // Remove job plan in worker because the provider is failed
+                                if let Some(worker) = worker_pool.get_worker(worker_id).await {
+                                    // let res = worker.send_cancel_plans(&vec![plan_id]).await;
+                                    // if let Err(err) = res {
+                                    //     error!("send_cancel_plans error: {:?}", err);
+                                    // }
+                                    cancel_plans_buffer
+                                        .lock()
+                                        .await
+                                        .insert_plan(plan_id, worker);
+                                }
+                            } else {
+                                error!(
+                                    "Portal response error code: {:?} and body: {:?}",
+                                    resp.status(),
+                                    resp.text().await
+                                );
+                            }
+                        }
+                        Err(err) => {
+                            error!("Error: {:?}", &err);
+                        }
+                    };
+                } else {
+                    //let result = json!({"report_time":get_datetime_utc_7(),"provider_task":provider_task,"result":judg_result});
+                    let report_record = ReportRecord::new(
+                        get_datetime_utc_7(),
+                        provider_task.provider_id.clone(),
+                        "".to_string(),
+                        judg_result.clone(),
                     );
-                    report.set_report_data_short(false, &provider_task.provider_id, &provider_type);
-                    if *IS_REGULAR_REPORT {
-                        debug!("Send plan report to portal:{:?}", report);
-                        let res = report.send_data().await;
-                        info!("Send report to portal res: {:?}", res);
-                    } else {
-                        let result = json!({"provider_task":provider_task,"result":judg_result});
-                        let res = report.write_data(result);
-                        info!("Write report to file res: {:?}", res);
-                    }
+                    let res = report.write_data(report_record);
+                    info!("*** Write regular report to file res: {:?}", res);
                 }
-                _ => {}
             }
             break;
         }
@@ -223,11 +285,10 @@ pub mod tests {
     use anyhow::Error;
     use common::component::ComponentType;
     use common::util::get_current_time;
+    use common::BlockChainType;
     use log::info;
 
-    use test_util::helper::{
-        load_env, mock_db_connection, mock_job, mock_job_result, ChainTypeForTest, JobName,
-    };
+    use test_util::helper::{load_env, mock_db_connection, mock_job, mock_job_result, JobName};
 
     #[tokio::test]
     async fn test_main_judgment_verify_and_regular() -> Result<(), Error> {
@@ -279,7 +340,7 @@ pub mod tests {
         // For eth
         let job_result_eth = mock_job_result(
             &JobName::Benchmark,
-            ChainTypeForTest::Eth,
+            BlockChainType::Eth,
             "job_Benchmark",
             phase.clone(),
         );
@@ -309,7 +370,7 @@ pub mod tests {
         // For dot
         let job_result_dot = mock_job_result(
             &JobName::Benchmark,
-            ChainTypeForTest::Dot,
+            BlockChainType::Dot,
             "job_Benchmark",
             phase.clone(),
         );
@@ -339,17 +400,26 @@ pub mod tests {
         //////////////// For Regular /////////////////
         let phase = JobRole::Regular;
         let judge = MainJudgment::new(Arc::new(result_service), &phase);
-
+        let cancel_plans_buffer: Arc<TokioMutex<CancelPlanBuffer>> =
+            Arc::new(TokioMutex::new(CancelPlanBuffer::default()));
         // Test apply_for_results
+        let _worker_infos = Arc::new(WorkerInfoStorage::default());
         assert_eq!(
-            judge.apply_for_regular(&task_benchmark, &vec![]).await?,
+            judge
+                .apply_for_regular(
+                    &task_benchmark,
+                    &vec![],
+                    _worker_infos.clone(),
+                    cancel_plans_buffer.clone()
+                )
+                .await?,
             JudgmentsResult::Unfinished
         );
 
         // For eth
         let job_result_eth = mock_job_result(
             &JobName::RoundTripTime,
-            ChainTypeForTest::Eth,
+            BlockChainType::Eth,
             "job_rtt",
             phase.clone(),
         );
@@ -366,6 +436,8 @@ pub mod tests {
                     job_result_eth.clone(),
                     job_result_eth.clone(),
                 ],
+                _worker_infos,
+                cancel_plans_buffer.clone(),
             )
             .await?;
         println!("Judge Eth res: {:?}", res);
@@ -374,13 +446,19 @@ pub mod tests {
         // For dot
         let job_result_dot = mock_job_result(
             &JobName::LatestBlock,
-            ChainTypeForTest::Dot,
+            BlockChainType::Dot,
             "job_latest_block",
             phase.clone(),
         );
         info!("job_result: {:?}", job_result_dot);
+        let _worker_infos = Arc::new(WorkerInfoStorage::default());
         let res = judge
-            .apply_for_regular(&task_latest_block, &vec![job_result_dot])
+            .apply_for_regular(
+                &task_latest_block,
+                &vec![job_result_dot],
+                _worker_infos.clone(),
+                cancel_plans_buffer.clone(),
+            )
             .await?;
         println!("Judge Dot res: {:?}", res);
         assert_eq!(res, JudgmentsResult::Pass,);
@@ -388,13 +466,18 @@ pub mod tests {
         // For dot
         let job_result_dot = mock_job_result(
             &JobName::LatestBlock,
-            ChainTypeForTest::Eth,
+            BlockChainType::Eth,
             "job_latest_block",
             phase.clone(),
         );
         info!("job_result: {:?}", job_result_dot);
         let res = judge
-            .apply_for_regular(&task_latest_block, &vec![job_result_dot])
+            .apply_for_regular(
+                &task_latest_block,
+                &vec![job_result_dot],
+                _worker_infos,
+                cancel_plans_buffer.clone(),
+            )
             .await?;
         println!("Judge Dot res: {:?}", res);
         assert_eq!(res, JudgmentsResult::Pass,);

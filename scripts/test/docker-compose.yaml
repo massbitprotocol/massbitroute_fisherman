@@ -7,6 +7,31 @@ networks:
       # config:
       #     - subnet: "172.24.24.0/16"
 services:
+  proxy:
+    container_name: mbr_proxy
+    image: massbit/massbitroute_test_proxy:v0.1.0-rel
+    restart: always
+    networks:
+      mbr_test_network:
+        ipv4_address: "172.24.24.254"
+    volumes:
+      - ./docker-proxy/logs:/logs
+      - /etc/letsencrypt:/etc/letsencrypt
+    extra_hosts:
+      - "hostmaster.massbitroute.net:172.24.24.210"
+      - "ns1.massbitroute.net:172.24.24.210"
+      - "ns2.massbitroute.net:172.24.24.210"
+      - "api.massbitroute.net:172.24.24.206"
+      - "stat.mbr.massbitroute.net:172.24.24.208"
+      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "chain.massbitroute.net:172.24.24.205"
+      - "portal.massbitroute.net:172.24.24.201"
+      - "admin-api.massbitroute.net:172.24.24.200"
+      - "dapi.massbitroute.net:172.24.24.200"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "api.ipapi.com:172.24.24.201"
+      - "staking.massbitroute.net:172.24.24.215"
+
   db:
     container_name: mbr_db
     image: postgres:14.4-alpine
@@ -27,27 +52,27 @@ services:
       # - db-data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
-      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
+      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.254"
+      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.254"
+      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.254"
+      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.254"
+      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.254"
+      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.254"
+      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.254"
+      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.254"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
 
   redis:
     container_name: mbr_redis
@@ -61,27 +86,27 @@ services:
     volumes:
       - redis-data:/data
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
-      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
+      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.254"
+      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.254"
+      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.254"
+      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.254"
+      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.254"
+      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.254"
+      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.254"
+      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.254"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
 
   mbr_staking:
     container_name: mbr_staking
@@ -93,17 +118,17 @@ services:
       mbr_test_network:
         ipv4_address: "172.24.24.215"
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
-      - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
+      - "chain.massbitroute.net:172.24.24.254"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -112,8 +137,8 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
     environment:
       - MODE=api
 
@@ -130,17 +155,17 @@ services:
     ports:
       - '3001:3001'
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -149,8 +174,8 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
     environment:
       - MODE=api
 
@@ -165,17 +190,17 @@ services:
       mbr_test_network:
         ipv4_address: "172.24.24.211"
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -184,8 +209,8 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
     environment:
       - MODE=worker
 
@@ -197,33 +222,34 @@ services:
     depends_on:
       - "db"
       - "redis"
+      - "api"
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.212"
     ports:
       - '3006:3006'
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
-      - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
-      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
-      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+    - "hostmaster.massbitroute.net:172.24.24.254"
+    - "ns1.massbitroute.net:172.24.24.254"
+    - "ns2.massbitroute.net:172.24.24.254"
+    - "api.massbitroute.net:172.24.24.254"
+    - "stat.mbr.massbitroute.net:172.24.24.254"
+    - "monitor.mbr.massbitroute.net:172.24.24.254"
+    - "chain.massbitroute.net:172.24.24.205"
+    - "portal.massbitroute.net:172.24.24.254"
+    - "admin-api.massbitroute.net:172.24.24.254"
+    - "dapi.massbitroute.net:172.24.24.254"
+    - "scheduler.fisherman.massbitroute.net:172.24.24.254"
+    - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+    - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+    - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+    - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
+    - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+    - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+    - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+    - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
+    - "api.ipapi.com:172.24.24.254"
+    - "staking.massbitroute.net:172.24.24.254"
     environment:
       - MODE=admin
 
@@ -240,17 +266,17 @@ services:
     ports:
       - '3000:3000'
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -259,8 +285,8 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
 
 
   fisherman_scheduler:
@@ -274,20 +300,25 @@ services:
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.204"
+    volumes:
+      - ./scheduler/configs:/usr/local/bin/configs
+      - ./scheduler/supervisor.conf:/etc/supervisor/conf.d/scheduler.conf
 #    ports:
 #      - '80:80'
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
+      - "worker01.fisherman.massbitroute.net:172.24.24.254"
+      - "worker02.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -296,26 +327,28 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
     environment:
-      - RUST_LOG=info
-      - RUST_LOG_TYPE=console
+      - CONFIG_DIR=/usr/local/bin/configs/tasks
       - DATABASE_URL=postgres://postgres:postgres@db:5432/massbit-fisherman
       - DOMAIN=massbitroute.net
+      - IS_VERIFY_REPORT=true
+      - IS_REGULAR_REPORT=true
+      - RUST_LOG=debug
+      - RUST_LOG_TYPE=console
+
+      - URL_PORTAL=https://portal.massbitroute.net
       - PORTAL_AUTHORIZATION=VERIFICATION_SERVICE_SECRET
-      - URL_GATEWAYS_LIST=http://portal.massbitroute.net/mbr/gateway/list/verify
-      - URL_NODES_LIST=http://portal.massbitroute.net/mbr/node/list/verify
-      # - SCHEDULER_ENDPOINT=0.0.0.0:80
+      - PATH_GATEWAYS_LIST=mbr/gateway/list/verify
+      - PATH_NODES_LIST=mbr/node/list/verify
+      - PATH_PORTAL_PROVIDER_REPORT=mbr/benchmark
+      - PATH_PORTAL_PROVIDER_VERIFY=mbr/verify
+      - REPORT_CALLBACK=http://scheduler.fisherman.massbitroute.net/report
       - ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
-      - SCHEDULER_ENDPOINT=http://scheduler.fisherman.massbitroute.net
-      - WORKER_ID=32dsv34-dmcvml3
-      - WORKER_IP=172.24.24.204
+      - SCHEDULER_CONFIG=/usr/local/bin/configs/scheduler.json
+      - SCHEDULER_ENDPOINT=0.0.0.0:80
       - ZONE=AS
-      - WORKER_ENDPOINT=https://172.24.24.204/__worker
-      - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
-      - BENCHMARK_WRK_PATH=benchmark
-      - ROLE=SCHEDULER
 
   fisherman_worker_1:
     container_name: mbr_fisherman_worker_1
@@ -325,21 +358,24 @@ services:
     depends_on:
       - "db"
       - "mbr_portal_api"
+      - "fisherman_scheduler"
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.213"
+    volumes:
+      - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -348,11 +384,19 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
     environment:
+      - BENCHMARK_WRK_PATH=benchmark
+      - DOMAIN=massbitroute.net
+      - ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
+      - RUST_LOG=debug
+      - SCHEDULER_ENDPOINT=http://scheduler.fisherman.massbitroute.net:80
+      - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
+      - WORKER_ID=default_worker_172.24.24.213
       - WORKER_IP=172.24.24.213
-      - ROLE=WORKER
+      - WORKER_ENDPOINT=http://worker01.fisherman.massbitroute.net:4040
+      - ZONE=AS
 
   fisherman_worker_2:
     container_name: mbr_fisherman_worker_2
@@ -362,21 +406,24 @@ services:
     depends_on:
       - "db"
       - "mbr_portal_api"
+      - "fisherman_scheduler"
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.214"
+    volumes:
+      - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -385,10 +432,19 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
     environment:
+      - BENCHMARK_WRK_PATH=benchmark
+      - DOMAIN=massbitroute.net
+      - ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
+      - RUST_LOG=debug
+      - SCHEDULER_ENDPOINT=http://scheduler.fisherman.massbitroute.net:80
+      - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
+      - WORKER_ID=default_worker_172.24.24.214
       - WORKER_IP=172.24.24.214
+      - WORKER_ENDPOINT=http://worker02.fisherman.massbitroute.net:4040
+      - ZONE=AS
 
 
   massbitchain:
@@ -408,7 +464,7 @@ services:
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.206"
-   
+
     image: massbit/massbitroute_api_dev:0.0.1-shamu-dev
     # command: sed -i "s|export WHITELIST_PARTNERS=.*|export WHITELIST_PARTNERS=\"allow 172.24.24.201\"|g" /massbit/massbitroute/app/src/sites/services/api/env/api.env
     command: "-n"
@@ -417,7 +473,7 @@ services:
     #   dockerfile: install/mbr/build/api/Dockerfile.dev
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu     
+    #     BRANCH: shamu
     container_name: mbr_api
     # network_mode: "host"
     # ports:
@@ -430,19 +486,19 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net  
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -451,15 +507,15 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
-        
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
+
   git:
     privileged: true
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.207"
-   
+
     restart: unless-stopped
     image: massbit/massbitroute_git_dev:0.0.1-shamu-dev
     command: "-n"
@@ -468,10 +524,10 @@ services:
     #   dockerfile: install/mbr/build/git/Dockerfile.dev
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu  
-    container_name: mbr_git    
+    #     BRANCH: shamu
+    container_name: mbr_git
     volumes:
-      - ./git/deploy:/massbit/massbitroute/app/src/sites/services/git/deploy:rw      
+      - ./git/deploy:/massbit/massbitroute/app/src/sites/services/git/deploy:rw
       - ./git/logs:/massbit/massbitroute/app/src/sites/services/git/logs:rw
       - ./git/vars:/massbit/massbitroute/app/src/sites/services/git/vars:rw
       # - ./git/tmp:/massbit/massbitroute/app/src/sites/services/git/tmp:rw
@@ -479,19 +535,19 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net  
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -500,8 +556,8 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
 
 
   gwman:
@@ -509,17 +565,17 @@ services:
     networks:
       mbr_test_network:
         ipv4_address: "172.24.24.210"
-   
+
     restart: unless-stopped
     image: massbit/massbitroute_gwman_dev:0.0.1-shamu-dev
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/gwman
-    #   dockerfile: install/mbr/build/gwman/Dockerfile.dev 
+    #   dockerfile: install/mbr/build/gwman/Dockerfile.dev
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu         
-    container_name: mbr_gwman  
+    #     BRANCH: shamu
+    container_name: mbr_gwman
     volumes:
       - ./gwman/logs:/massbit/massbitroute/app/src/sites/services/gwman/logs:rw
       - ./gwman/vars:/massbit/massbitroute/app/src/sites/services/gwman/vars:rw
@@ -527,19 +583,19 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net  
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -548,8 +604,8 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
 
 
   stat:
@@ -565,8 +621,8 @@ services:
     #   dockerfile: install/mbr/build/stat/Dockerfile.dev
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu      
-    container_name: mbr_stat    
+    #     BRANCH: shamu
+    container_name: mbr_stat
     volumes:
       - ./stat/logs:/massbit/massbitroute/app/src/sites/services/stat/logs:rw
       - ./stat/vars:/massbit/massbitroute/app/src/sites/services/stat/vars:rw
@@ -575,19 +631,19 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net  
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -596,8 +652,8 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
 
 
   monitor:
@@ -611,10 +667,10 @@ services:
     command: "-n"
     # build:
     #   context: /massbit/massbitroute/app/src/sites/services/monitor
-    #   dockerfile: install/mbr/build/monitor/Dockerfile.dev  
+    #   dockerfile: install/mbr/build/monitor/Dockerfile.dev
     #   args:
     #     VERSION: 0.0.1-shamu-dev
-    #     BRANCH: shamu      
+    #     BRANCH: shamu
     container_name: mbr_monitor
     volumes:
       - ./monitor/logs:/massbit/massbitroute/app/src/sites/services/monitor/logs:rw
@@ -624,19 +680,19 @@ services:
     environment:
       - MBR_ENV=shamu
       - BRANCH=shamu
-      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net   
+      - GIT_PRIVATE_READ_URL=http://massbit:DaTR__SGr89IjgvcwBtJyg0v_DFySDwI@git.massbitroute.net
     extra_hosts:
-      - "hostmaster.massbitroute.net:172.24.24.210"
-      - "ns1.massbitroute.net:172.24.24.210"
-      - "ns2.massbitroute.net:172.24.24.210"
-      - "api.massbitroute.net:172.24.24.206"
-      - "stat.mbr.massbitroute.net:172.24.24.208"
-      - "monitor.mbr.massbitroute.net:172.24.24.209"
+      - "hostmaster.massbitroute.net:172.24.24.254"
+      - "ns1.massbitroute.net:172.24.24.254"
+      - "ns2.massbitroute.net:172.24.24.254"
+      - "api.massbitroute.net:172.24.24.254"
+      - "stat.mbr.massbitroute.net:172.24.24.254"
+      - "monitor.mbr.massbitroute.net:172.24.24.254"
       - "chain.massbitroute.net:172.24.24.205"
-      - "portal.massbitroute.net:172.24.24.201"
-      - "admin-api.massbitroute.net:172.24.24.200"
-      - "dapi.massbitroute.net:172.24.24.200"
-      - "scheduler.fisherman.massbitroute.net:172.24.24.204"
+      - "portal.massbitroute.net:172.24.24.254"
+      - "admin-api.massbitroute.net:172.24.24.254"
+      - "dapi.massbitroute.net:172.24.24.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.24.254"
       - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
       - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.24.209"
@@ -645,8 +701,8 @@ services:
       - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
       - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.24.208"
-      - "api.ipapi.com:172.24.24.201"
-      - "staking.massbitroute.net:172.24.24.215"
+      - "api.ipapi.com:172.24.24.254"
+      - "staking.massbitroute.net:172.24.24.254"
 
 volumes:
   db-data:

@@ -15,22 +15,39 @@ pub use main_judg::MainJudgment;
 pub use websocket_judg::WebsocketJudgment;
 
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::fmt::{Debug, Display, Formatter};
 
 use crate::models::job_result::ProviderTask;
 use crate::service::judgment::http_latestblock_judg::HttpLatestBlockJudgment;
 use crate::service::judgment::http_ping_judg::HttpPingJudgment;
 use common::jobs::{Job, JobResult};
 
+use crate::service::judgment::JudgmentsResult::Failed;
+use crate::service::report_portal::ReportFailedReasons;
 use common::job_manage::JobRole;
 use std::sync::Arc;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum JudgmentsResult {
-    Pass = 1,
-    Failed = -1,
-    Unfinished = 0,
-    Error = -2,
+    Pass,
+    Failed(ReportFailedReasons),
+    Unfinished,
+}
+
+impl Display for JudgmentsResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            JudgmentsResult::Pass => {
+                write!(f, "(Pass)")
+            }
+            Failed(reasons) => {
+                write!(f, "(Failed for reason: {})", reasons.to_string())
+            }
+            JudgmentsResult::Unfinished => {
+                write!(f, "(Unfinished)")
+            }
+        }
+    }
 }
 
 impl JudgmentsResult {
@@ -38,12 +55,20 @@ impl JudgmentsResult {
         self == &JudgmentsResult::Pass
     }
     pub fn is_failed(&self) -> bool {
-        self == &JudgmentsResult::Failed || self == &JudgmentsResult::Error
+        match self {
+            JudgmentsResult::Failed(_) => true,
+            _ => false,
+        }
     }
     pub fn is_concluded(&self) -> bool {
-        self == &JudgmentsResult::Pass
-            || self == &JudgmentsResult::Failed
-            || self == &JudgmentsResult::Error
+        match self {
+            JudgmentsResult::Failed(_) | JudgmentsResult::Pass => true,
+            _ => false,
+        }
+    }
+    pub fn new_failed(job_name: String, failed_detail: String) -> Self {
+        let reasons = ReportFailedReasons::new_with_single_reason(job_name, failed_detail);
+        JudgmentsResult::Failed(reasons)
     }
 }
 
@@ -65,9 +90,7 @@ pub trait ReportCheck: Sync + Send {
         &self,
         _provider_task: &ProviderTask,
         _result: &Vec<JobResult>,
-    ) -> Result<JudgmentsResult, anyhow::Error> {
-        Ok(JudgmentsResult::Error)
-    }
+    ) -> Result<JudgmentsResult, anyhow::Error>;
 }
 
 pub fn get_report_judgments(

@@ -1,0 +1,19 @@
+{
+  "name": "EthWebsocket",
+  "blockchains": ["eth"],
+  "provider_types": ["*"],
+  "body": {
+    "jsonrpc": "2.0",
+    "method": "eth_getBlockByNumber",
+    "params": ["latest",true],
+    "id": 1
+  },
+  "response" : {
+    "response_type" : "json",
+    "values" : {
+      "hash": ["result", "hash"],
+      "number": ["result", "number"],
+      "timestamp": ["result", "timestamp"]
+    }
+  }
+}

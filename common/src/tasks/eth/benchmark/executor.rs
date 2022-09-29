@@ -6,7 +6,7 @@ use crate::jobs::{Job, JobResult};
 use crate::tasks::eth::CallBenchmarkError;
 use crate::tasks::executor::TaskExecutor;
 use crate::util::get_current_time;
-use crate::WorkerId;
+use crate::{NetworkType, WorkerId};
 use anyhow::Error;
 use async_trait::async_trait;
 use bytesize::ByteSize;
@@ -72,13 +72,14 @@ impl BenchmarkExecutor {
                 body,
             } = job_detail;
             let duration = format!("{}s", duration / 1000i64);
+            let timeout = format!("{}s", timeout / 1000i64);
             let mut benchmark = WrkBenchmark::new(
                 script,
                 WRK_NAME.to_string(),
                 self.benchmark_wrk_path.clone(),
             );
 
-            let stdout = benchmark.run(
+            let res = benchmark.run(
                 thread,
                 connection,
                 duration,
@@ -89,7 +90,12 @@ impl BenchmarkExecutor {
                 &method,
                 &headers,
             );
-            if let Ok(stdout) = stdout {
+
+            if let Ok((stdout, stderr)) = res {
+                if !stderr.is_empty() {
+                    return Err(CallBenchmarkError::SendError(format!("stderr: {}", stderr)));
+                }
+
                 return self
                     .get_result(&stdout, &histograms)
                     .map_err(|err| CallBenchmarkError::ParseResultError(format!("{:?}", err)));
@@ -237,7 +243,7 @@ impl TaskExecutor for BenchmarkExecutor {
                 response_timestamp: current_time,
                 response,
             };
-            let chain_info = ChainInfo::new(job_detail.chain_type.to_string(), "".to_string());
+            let chain_info = ChainInfo::new(job_detail.chain_type.clone(), NetworkType::default());
             let res = result_sender
                 .send(JobResult::new(
                     JobResultDetail::Benchmark(result),

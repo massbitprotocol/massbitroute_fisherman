@@ -17,8 +17,12 @@ pub struct Config {
 
 impl Config {
     pub fn load(file_path: &str) -> Self {
-        let json = std::fs::read_to_string(file_path)
-            .unwrap_or_else(|err| panic!("Unable to read config file `{}`: {}", file_path, err));
+        let json = std::fs::read_to_string(file_path).unwrap_or_else(|err| {
+            panic!(
+                "Unable to read config file for scheduler`{}`: {}",
+                file_path, err
+            )
+        });
         let config: Config = serde_json::from_str(&*json).unwrap();
         config
     }

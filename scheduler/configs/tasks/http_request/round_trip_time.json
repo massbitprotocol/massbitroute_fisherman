@@ -4,7 +4,7 @@
     "phases": ["verification"],
     "repeat_number": 5,
     "interval": 1000,
-    "url_template": "https://{{provider.ip}}/_rtt",
+    "url_template": "{{scheme}}://{{provider.ip}}/_rtt",
     "assignment": {
       "broadcast": true
     },
@@ -19,7 +19,7 @@
     "name": "RoundTripTime",
     "phases": ["regular"],
     "repeat_number": 1000000000,
-    "interval": 60000,
+    "interval": 10000,
     "url_template": "https://{{provider.ip}}/_rtt",
     "request_timeout": 3000,
     "thresholds": {

@@ -60,13 +60,13 @@ impl WebService {
         &self,
         node_info: ComponentInfo,
         scheduler_state: Arc<SchedulerState>,
-    ) -> Result<impl Reply, Rejection> {
+    ) -> impl Reply {
         log::info!("Handle node verify request from {:?}", &node_info);
         let res = scheduler_state.verify_node(node_info).await;
         if res.is_err() {
-            return Ok(warp::reply::json(&json!({ "success": false })));
+            return warp::reply::json(&json!({ "success": false }));
         }
-        Ok(warp::reply::json(&json!({ "success": true })))
+        warp::reply::json(&json!({ "success": true }))
     }
 }
 pub struct SchedulerServiceBuilder {

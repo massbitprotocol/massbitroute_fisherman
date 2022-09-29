@@ -2,8 +2,8 @@ use crate::models::jobs::JobAssignmentBuffer;
 use crate::persistence::PlanModel;
 use crate::service::judgment::JudgmentsResult;
 use crate::tasks::generator::TaskApplicant;
-use crate::{CONFIG, CONFIG_BENCHMARK_DIR, CONFIG_WEBSOCKET_DIR};
-use anyhow::{anyhow, Error};
+use crate::{TemplateRender, CONFIG, CONFIG_WEBSOCKET_DIR, SCHEME};
+use anyhow::Error;
 use common::component::{ChainInfo, ComponentInfo, ComponentType};
 use common::job_manage::{JobDetail, JobRole};
 use common::jobs::{Job, JobAssignment};
@@ -11,12 +11,13 @@ use common::tasks::websocket_request::{JobWebsocket, JobWebsocketConfig};
 use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::util::get_current_time;
 use common::workers::MatchedWorkers;
-use common::{PlanId, Timestamp, DOMAIN};
+use common::{BlockChainType, PlanId, Timestamp, DOMAIN};
 use handlebars::Handlebars;
 use log::{debug, trace};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::Path;
+use std::str::FromStr;
 
 /*
  * Periodically ping to node/gateway to get response time, to make sure node/gateway is working
@@ -44,21 +45,8 @@ impl WebsocketGenerator {
             handlebars: Handlebars::new(),
         }
     }
-    pub fn get_url(
-        &self,
-        config: &JobWebsocketConfig,
-        context: &Value,
-    ) -> Result<String, anyhow::Error> {
-        // render without register
-        self.handlebars
-            .render_template(config.url_template.as_str(), context)
-            .map_err(|err| anyhow!("{}", err))
-        // register template using given name
-        //reg.register_template_string("tpl_1", "Good afternoon, {{name}}")?;
-        //println!("{}", reg.render("tpl_1", &json!({"name": "foo"}))?);
-    }
     fn create_context(component: &ComponentInfo) -> Value {
-        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
+        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str(),"ws_scheme": SCHEME.to_ws_string() });
         if let Some(obj) = context["provider"].as_object_mut() {
             match component.component_type {
                 ComponentType::Node => obj.insert(String::from("type"), Value::from("node")),
@@ -75,43 +63,46 @@ impl WebsocketGenerator {
         config: &JobWebsocketConfig,
         context: &Value,
     ) -> Result<Job, anyhow::Error> {
-        self.get_url(config, context).map(|url| {
-            let provider = &context["provider"];
-            let chain_info = ChainInfo::new(
-                provider["blockchain"]
-                    .as_str()
-                    .map(|str| str.to_string())
-                    .unwrap_or_default(),
-                provider["network"]
-                    .as_str()
-                    .map(|str| str.to_string())
-                    .unwrap_or_default(),
-            );
-            let headers = config.generate_header(&self.handlebars, &context);
-            let body = config.generate_body(&self.handlebars, &context).ok();
-            let detail = JobWebsocket {
-                url: url.clone(),
-                chain_info: Some(chain_info.clone()),
-                headers,
-                body,
-                response_type: config.response.response_type.clone(),
-                response_values: config.response.values.clone(),
-            };
-            let mut job = Job::new(
-                plan_id.clone(),
-                Self::get_name(),
-                config.name.clone(),
-                component,
-                JobDetail::Websocket(detail),
-                phase,
-            );
-            job.parallelable = true;
-            job.component_url = url;
-            job.timeout = config.request_timeout;
-            job.repeat_number = config.repeat_number;
-            job.interval = config.interval;
-            job
-        })
+        JobWebsocketConfig::generate_url(&config.url_template, &self.handlebars, context).map(
+            |url| {
+                //self.get_url(config, context).map(|url| {
+                let provider = &context["provider"];
+                let chain_info = ChainInfo::new(
+                    provider["blockchain"]
+                        .as_str()
+                        .map(|str| BlockChainType::from_str(str).unwrap())
+                        .unwrap_or_default(),
+                    provider["network"]
+                        .as_str()
+                        .map(|str| str.to_string())
+                        .unwrap_or_default(),
+                );
+                let headers = config.generate_header(&self.handlebars, &context);
+                let body = config.generate_body(&self.handlebars, &context).ok();
+                let detail = JobWebsocket {
+                    url: url.clone(),
+                    chain_info: Some(chain_info.clone()),
+                    headers,
+                    body,
+                    response_type: config.response.response_type.clone(),
+                    response_values: config.response.values.clone(),
+                };
+                let mut job = Job::new(
+                    plan_id.clone(),
+                    Self::get_name(),
+                    config.name.clone(),
+                    component,
+                    JobDetail::Websocket(detail),
+                    phase,
+                );
+                job.parallelable = true;
+                job.component_url = url;
+                job.timeout = config.request_timeout;
+                job.repeat_number = config.repeat_number;
+                job.interval = config.interval;
+                job
+            },
+        )
     }
 }
 impl TaskApplicant for WebsocketGenerator {

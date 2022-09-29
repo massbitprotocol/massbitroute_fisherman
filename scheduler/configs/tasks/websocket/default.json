@@ -1,7 +1,7 @@
 {
   "name": "Websocket",
   "active": true,
-  "url_template": "wss://{{provider.ip}}/",
+  "url_template": "{{ws_scheme}}://{{provider.ip}}/",
   "phases": ["*"],
   "provider_types": ["*"],
   "blockchains": ["*"],

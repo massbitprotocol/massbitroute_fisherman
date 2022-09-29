@@ -11,11 +11,11 @@ use crate::tasks::generator::TaskApplicant;
 use common::component::{ComponentInfo, ComponentType};
 use common::job_manage::{JobBenchmark, JobDetail, JobRole};
 use common::jobs::{AssignmentConfig, Job};
-use common::tasks::{LoadConfigs, TaskConfigTrait, TemplateRender};
+use common::tasks::{LoadConfigs, TaskConfigTrait};
 use common::workers::MatchedWorkers;
-use common::{PlanId, Timestamp, DOMAIN};
+use common::{NetworkType, PlanId, Timestamp, DOMAIN};
 
-use crate::CONFIG_BENCHMARK_DIR;
+use crate::{TemplateRender, CONFIG_BENCHMARK_DIR, SCHEME};
 use handlebars::Handlebars;
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,7 @@ pub struct BenchmarkConfig {
     #[serde(default)]
     benchmark_rate: u32,
     #[serde(default)]
-    timeout: Option<u32>,
+    timeout: Timestamp,
     #[serde(default)]
     script: String,
     #[serde(default)]
@@ -73,20 +73,12 @@ impl TaskConfigTrait for BenchmarkConfig {
     fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
-    fn match_blockchain(&self, blockchain: &String) -> bool {
-        let blockchain = blockchain.to_lowercase();
-        if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
-        {
-            log::trace!(
-                "Blockchain {:?} not match with {:?}",
-                &blockchain,
-                &self.blockchains
-            );
-            return false;
-        }
-        true
+
+    fn get_blockchain(&self) -> &Vec<String> {
+        &self.blockchains
     }
-    fn match_network(&self, network: &String) -> bool {
+
+    fn match_network(&self, network: &NetworkType) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
             log::trace!(
@@ -132,7 +124,6 @@ impl TaskConfigTrait for BenchmarkConfig {
         true
     }
 }
-impl TemplateRender for BenchmarkConfig {}
 
 impl LoadConfigs<BenchmarkConfig> for BenchmarkConfig {}
 
@@ -151,7 +142,7 @@ impl BenchmarkGenerator {
         }
     }
     fn create_context(component: &ComponentInfo) -> Value {
-        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str() });
+        let mut context = json!({ "provider": component, "domain": DOMAIN.as_str(),"scheme": SCHEME.to_http_string()});
         if let Some(obj) = context["provider"].as_object_mut() {
             match component.component_type {
                 ComponentType::Node => obj.insert(String::from("type"), Value::from("node")),
@@ -199,7 +190,7 @@ impl BenchmarkGenerator {
                 );
                 job.parallelable = false;
                 job.component_url = job_url;
-                job.timeout = config.timeout.unwrap_or_default() as Timestamp;
+                job.timeout = config.timeout;
                 job.repeat_number = 0;
                 job.interval = 0;
                 job

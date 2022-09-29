@@ -19,6 +19,9 @@ do
   strip ../../target/release/fisherman
   rsync -avz ../../target/release/fisherman "worker-demo-$ZN:~/fisherman/fisherman"
   rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
+  rsync -avz ../../.env_fisherman "worker-demo-$ZN:~/fisherman/.env_fisherman"
+  rsync -avz ../../common/configs/common.json "worker-demo-$ZN:~/fisherman/common.json"
+
   # Create run script
   cat run_worker.sh | sed "s/{{ZONE}}/$ZN/g" > _run_worker_"$ZN".sh
   # Copy run script
@@ -27,5 +30,5 @@ do
   rm _run_worker_"$ZN".sh
 
   echo "Restart tmux session in zone $ZN"
-  ssh "worker-demo-$ZN" < script_restart_service_worker.sh
+  ssh "worker-demo-$ZN" < update_bin_and_restart_service_worker.sh
 done

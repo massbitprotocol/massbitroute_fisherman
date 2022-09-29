@@ -1,8 +1,9 @@
-use crate::{BlockChainType, ChainId, ComponentId, NetworkType, UrlType};
+use crate::{ComponentId, NetworkType};
 use crate::{Deserialize, Serialize};
 use anyhow::{anyhow, Error};
+
 use std::fmt;
-use std::fmt::Formatter;
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default, Hash, PartialEq, Eq)]
@@ -27,22 +28,106 @@ pub struct ComponentInfo {
     pub status: String,
 }
 
-impl ComponentInfo {
-    pub fn get_url(&self) -> UrlType {
-        format!("https://{}", self.ip)
-    }
+#[derive(Clone, Debug, Deserialize, Serialize, Hash, PartialEq, Eq)]
+pub enum BlockChainType {
+    #[serde(rename = "eth")]
+    Eth,
+    #[serde(rename = "dot")]
+    Dot,
+    #[serde(rename = "bsc")]
+    Bsc,
+    #[serde(rename = "matic")]
+    Matic,
+}
 
-    pub fn get_host_header(&self, domain: &String) -> String {
-        match self.component_type {
-            ComponentType::Node => {
-                format!("{}.node.mbr.{}", self.id, domain)
+impl BlockChainType {
+    pub fn get_family(&self) -> BlockChainFamily {
+        match self {
+            BlockChainType::Eth | BlockChainType::Bsc | BlockChainType::Matic => {
+                BlockChainFamily::Ethereum
             }
-            ComponentType::Gateway => {
-                format!("{}.gw.mbr.{}", self.id, domain)
+            BlockChainType::Dot => BlockChainFamily::Polkadot,
+        }
+    }
+}
+
+impl Default for BlockChainType {
+    fn default() -> Self {
+        BlockChainType::Eth
+    }
+}
+
+impl FromStr for BlockChainType {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "eth" => Ok(BlockChainType::Eth),
+            "dot" => Ok(BlockChainType::Dot),
+            "bsc" => Ok(BlockChainType::Bsc),
+            "matic" => Ok(BlockChainType::Bsc),
+            _ => Err(anyhow!("Cannot parse {} to BlockChainType", s)),
+        }
+    }
+}
+
+impl Display for BlockChainType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            BlockChainType::Eth => {
+                write!(f, "eth")
+            }
+            BlockChainType::Dot => {
+                write!(f, "dot")
+            }
+            BlockChainType::Bsc => {
+                write!(f, "bsc")
+            }
+            BlockChainType::Matic => {
+                write!(f, "bsc")
             }
         }
     }
+}
 
+#[derive(Clone, Debug, Deserialize, Serialize, Hash, PartialEq, Eq)]
+pub enum BlockChainFamily {
+    Ethereum,
+    Polkadot,
+}
+
+impl Default for BlockChainFamily {
+    fn default() -> Self {
+        BlockChainFamily::Ethereum
+    }
+}
+
+impl FromStr for BlockChainFamily {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ethereum" => Ok(BlockChainFamily::Ethereum),
+            "polkadot" => Ok(BlockChainFamily::Polkadot),
+            _ => Err(anyhow!("Cannot parse {} to BlockChainFamily", s)),
+        }
+    }
+}
+
+impl Display for BlockChainFamily {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            BlockChainFamily::Ethereum => {
+                write!(f, "ethereum")
+            }
+            BlockChainFamily::Polkadot => {
+                write!(f, "polkadot")
+            }
+        }
+    }
+}
+
+impl ComponentInfo {
     pub fn get_chain_id(&self) -> String {
         format!("{}.{}", self.blockchain, self.network)
     }
@@ -127,7 +212,7 @@ impl Default for Zone {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Default, Eq, Hash)]
 pub struct ChainInfo {
     pub chain: BlockChainType,
     pub network: NetworkType,
@@ -143,7 +228,7 @@ impl ChainInfo {
     pub fn new(chain: BlockChainType, network: NetworkType) -> Self {
         ChainInfo { chain, network }
     }
-    pub fn chain_id(&self) -> ChainId {
+    pub fn chain_id(&self) -> String {
         self.to_string()
     }
 }
@@ -157,7 +242,7 @@ impl FromStr for ChainInfo {
             return Err(Error::msg(format!("Cannot parse {} to ChainInfo", s)));
         }
         Ok(ChainInfo {
-            chain: arr[0].to_string(),
+            chain: BlockChainType::from_str(arr[0])?,
             network: arr[1].to_string(),
         })
     }

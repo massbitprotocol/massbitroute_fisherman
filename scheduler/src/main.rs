@@ -10,11 +10,11 @@ use scheduler::models::workers::WorkerInfoStorage;
 use scheduler::provider::scanner::ProviderScanner;
 use scheduler::server_builder::ServerBuilder;
 use scheduler::server_config::AccessControl;
-use scheduler::service::delivery::JobDelivery;
+use scheduler::service::delivery::{CancelPlanBuffer, JobDelivery};
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
-use scheduler::{DATABASE_URL, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
+use scheduler::{DATABASE_URL, LOG_CONFIG, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
 
 use migration::{Migrator, MigratorTrait};
 use scheduler::models::job_result_cache::JobResultCache;
@@ -33,7 +33,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // Load env file
     dotenv::dotenv().ok();
     // Init logger
-    let _res = init_logger(&String::from("Fisherman Scheduler"));
+    let _res = init_logger(&String::from("Fisherman Scheduler"), LOG_CONFIG.to_str());
 
     // let _matches = create_scheduler_app().get_matches();
     // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
@@ -71,6 +71,8 @@ async fn main() -> Result<(), anyhow::Error> {
     log::debug!("Init with {:?} workers", all_workers.len());
     let worker_infos = Arc::new(WorkerInfoStorage::new(all_workers));
     let assigment_buffer = Arc::new(Mutex::new(JobAssignmentBuffer::default()));
+    let cancel_plans_buffer: Arc<Mutex<CancelPlanBuffer>> =
+        Arc::new(Mutex::new(CancelPlanBuffer::default()));
 
     let scheduler_service = SchedulerServiceBuilder::default().build();
     let result_service = Arc::new(JobResultService::new(arc_conn.clone()));
@@ -107,10 +109,10 @@ async fn main() -> Result<(), anyhow::Error> {
         worker_infos.clone(),
         provider_storage.clone(),
     );
-    let mut job_delivery = JobDelivery::new(assigment_buffer.clone());
+    let job_delivery = JobDelivery::new(assigment_buffer.clone(), cancel_plans_buffer.clone());
 
     // Check worker status task
-    let worker_health = WorkerHealthService::new(worker_infos, result_cache.clone());
+    let worker_health = WorkerHealthService::new(worker_infos.clone(), result_cache.clone());
 
     // Spawn tasks
     let task_worker_health = task::spawn(async move { worker_health.run().await });
@@ -124,6 +126,8 @@ async fn main() -> Result<(), anyhow::Error> {
         plan_service.clone(),
         job_service.clone(),
         result_service.clone(),
+        worker_infos,
+        cancel_plans_buffer,
     );
     info!("Init http service ");
     let server = ServerBuilder::default()
