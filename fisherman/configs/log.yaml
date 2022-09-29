@@ -17,7 +17,7 @@ appenders:
         count: 100
         pattern: "logs/incoming_outgoing_call_fisherman.{}.gz"
     encoder:
-      pattern: "{d(%Y-%m-%d %H:%M:%S.%3f %Z)} [{l}] [{t} - {T}] {m}{n}"
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} [{l}] [{t} - {T}] {m}{n}"
 
 root:
   level: info
@@ -25,14 +25,16 @@ root:
     - stdout
 
 loggers:
+  reqwest:
+    level: info
+  hyper:
+    level: info
   fisherman::services::reporter:
     level: debug
     appenders:
-      - stdout
       - incoming_outgoing_call
 
   fisherman::server_builder:
     level: debug
     appenders:
-      - stdout
       - incoming_outgoing_call
