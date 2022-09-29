@@ -9,7 +9,9 @@ pub mod tasks;
 
 use lazy_static::lazy_static;
 use std::env;
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
+
 //pub const CONFIG_FILE: &str = "config_check_component.json";
 pub const JOB_EXECUTOR_PERIOD: u64 = 1000; //In milliseconds
                                            //pub const JOB_RESULT_REPORTER_PERIOD: u64 = 2000; //In milliseconds
@@ -47,5 +49,5 @@ lazy_static! {
     pub static ref BUILD_VERSION: String = format!("{}", env!("BUILD_VERSION"));
     pub static ref CONFIG_DIR: String =
         env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/"));
-    pub static ref LOG_CONFIG: String = format!("{}log.yaml", &*CONFIG_DIR);
+    pub static ref LOG_CONFIG: PathBuf = Path::new(&*CONFIG_DIR).join("log.yaml");
 }

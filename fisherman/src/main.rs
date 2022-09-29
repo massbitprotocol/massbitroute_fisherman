@@ -28,7 +28,7 @@ async fn main() {
     // Load env file
     let _ = dotenv::from_filename(".env_fisherman");
     // Init logger
-    let _res = init_logger(&String::from("Fisherman-worker"), Some(&*LOG_CONFIG));
+    let _res = init_logger(&String::from("Fisherman-worker"), LOG_CONFIG.to_str());
     // Create job queue
     //Call to scheduler to register worker
     if let Ok(WorkerRegisterResult {

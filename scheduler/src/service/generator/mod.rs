@@ -63,7 +63,7 @@ impl JobGenerator {
         result_cache: Arc<JobResultCache>,
     ) -> Self {
         //Load config
-        let config_dir = CONFIG_TASK_DIR.as_str();
+        let config_dir = &*CONFIG_TASK_DIR;
         // let path = format!("{}/task_master.json", config_dir);
         let path = Path::new(config_dir).join("task_master.json");
         let json = std::fs::read_to_string(&path).unwrap_or_else(|err| {

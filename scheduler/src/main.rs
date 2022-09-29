@@ -33,7 +33,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // Load env file
     dotenv::dotenv().ok();
     // Init logger
-    let _res = init_logger(&String::from("Fisherman Scheduler"), Some(&*LOG_CONFIG));
+    let _res = init_logger(&String::from("Fisherman Scheduler"), LOG_CONFIG.to_str());
 
     // let _matches = create_scheduler_app().get_matches();
     // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
