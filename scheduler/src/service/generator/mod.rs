@@ -7,7 +7,7 @@ use crate::models::providers::ProviderStorage;
 use crate::models::workers::WorkerInfoStorage;
 use crate::persistence::services::{JobService, PlanService};
 use crate::tasks::generator::get_tasks;
-use crate::{CONFIG, CONFIG_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
+use crate::{CONFIG, CONFIG_TASK_DIR, JOB_VERIFICATION_GENERATOR_PERIOD};
 use common::job_manage::JobRole;
 use common::task_spawn;
 use futures_util::future::join;
@@ -63,7 +63,7 @@ impl JobGenerator {
         result_cache: Arc<JobResultCache>,
     ) -> Self {
         //Load config
-        let config_dir = CONFIG_DIR.as_str();
+        let config_dir = &*CONFIG_TASK_DIR;
         // let path = format!("{}/task_master.json", config_dir);
         let path = Path::new(config_dir).join("task_master.json");
         let json = std::fs::read_to_string(&path).unwrap_or_else(|err| {
@@ -240,17 +240,19 @@ pub mod tests {
         let mut job_names = CountItems::new(vec![]);
         loop {
             if now.elapsed().as_secs() > TEST_TIMEOUT {
-                return Err(anyhow!("Test Timeout"));
+                //return Err(anyhow!("Test Timeout"));
+                info!("test main_generator_verification_node timeout");
+                assert!(false);
             }
             {
-                println!("lock assigment_buffer");
+                info!("lock assigment_buffer");
                 let lock = assignment.lock().await;
-                println!("assigment_buffer: {:#?}", lock);
+                info!("assigment_buffer: {:#?}", lock);
 
                 for job_assign in lock.list_assignments.iter() {
                     job_names.add_item(job_assign.job.job_name.to_string());
                 }
-                println!(
+                info!(
                     "job_names.sum_len: {}, expect_len: {}",
                     job_names.len(),
                     expect_len
@@ -261,7 +263,7 @@ pub mod tests {
             }
             sleep(Duration::from_secs(1)).await;
         }
-        println!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
+        info!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
         for key in expect_job_names.keys() {
             assert!(job_names.keys().contains(key));
         }
@@ -343,14 +345,14 @@ pub mod tests {
                 return Err(anyhow!("Test Timeout"));
             }
             {
-                println!("lock assigment_buffer");
+                info!("lock assigment_buffer");
                 let lock = assignment.lock().await;
-                println!("assigment_buffer: {:#?}", lock);
+                info!("assigment_buffer: {:#?}", lock);
 
                 for job_assign in lock.list_assignments.iter() {
                     job_names.add_item(job_assign.job.job_name.to_string());
                 }
-                println!(
+                info!(
                     "job_names.sum_len: {}, expect_len: {}",
                     job_names.len(),
                     expect_len
@@ -361,7 +363,7 @@ pub mod tests {
             }
             sleep(Duration::from_secs(1)).await;
         }
-        println!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
+        info!("{:?} == {:?}", expect_job_names.keys(), job_names.keys());
         for key in expect_job_names.keys() {
             assert!(job_names.keys().contains(key));
         }
@@ -446,7 +448,7 @@ pub mod tests {
                     info!("job_names: {:?}", job_names);
                 }
                 if job_names.sum_len() >= expect_len {
-                    println!("assigment_buffer: {:#?}", lock);
+                    info!("assigment_buffer: {:#?}", lock);
                     break;
                 }
             }

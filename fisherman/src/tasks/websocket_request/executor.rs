@@ -362,7 +362,7 @@ mod tests {
             }
         }
     }
-
+    #[ignore]
     #[tokio::test]
     async fn test_datasource_websocket() {
         let executor = new_executor();

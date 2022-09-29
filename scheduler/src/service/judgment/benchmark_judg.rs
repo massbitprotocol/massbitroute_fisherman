@@ -263,7 +263,7 @@ impl ReportCheck for BenchmarkJudgment {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::CONFIG_DIR;
+    use crate::CONFIG_TASK_DIR;
     use common::component::ComponentType;
     use common::BlockChainType;
     use log::info;
@@ -277,7 +277,7 @@ pub mod tests {
         let db_conn = mock_db_connection();
         //let db_conn = MockDatabase::new(DatabaseBackend::Postgres).into_connection();
         let result_service = JobResultService::new(Arc::new(db_conn));
-        let judge = BenchmarkJudgment::new(CONFIG_DIR.as_str(), Arc::new(result_service));
+        let judge = BenchmarkJudgment::new(CONFIG_TASK_DIR.as_str(), Arc::new(result_service));
 
         let task_benchmark = ProviderTask::new(
             "provider_id".to_string(),

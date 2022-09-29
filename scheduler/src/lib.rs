@@ -24,6 +24,7 @@ use common::tasks::websocket_request::JobWebsocketConfig;
 use handlebars::Handlebars;
 use serde_json::{Map, Value};
 use server_config::Config;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 pub const JOB_VERIFICATION_GENERATOR_PERIOD: u64 = 10; //In seconds
@@ -31,13 +32,15 @@ pub const DELIVERY_PERIOD: u64 = 10; //In seconds
 pub const JUDGMENT_PERIOD: u64 = 10;
 pub const RESULT_CACHE_MAX_LENGTH: usize = 10;
 lazy_static! {
+    pub static ref CONFIG_DIR: String =
+        env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs"));
+    pub static ref LOG_CONFIG: PathBuf = Path::new(&*CONFIG_DIR).join("log.yaml");
     pub static ref COMPONENT_NAME: String = String::from("[Scheduler]");
     pub static ref SCHEDULER_ENDPOINT: String =
         env::var("SCHEDULER_ENDPOINT").unwrap_or_else(|_| String::from("0.0.0.0:3031"));
     pub static ref REPORT_CALLBACK: String =
         env::var("REPORT_CALLBACK").expect("There is no env var REPORT_CALLBACK");
-    pub static ref SCHEDULER_CONFIG: String =
-        env::var("SCHEDULER_CONFIG").unwrap_or_else(|_| String::from("configs/scheduler.json"));
+    pub static ref SCHEDULER_CONFIG: PathBuf = Path::new(&*CONFIG_DIR).join("scheduler.json");
     pub static ref CONNECTION_POOL_SIZE: u32 = env::var("CONNECTION_POOL_SIZE")
         .ok()
         .and_then(|val| val.parse().ok())
@@ -47,8 +50,8 @@ lazy_static! {
         env::var("REPORT_DIR").expect("There is no env var REPORT_DIR");
     pub static ref SIGNER_PHRASE: String =
         env::var("SIGNER_PHRASE").expect("There is no env var SIGNER_PHRASE");
-    pub static ref CONFIG_DIR: String =
-        env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/tasks"));
+    pub static ref CONFIG_TASK_DIR: String = Path::new(&*CONFIG_DIR).join("tasks").to_str().expect("Cannot convert CONFIG_TASK_DIR to str").to_string();
+
     pub static ref CONFIG_HTTP_REQUEST_DIR: String = String::from("http_request");
     pub static ref CONFIG_BENCHMARK_DIR: String = String::from("benchmark");
     pub static ref CONFIG_WEBSOCKET_DIR: String = String::from("websocket");
@@ -67,7 +70,7 @@ lazy_static! {
         env::var("PATH_PORTAL_PROVIDER_REPORT").expect("There is no env var PATH_PORTAL_PROVIDER_REPORT, e.g. mbr/benchmark"));
     pub static ref URL_PORTAL_PROVIDER_VERIFY: String = format!("{}/{}",*URL_PORTAL,
         env::var("PATH_PORTAL_PROVIDER_VERIFY").expect("There is no env var PATH_PORTAL_PROVIDER_VERIFY, e.g. mbr/verify"));
-    pub static ref CONFIG: Config = Config::load(SCHEDULER_CONFIG.as_str());
+    pub static ref CONFIG: Config = Config::load(SCHEDULER_CONFIG.to_str().expect("Cannot convert SCHEDULER_CONFIG to str"));
     pub static ref SQLX_LOGGING: bool =
         env::var("SQLX_LOGGING").ok().and_then(|val|val.parse::<bool>().ok()).unwrap_or(false);
     //time between 2 database flush in ms

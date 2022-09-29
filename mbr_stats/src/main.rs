@@ -2,8 +2,8 @@ use clap::{Arg, Command};
 use log::info;
 use logger::init_logger;
 use mbr_stats::component_stats::ComponentStats;
-use mbr_stats::{Environment, ENVIRONMENT, SIGNER_PHRASE, URL_CHAIN};
-
+use mbr_stats::LOG_CONFIG;
+use mbr_stats::{ENVIRONMENT, SIGNER_PHRASE, URL_CHAIN};
 #[tokio::main]
 async fn main() {
     // Load env file
@@ -12,7 +12,7 @@ async fn main() {
     println!("Load dotenv: {:?}", res);
 
     info!("Start mbr stats");
-    init_logger(&String::from("ComponentStats"));
+    init_logger(&String::from("ComponentStats"), Some(&*LOG_CONFIG));
 
     let matches = Command::new("mbr-check-component")
         .version("0.1")
