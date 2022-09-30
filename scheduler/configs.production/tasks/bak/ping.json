@@ -1,0 +1,22 @@
+{
+  "default": {
+    "ping_success_percent_threshold": 95,
+    "ping_percentile": 95,
+    "ping_response_time_threshold": 300,
+    "repeat_number": 10,
+    "interval": 60000,
+    "ping_request_response": "pong",
+    "ping_timeout_ms": 500,
+    "ping_number_for_decide": 0
+  },
+  "regular": {
+    "ping_success_percent_threshold": 50,
+    "ping_percentile": 95,
+    "ping_response_time_threshold": 500,
+    "repeat_number": 1000000000,
+    "interval": 60000,
+    "ping_request_response": "pong",
+    "ping_timeout_ms": 1000,
+    "ping_number_for_decide": 3
+  }
+}
