@@ -9,5 +9,6 @@
     "method": "eth_getBlockByNumber",
     "params": ["latest",false],
     "id": 1
-  }
+  },
+  "response_threshold": 1000
 }
