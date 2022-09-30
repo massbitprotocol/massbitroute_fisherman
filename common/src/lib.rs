@@ -82,6 +82,7 @@ impl FromStr for Environment {
         match s {
             "local" => Ok(Environment::Local),
             "docker_test" => Ok(Environment::DockerTest),
+            "release" => Ok(Environment::Release),
             "production" => Ok(Environment::Production),
             _ => Err(anyhow!("Cannot parse {s} to Environment")),
         }
