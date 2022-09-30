@@ -66,7 +66,7 @@ impl JobBuffer {
     }
 
     pub fn pop_job(&mut self) -> Option<Job> {
-        debug!("Jobs in queue {}", self.jobs.len());
+        trace!("Jobs in queue {}", self.jobs.len());
         let first_expected_time = self.jobs.front().and_then(|job| {
             log::trace!(
                 "Found new job with expected runtime {}: {:?}",

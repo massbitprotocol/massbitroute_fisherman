@@ -48,7 +48,7 @@
     "interval": 300000,
     "type": "rpc",
     "http_method": "post",
-    "url_template": "https://{{provider.ip}}/",
+    "url_template": "{{scheme}}://{{provider.ip}}/",
     "provider_types": ["node"],
     "request_timeout": 5000,
     "headers": {

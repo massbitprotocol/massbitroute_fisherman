@@ -1,7 +1,7 @@
 use crate::Timestamp;
 use anyhow::{anyhow, Error};
 use chrono::FixedOffset;
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use regex::Regex;
 /*
  * Get current timestamp in milliseconds
@@ -28,7 +28,7 @@ pub fn remove_break_line(input: &String) -> String {
         caps.name("result").unwrap().as_str().to_string()
     }) {
         Ok(res) => {
-            debug!("Ok {}", &res);
+            trace!("remove_break_line result:{}", &res);
             res
         }
         Err(err) => {
