@@ -1,0 +1,18 @@
+{
+  "name": "DotWebsocket",
+  "blockchains": ["dot"],
+  "provider_types": ["*"],
+  "body": {
+    "jsonrpc": "2.0",
+    "method": "chain_getBlock",
+    "params": [],
+    "id": 1
+  },
+  "response" : {
+    "response_type" : "json",
+    "values" : {
+      "parent_hash": ["result", "block","header","parentHash"],
+      "number": ["result", "block","header","number"]
+    }
+  }
+}

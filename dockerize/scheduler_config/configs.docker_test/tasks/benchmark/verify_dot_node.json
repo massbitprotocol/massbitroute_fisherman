@@ -1,0 +1,14 @@
+{
+  "name": "VerifyDotNode",
+  "provider_types": ["node"],
+  "blockchains": ["dot"],
+  "dependencies": {
+  },
+  "body": {
+    "jsonrpc": "2.0",
+    "method": "chain_getBlock",
+    "params": [],
+    "id": 1
+  },
+  "response_threshold": 2000
+}

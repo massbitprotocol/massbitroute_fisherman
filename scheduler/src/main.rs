@@ -31,7 +31,10 @@ use tokio::task;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     // Load env file
-    dotenv::dotenv().ok();
+    if dotenv::dotenv().is_err() {
+        println!("Warning: Cannot load .env file");
+    }
+
     // Init logger
     let _res = init_logger(&String::from("Fisherman Scheduler"), LOG_CONFIG.to_str());
 

@@ -1,13 +1,32 @@
 # ##### Runtime
 FROM debian
 
-COPY ./benchmark /usr/local/bin/benchmark
-COPY ./scheduler /usr/local/bin
-COPY ./fisherman /usr/local/bin
-COPY ./mbr_stats /usr/local/bin
-COPY ./services /etc/services
+ARG FISHER_ENVIRONMENT
+
 RUN apt update && apt install supervisor -y
 EXPOSE 80
 
+# Scheduler
+COPY ./scheduler_config/configs.$FISHER_ENVIRONMENT /usr/local/bin/scheduler/configs
+COPY ./scheduler /usr/local/bin/scheduler/
+COPY ./scheduler_config/.env.$FISHER_ENVIRONMENT /usr/local/bin/scheduler/.env
+COPY ./scheduler_config/scheduler.conf /usr/local/bin/scheduler/
+
+# Stats
+COPY ./mbr_stats /usr/local/bin/stats/
+COPY ./stats_config/configs.$FISHER_ENVIRONMENT /usr/local/bin/stats/configs
+COPY ./stats_config/stats.conf /usr/local/bin/stats/
+
+# Worker
+COPY ./benchmark /usr/local/bin/worker/benchmark
+COPY ./fisherman /usr/local/bin/worker/
+COPY ./worker_config/configs.$FISHER_ENVIRONMENT /usr/local/bin/worker/configs
+COPY ./worker_config/fisherman_worker.conf /usr/local/bin/worker/
+
+COPY ./services /etc/services
+
+COPY ./run.sh /usr/local/bin/
+
+
 # Run the application
-CMD ["supervisord", "-n"]
+CMD ["bash","/usr/local/bin/run.sh"]
