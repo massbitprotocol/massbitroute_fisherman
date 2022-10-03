@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export network_number=$1
-export FISHER_ENVIRONMENT=local
+export FISHER_ENVIRONMENT=docker_test
 
 ROOT_DIR=$(realpath $(dirname $(realpath $0)))
 ROOT_DIR_MBR_TEST=/home/huy/work/block_chain/project-massbit-route/massbitroute_test/end2end
@@ -60,6 +60,7 @@ cat $TEMPLATE_PATH/${file}.template.yaml |  \
      sed "s|\[\[MASSBIT_ROUTE_PARTNER_ID\]\]|$MASSBIT_ROUTE_PARTNER_ID|g" \
     > $OUTPUT_PATH/${file}.template.tmp.yaml
 cat $OUTPUT_PATH/${file}.template.tmp.yaml | sed "s|\[\[PRIVATE_GIT_READ\]\]|$PRIVATE_GIT_READ|g" > $OUTPUT_PATH/${file}.yaml
+rm $OUTPUT_PATH/${file}.template.tmp.yaml
 
 
 

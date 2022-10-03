@@ -5,7 +5,7 @@ appenders:
   incoming_outgoing_call:
     kind: rolling_file
     append: false
-    path: "logs/incoming_outgoing_call_scheduler.log"
+    path: "logs/incoming_outgoing_call_stats.log"
     policy:
       kind: compound
       trigger:
@@ -15,9 +15,9 @@ appenders:
         kind: fixed_window
         base: 1
         count: 100
-        pattern: "logs/incoming_outgoing_call_scheduler.{}.gz"
+        pattern: "logs/incoming_outgoing_call_stats.{}.gz"
     encoder:
-      pattern: "{d(%Y-%m-%d %H:%M:%S.%3f %Z)} [{l}] [{t} - {T}] {m}{n}"
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} [{l}] [{t} - {T}] {m}{n}"
 
 root:
   level: info
@@ -25,21 +25,15 @@ root:
     - stdout
 
 loggers:
-  hyper:
-    level: info
+  mbr_stats::chain_adapter:
+    level: debug
+    appenders:
+      - stdout
+      - incoming_outgoing_call
+
   substrate_api_client:
     level: warn
   ws:
     level: warn
   ac_node_api:
     level: warn
-  scheduler::service::submit_chain:
-    level: debug
-    appenders:
-      - stdout
-      - incoming_outgoing_call
-  scheduler::handler:
-    level: debug
-    appenders:
-      - stdout
-      - incoming_outgoing_call

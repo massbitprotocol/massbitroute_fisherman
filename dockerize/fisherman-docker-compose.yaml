@@ -1,0 +1,181 @@
+version: '3.8'
+networks:
+  mbr_test_network_236:
+    driver: bridge
+    external: true
+services:
+  fisherman_worker_1_236:
+    container_name: mbr_fisherman_worker_1_236
+    image: massbit/massbitroute_fisherman:v0.1.1
+    # build: ../massbitroute_fisherman
+    restart: always
+#    depends_on:
+#      - "db_236"
+#      - "mbr_portal_api_236"
+#      - "fisherman_scheduler_236"
+    networks:
+      mbr_test_network_236:
+        ipv4_address: "172.24.236.16"
+    volumes:
+#      - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
+#      - ./fisherman/configs:/usr/local/bin/configs
+      - ./fisherman/.env_fisherman:/usr/local/bin/worker/.env_fisherman
+      - ./fisherman/worker01/log:/var/log/fisherman
+    env_file:
+      - /home/huy/work/block_chain/project-massbit-route/massbitroute_test/end2end/.secret
+    environment:
+      - BENCHMARK_WRK_PATH=/usr/local/bin/worker/benchmark
+      - COMMON_CONFIG_FILE=/usr/local/bin/worker/configs/common.json
+      - DOMAIN=massbitroute.net
+      - ENVIRONMENT=docker_test
+      - ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
+      - RUST_LOG=debug
+      - SCHEDULER_AUTHORIZATION=SomeSecretString
+      - SCHEDULER_ENDPOINT=http://scheduler.fisherman.massbitroute.net:80
+      - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
+      - WORKER_ID=default_worker_172.24.236.16
+      - WORKER_IP=172.24.236.16
+      - WORKER_ENDPOINT=http://worker01.fisherman.massbitroute.net:4040
+      - ZONE=AS
+      - RUNTIME_MODE=FISHERMAN
+    extra_hosts:
+      - "hostmaster.massbitroute.net:172.24.236.254"
+      - "ns1.massbitroute.net:172.24.236.254"
+      - "ns2.massbitroute.net:172.24.236.254"
+      - "api.massbitroute.net:172.24.236.254"
+      - "stat.mbr.massbitroute.net:172.24.236.254"
+      - "monitor.mbr.massbitroute.net:172.24.236.254"
+      - "chain.massbitroute.net:172.24.236.20"
+      - "portal.massbitroute.net:172.24.236.254"
+      - "admin-api.massbitroute.net:172.24.236.254"
+      - "dapi.massbitroute.net:172.24.236.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.236.254"
+      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "api.ipapi.com:172.24.236.254"
+      - "staking.massbitroute.net:172.24.236.254"
+
+  fisherman_worker_2_236:
+    container_name: mbr_fisherman_worker_2_236
+    image: massbit/massbitroute_fisherman:v0.1.1
+    # build: ../massbitroute_fisherman
+    restart: always
+#    depends_on:
+#      - "db_236"
+#      - "mbr_portal_api_236"
+#      - "fisherman_scheduler_236"
+    networks:
+      mbr_test_network_236:
+        ipv4_address: "172.24.236.17"
+    volumes:
+#      - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
+#      - ./fisherman/configs:/usr/local/bin/configs
+      - ./fisherman/.env_fisherman:/usr/local/bin/worker/.env_fisherman
+      - ./fisherman/worker02/log:/var/log/fisherman
+    env_file:
+      - /home/huy/work/block_chain/project-massbit-route/massbitroute_test/end2end/.secret
+    environment:
+      - BENCHMARK_WRK_PATH=/usr/local/bin/worker/benchmark
+      - COMMON_CONFIG_FILE=/usr/local/bin/worker/configs/common.json
+      - DOMAIN=massbitroute.net
+      - ENVIRONMENT=docker_test
+      - ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
+      - RUST_LOG=debug
+      - SCHEDULER_AUTHORIZATION=SomeSecretString
+      - SCHEDULER_ENDPOINT=http://scheduler.fisherman.massbitroute.net:80
+      - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
+      - WORKER_ID=default_worker_172.24.236.17
+      - WORKER_IP=172.24.236.17
+      - WORKER_ENDPOINT=http://worker02.fisherman.massbitroute.net:4040
+      - ZONE=AS
+      - RUNTIME_MODE=FISHERMAN
+    extra_hosts:
+      - "hostmaster.massbitroute.net:172.24.236.254"
+      - "ns1.massbitroute.net:172.24.236.254"
+      - "ns2.massbitroute.net:172.24.236.254"
+      - "api.massbitroute.net:172.24.236.254"
+      - "stat.mbr.massbitroute.net:172.24.236.254"
+      - "monitor.mbr.massbitroute.net:172.24.236.254"
+      - "chain.massbitroute.net:172.24.236.20"
+      - "portal.massbitroute.net:172.24.236.254"
+      - "admin-api.massbitroute.net:172.24.236.254"
+      - "dapi.massbitroute.net:172.24.236.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.236.254"
+      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "api.ipapi.com:172.24.236.254"
+      - "staking.massbitroute.net:172.24.236.254"
+
+  fisherman_scheduler_236:
+    container_name: mbr_fisherman_scheduler_236
+    image: massbit/massbitroute_fisherman:v0.1.1
+    # build: ../massbitroute_fisherman
+    restart: always
+#    depends_on:
+#      - "db_236"
+#      - "mbr_portal_api_236"
+    networks:
+      mbr_test_network_236:
+        ipv4_address: "172.24.236.15"
+    volumes:
+#      - ./scheduler/.env:/usr/local/bin/.env
+#      - ./scheduler/.env.docker_test:/usr/local/bin/.env.docker_test
+#      - ./scheduler/configs:/usr/local/bin/configs
+#      - ./scheduler/supervisor.conf:/etc/supervisor/conf.d/scheduler.conf
+#      - ./scheduler/stats.conf:/etc/supervisor/conf.d/stats.conf
+      - ./scheduler/log:/var/log/scheduler
+#    ports:
+#      - '80:80'
+    env_file:
+      - /home/huy/work/block_chain/project-massbit-route/massbitroute_test/end2end/.secret
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db_236:5432/massbit-fisherman
+      - DOMAIN=massbitroute.net
+      - ENVIRONMENT=docker_test
+      - PORTAL_AUTHORIZATION=VERIFICATION_SERVICE_SECRET
+      - REPORT_CALLBACK=http://scheduler.fisherman.massbitroute.net/report
+      - SCHEDULER_AUTHORIZATION=SomeSecretString
+      - SCHEDULER_ENDPOINT=0.0.0.0:80
+      - SCHEME=http
+      - URL_PORTAL=http://portal.massbitroute.net
+      - URL_PORTAL_PROJECTS=http://portal.massbitroute.net/mbr/d-apis/project/list/verify
+      - URL_CHAIN=ws://chain.massbitroute.net:9944
+      - RUNTIME_MODE=SCHEDULER
+
+    extra_hosts:
+      - "hostmaster.massbitroute.net:172.24.236.254"
+      - "ns1.massbitroute.net:172.24.236.254"
+      - "ns2.massbitroute.net:172.24.236.254"
+      - "api.massbitroute.net:172.24.236.254"
+      - "stat.mbr.massbitroute.net:172.24.236.254"
+      - "monitor.mbr.massbitroute.net:172.24.236.254"
+      - "chain.massbitroute.net:172.24.236.20"
+      - "portal.massbitroute.net:172.24.236.254"
+      - "admin-api.massbitroute.net:172.24.236.254"
+      - "dapi.massbitroute.net:172.24.236.254"
+      - "scheduler.fisherman.massbitroute.net:172.24.236.254"
+      - "worker01.fisherman.massbitroute.net:172.24.236.254"
+      - "worker02.fisherman.massbitroute.net:172.24.236.254"
+      - "api.ipapi.com:172.24.236.254"
+      - "staking.massbitroute.net:172.24.236.254"
+      - "git.massbitroute.net:172.24.236.5"
+      - "gateway-dot-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-eth-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-eth-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-dot-mainnet.monitor.mbr.massbitroute.net:172.24.236.254"
+      - "node-eth-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "node-dot-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-eth-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
+      - "gateway-dot-mainnet.stat.mbr.massbitroute.net:172.24.236.254"
