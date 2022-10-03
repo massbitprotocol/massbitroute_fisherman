@@ -10,5 +10,5 @@
     "params": [],
     "id": 1
   },
-  "response_threshold": 1000
+  "response_threshold": 2000
 }
