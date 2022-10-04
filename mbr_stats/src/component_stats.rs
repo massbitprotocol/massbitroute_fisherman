@@ -396,25 +396,13 @@ impl ComponentStats {
     }
 }
 impl StatsBuilder {
-    pub async fn with_config_uri(mut self, path: String) -> StatsBuilder {
-        self.inner.config_data_uri = path;
-
-        let config_data: Option<ConfigData> = self.get_config_data().await;
-        self.inner.config_data = config_data;
-        self
-    }
-
-    async fn get_config_data(&self) -> Option<ConfigData> {
-        // todo!()
-        None
-    }
     async fn get_prometheus_client(url: &String) -> anyhow::Result<PrometheusClient> {
         let client = PrometheusClient::try_from(url.as_str())
             .map_err(|err| anyhow::Error::msg(format!("{:?}", err)));
         client
     }
 
-    pub async fn with_prometheus_url(mut self, path: String) -> StatsBuilder {
+    pub async fn with_prometheus_url(mut self, path: &str) -> StatsBuilder {
         //https://node-eth-mainnet.stat.mbr.massbitroute.net/__internal_prometheus
         // self.inner.prometheus_gateway_url = format!("https://gateway-[[chain_id]].{}", path);
         // self.inner.prometheus_node_url = format!("https://node-[[chain_id]].{}", path);

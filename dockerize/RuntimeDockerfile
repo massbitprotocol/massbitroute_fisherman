@@ -16,12 +16,15 @@ COPY ./scheduler_config/scheduler.conf /usr/local/bin/scheduler/
 COPY ./mbr_stats /usr/local/bin/stats/
 COPY ./stats_config/configs.$FISHER_ENVIRONMENT /usr/local/bin/stats/configs
 COPY ./stats_config/stats.conf /usr/local/bin/stats/
+COPY ./stats_config/.env.$FISHER_ENVIRONMENT /usr/local/bin/stats/.env
 
 # Worker
 COPY ./benchmark /usr/local/bin/worker/benchmark
 COPY ./fisherman /usr/local/bin/worker/
 COPY ./worker_config/configs.$FISHER_ENVIRONMENT /usr/local/bin/worker/configs
 COPY ./worker_config/fisherman_worker.conf /usr/local/bin/worker/
+#COPY ./worker_config/.env_fisherman /usr/local/bin/worker/
+COPY ./worker_config/.env.$FISHER_ENVIRONMENT /usr/local/bin/worker/.env
 
 COPY ./services /etc/services
 

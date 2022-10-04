@@ -24,7 +24,7 @@ lazy_static! {
     pub static ref ZONE: String = env::var("ZONE")
         .unwrap()
         .trim_start_matches("\"").trim_end_matches("\"").to_uppercase();
-    pub static ref ENVIRONMENT: String = env::var("ENVIRONMENT").unwrap_or(String::from("unset"));
+    // pub static ref ENVIRONMENT: String = env::var("ENVIRONMENT").unwrap_or(String::from("unset"));
     //Endpoint for scheduler push jobs
     pub static ref WORKER_ENDPOINT: String =
         env::var("WORKER_ENDPOINT").unwrap_or(String::from("http://127.0.0.1:4040"));
