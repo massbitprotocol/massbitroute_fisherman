@@ -7,7 +7,6 @@ services:
   fisherman_worker_1_[[NETWORK_NUMBER]]:
     container_name: mbr_fisherman_worker_1_[[NETWORK_NUMBER]]
     image: massbit/massbitroute_fisherman:[[FISHERMAN_TAG]]
-    # build: ../massbitroute_fisherman
     restart: always
 #    depends_on:
 #      - "db_[[NETWORK_NUMBER]]"
@@ -17,19 +16,11 @@ services:
       mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].[[FISHERMAN_WORKER01_IP]]"
     volumes:
-#      - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
-#      - ./fisherman/configs:/usr/local/bin/configs
-      - ./fisherman/.env_fisherman:/usr/local/bin/worker/.env_fisherman
       - ./fisherman/worker01/log:/var/log/fisherman
-    env_file:
-      - [[ROOT_DIR]]/.secret
+#    env_file:
+#      - [[ROOT_DIR]]/.worker.env
     environment:
-      - BENCHMARK_WRK_PATH=/usr/local/bin/worker/benchmark
-      - COMMON_CONFIG_FILE=/usr/local/bin/worker/configs/common.json
       - DOMAIN=massbitroute.net
-      - ENVIRONMENT=[[FISHER_ENVIRONMENT]]
-      - ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
-      - RUST_LOG=debug
       - SCHEDULER_AUTHORIZATION=[[SCHEDULER_AUTHORIZATION]]
       - SCHEDULER_ENDPOINT=[[PROTOCOL]]://scheduler.fisherman.massbitroute.net:80
       - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
@@ -76,17 +67,12 @@ services:
     volumes:
 #      - ./fisherman/supervisor.conf:/etc/supervisor/conf.d/fisherman.conf
 #      - ./fisherman/configs:/usr/local/bin/configs
-      - ./fisherman/.env_fisherman:/usr/local/bin/worker/.env_fisherman
+#      - ./fisherman/.env_fisherman:/usr/local/bin/worker/.env_fisherman
       - ./fisherman/worker02/log:/var/log/fisherman
-    env_file:
-      - [[ROOT_DIR]]/.secret
+#    env_file:
+#      - [[ROOT_DIR]]/.worker.env
     environment:
-      - BENCHMARK_WRK_PATH=/usr/local/bin/worker/benchmark
-      - COMMON_CONFIG_FILE=/usr/local/bin/worker/configs/common.json
       - DOMAIN=massbitroute.net
-      - ENVIRONMENT=[[FISHER_ENVIRONMENT]]
-      - ROOT=/massbit/massbitroute/app/src/sites/services/gateway/
-      - RUST_LOG=debug
       - SCHEDULER_AUTHORIZATION=[[SCHEDULER_AUTHORIZATION]]
       - SCHEDULER_ENDPOINT=[[PROTOCOL]]://scheduler.fisherman.massbitroute.net:80
       - WORKER_SERVICE_ENDPOINT=0.0.0.0:4040
@@ -130,20 +116,14 @@ services:
       mbr_test_network_[[NETWORK_NUMBER]]:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].[[FISHERMAN_SCHEDULER_IP]]"
     volumes:
-#      - ./scheduler/.env:/usr/local/bin/.env
-#      - ./scheduler/.env.[[FISHER_ENVIRONMENT]]:/usr/local/bin/.env.[[FISHER_ENVIRONMENT]]
-#      - ./scheduler/configs:/usr/local/bin/configs
-#      - ./scheduler/supervisor.conf:/etc/supervisor/conf.d/scheduler.conf
-#      - ./scheduler/stats.conf:/etc/supervisor/conf.d/stats.conf
       - ./scheduler/log:/var/log/scheduler
 #    ports:
 #      - '80:80'
-    env_file:
-      - [[ROOT_DIR]]/.secret
+#    env_file:
+#      - [[ROOT_DIR]]/.scheduler.env
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db_[[NETWORK_NUMBER]]:5432/massbit-fisherman
       - DOMAIN=massbitroute.net
-      - ENVIRONMENT=[[FISHER_ENVIRONMENT]]
       - PORTAL_AUTHORIZATION=VERIFICATION_SERVICE_SECRET
       - REPORT_CALLBACK=[[PROTOCOL]]://scheduler.fisherman.massbitroute.net/report
       - SCHEDULER_AUTHORIZATION=[[SCHEDULER_AUTHORIZATION]]

@@ -23,12 +23,17 @@ lazy_static! {
             .expect("Cannot parse var SCHEME");
     pub static ref URL_CHAIN: String =
         env::var("URL_CHAIN").unwrap_or_else(|_| "ws://chain.massbitroute.net:9944".to_string());
-    pub static ref ENVIRONMENT: Environment =
-        Environment::from_str(&env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT"))
-            .expect("Cannot parse var ENVIRONMENT");
+    // pub static ref ENVIRONMENT: Environment =
+    //     Environment::from_str(&env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT"))
+    //         .expect("Cannot parse var ENVIRONMENT");
     pub static ref CONFIG_DIR: String =
         env::var("CONFIG_DIR").unwrap_or_else(|_| String::from("configs/"));
     pub static ref LOG_CONFIG: String = format!("{}log.yaml", &*CONFIG_DIR);
+    pub static ref PROMETHEUS_URL: String = env::var("PROMETHEUS_URL").expect(
+        "There is no env var PROMETHEUS_URL, e.g. stat.mbr.massbitroute.net/__internal_prometheus"
+    );
+    pub static ref URL_PORTAL_PROJECTS: String = env::var("URL_PORTAL_PROJECTS")
+        .expect("There is no env var URL_PORTAL_PROJECTS, e.g. https://portal.massbitroute.net/mbr/d-apis/project/list/verify");
 }
 
 #[derive(Debug, PartialEq, Eq)]

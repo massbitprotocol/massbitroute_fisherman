@@ -10,8 +10,8 @@ use fisherman::server_config::AccessControl;
 use fisherman::services::{JobExecution, JobResultReporter, WebServiceBuilder};
 use fisherman::state::WorkerState;
 use fisherman::{
-    ENVIRONMENT, LOG_CONFIG, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT,
-    WORKER_ID, WORKER_IP, WORKER_SERVICE_ENDPOINT, ZONE,
+    LOG_CONFIG, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID, WORKER_IP,
+    WORKER_SERVICE_ENDPOINT, ZONE,
 };
 use futures_util::future::join3;
 use log::{debug, error, info, warn};
@@ -26,9 +26,18 @@ use tokio::time::sleep;
 #[tokio::main]
 async fn main() {
     // Load env file
-    let _ = dotenv::from_filename(".env_fisherman");
+    if dotenv::dotenv().is_err() {
+        println!("Warning: Cannot load .env file");
+        panic!("Cannot load .env file");
+    }
     // Init logger
     let _res = init_logger(&String::from("Fisherman-worker"), LOG_CONFIG.to_str());
+    // Show env list
+    info!("Envs list");
+    for (key, value) in std::env::vars() {
+        info!("{key}: {value}");
+    }
+
     // Create job queue
     //Call to scheduler to register worker
     if let Ok(WorkerRegisterResult {
@@ -98,17 +107,11 @@ async fn try_register() -> Result<WorkerRegisterResult, Error> {
                 Ok(parsed) => return Ok(parsed),
                 Err(err) => {
                     info!("Error: {:?}", err);
-                    if &*ENVIRONMENT == "local" {
-                        return Ok(WorkerRegisterResult::default());
-                    }
                 }
             },
             _ => {
                 let text = response.text().await?;
                 debug!("Cannot register worker with message {}", &text);
-                if &*ENVIRONMENT == "local" {
-                    return Ok(WorkerRegisterResult::default());
-                }
             }
         }
         sleep(Duration::from_millis(2000)).await;
