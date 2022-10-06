@@ -117,6 +117,7 @@ services:
         ipv4_address: "172.24.236.15"
     volumes:
       - ./scheduler/log:/var/log/scheduler
+      - ./scheduler/inner_logs:/usr/local/bin/scheduler/logs/
 #    ports:
 #      - '80:80'
 #    env_file:
