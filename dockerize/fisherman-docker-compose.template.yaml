@@ -17,6 +17,7 @@ services:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].[[FISHERMAN_WORKER01_IP]]"
     volumes:
       - ./fisherman/worker01/log:/var/log/fisherman
+      - ./fisherman/worker01/inner_logs:/usr/local/bin/worker/logs/
 #    env_file:
 #      - [[ROOT_DIR]]/.worker.env
     environment:
@@ -69,6 +70,7 @@ services:
 #      - ./fisherman/configs:/usr/local/bin/configs
 #      - ./fisherman/.env_fisherman:/usr/local/bin/worker/.env_fisherman
       - ./fisherman/worker02/log:/var/log/fisherman
+      - ./fisherman/worker02/inner_logs:/usr/local/bin/worker/logs/
 #    env_file:
 #      - [[ROOT_DIR]]/.worker.env
     environment:
@@ -117,6 +119,8 @@ services:
         ipv4_address: "172.24.[[NETWORK_NUMBER]].[[FISHERMAN_SCHEDULER_IP]]"
     volumes:
       - ./scheduler/log:/var/log/scheduler
+      - ./scheduler/scheduler_inner_logs:/usr/local/bin/scheduler/logs/
+      - ./scheduler/stats_inner_logs:/usr/local/bin/stats/logs/
 #    ports:
 #      - '80:80'
 #    env_file:
