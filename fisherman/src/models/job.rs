@@ -5,10 +5,24 @@ use common::{JobId, PlanId};
 use log::{debug, info, trace};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct JobBuffer {
     jobs: VecDeque<Job>,
+}
+
+impl Deref for JobBuffer {
+    type Target = VecDeque<Job>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.jobs
+    }
+}
+impl DerefMut for JobBuffer {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.jobs
+    }
 }
 
 impl JobBuffer {

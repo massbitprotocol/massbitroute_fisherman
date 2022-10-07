@@ -47,6 +47,20 @@ impl JobResultCache {
     pub fn init_cache(&self, _assignments: HashMap<ComponentId, JobAssignment>) {
         //Todo: Init cache
     }
+    pub async fn get_result_cache_map_len(&self) -> usize {
+        let mut sum = 0;
+        for (_, hash_map) in &*self.result_cache_map.lock().await {
+            sum += hash_map.len();
+        }
+        sum
+    }
+    pub async fn get_task_judge_result_len(&self) -> usize {
+        let mut sum = 0;
+        for (_, hash_map) in &*self.task_judg_result.lock().await {
+            sum += hash_map.len();
+        }
+        sum
+    }
     pub async fn append_results(
         &self,
         results: HashMap<ComponentId, HashMap<TaskKey, TaskResultCache>>,
@@ -116,11 +130,6 @@ impl JobResultCache {
         };
     }
 
-    // pub fn get_jobs_number(&self) -> usize {
-    //     self.result_cache_map
-    //         .iter()
-    //         .fold(0, |count, (_key, map)| count + map.len())
-    // }
     pub async fn get_provider_judg_result(
         &self,
         provider_id: &ComponentId,

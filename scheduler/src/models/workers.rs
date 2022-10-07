@@ -56,10 +56,18 @@ impl WorkerInfoStorage {
             .map(|worker| worker.clone())
             .collect()
     }
+    pub async fn get_workers_number(&self) -> usize {
+        self.workers.lock().await.len()
+    }
 
     pub async fn get_worker(&self, worker_id: WorkerId) -> Option<Arc<Worker>> {
         //debug!("Lock and clone all worker refs");
-        self.workers.lock().await.iter().find(|&worker| worker.worker_info.worker_id == worker_id).cloned()
+        self.workers
+            .lock()
+            .await
+            .iter()
+            .find(|&worker| worker.worker_info.worker_id == worker_id)
+            .cloned()
     }
 
     pub async fn get_provider_distances(
