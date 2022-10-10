@@ -1,13 +1,12 @@
 use crate::models::job::JobBuffer;
 use common::jobs::JobResult;
 use common::workers::WorkerStatus;
+use common::COMMON_CONFIG;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::sleep;
-
-const UPDATE_STATUS_INTERVAL: u64 = 1000;
 
 pub struct WorkerStatusCheck {
     worker_status: Arc<RwLock<WorkerStatus>>,
@@ -30,7 +29,7 @@ impl WorkerStatusCheck {
         loop {
             // Update status
             self.update_status().await;
-            sleep(Duration::from_micros(UPDATE_STATUS_INTERVAL)).await;
+            sleep(Duration::from_micros(COMMON_CONFIG.update_status_interval)).await;
         }
     }
     async fn update_status(&self) {
