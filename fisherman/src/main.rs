@@ -14,7 +14,7 @@ use fisherman::{
     LOG_CONFIG, SCHEDULER_AUTHORIZATION, SCHEDULER_ENDPOINT, WORKER_ENDPOINT, WORKER_ID, WORKER_IP,
     WORKER_SERVICE_ENDPOINT, ZONE,
 };
-use futures_util::future::{join3, join4};
+use futures_util::future::join3;
 use log::{debug, error, info, warn};
 use reqwest::StatusCode;
 use std::sync::Arc;
