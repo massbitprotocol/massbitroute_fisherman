@@ -2,7 +2,7 @@ use common::logger::init_logger;
 //use diesel::r2d2::ConnectionManager;
 //use diesel::{r2d2, PgConnection};
 //use diesel_migrations::embed_migrations;
-use futures_util::future::{join5, join_all};
+use futures_util::future::join5;
 use log::info;
 use scheduler::models::jobs::JobAssignmentBuffer;
 use scheduler::models::providers::ProviderStorage;

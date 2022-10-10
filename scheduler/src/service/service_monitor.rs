@@ -8,7 +8,7 @@ use common::workers::{Worker, WorkerStatus};
 use common::{Timestamp, COMMON_CONFIG};
 use log::{debug, error, info};
 use reqwest::Client;
-use std::collections::HashMap;
+
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -180,10 +180,10 @@ impl WorkerMonitor {
     }
 }
 
-pub struct StatsMonitor {
-    name: String,
-    status_detail: String,
-}
+// pub struct StatsMonitor {
+//     name: String,
+//     status_detail: String,
+// }
 
 impl ServiceMonitor {
     pub fn new(
