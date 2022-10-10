@@ -11,11 +11,11 @@ use warp::http::{HeaderMap, Method};
 use crate::services::WebService;
 use crate::state::WorkerState;
 use crate::BUILD_VERSION;
-use common::workers::WorkerStateParam;
+use common::workers::{WorkerStateParam, WorkerStatus};
 use common::{JobId, PlanId};
 use serde_json::json;
 use std::default::Default;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
@@ -32,6 +32,7 @@ pub struct WorkerServer {
     access_control: AccessControl,
     pub web_service: Arc<WebService>,
     worker_state: Arc<Mutex<WorkerState>>,
+    worker_status: Arc<RwLock<WorkerStatus>>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -42,6 +43,12 @@ pub struct DeployParam {
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct SimpleResponse {
     success: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+pub struct StatusResponse {
+    jobs_number_in_queue: usize,
+    reports_number_in_queue: usize,
 }
 
 impl WorkerServer {
@@ -67,7 +74,9 @@ impl WorkerServer {
         let router = self
             .create_ping()
             .with(&cors)
-            //.create_get_status(self.scheduler_service.clone()).await.with(&cors)
+            .or(self
+                .create_get_status(self.worker_status.clone())
+                .with(&cors))
             .or(self
                 .create_route_handle_jobs(self.web_service.clone(), self.worker_state.clone())
                 .with(&cors))
@@ -115,6 +124,24 @@ impl WorkerServer {
     pub(crate) async fn simple_response(success: bool) -> Result<impl Reply, Rejection> {
         let res = SimpleResponse { success };
         Ok(warp::reply::json(&res))
+    }
+    fn create_get_status(
+        &self,
+        worker_status: Arc<RwLock<WorkerStatus>>,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("get_status")
+            .and(WorkerServer::log_headers())
+            .and(warp::get())
+            .and_then(move || {
+                let worker_status = worker_status.clone();
+                async move {
+                    let status = worker_status.read().await.clone();
+                    Self::status_response(status).await
+                }
+            })
+    }
+    pub(crate) async fn status_response(status: WorkerStatus) -> Result<impl Reply, Rejection> {
+        Ok(warp::reply::json(&status))
     }
     fn create_route_handle_jobs(
         &self,
@@ -239,12 +266,18 @@ impl WebServerBuilder {
         self.worker_state = Arc::new(Mutex::new(worker_state));
         self
     }
-    pub fn build(&self, service: WebService) -> WorkerServer {
+
+    pub fn build(
+        &self,
+        service: WebService,
+        worker_status: Arc<RwLock<WorkerStatus>>,
+    ) -> WorkerServer {
         WorkerServer {
             entry_point: self.entry_point.clone(),
             access_control: self.access_control.clone(),
             web_service: Arc::new(service),
             worker_state: self.worker_state.clone(),
+            worker_status,
         }
     }
 }

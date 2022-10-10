@@ -31,4 +31,9 @@ impl WorkerState {
             lock.cancel_plans(plans)
         }
     }
+    pub async fn queue_len(&mut self) -> usize {
+        {
+            self.job_buffer.lock().await.len()
+        }
+    }
 }

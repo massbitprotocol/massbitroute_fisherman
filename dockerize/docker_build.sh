@@ -2,7 +2,7 @@
 export BUILDER_IMAGE=fishermanbuilder:1.61.0
 export BUILDER_CONTAINER=fishermanbuilder
 export FISHER_ENVIRONMENT="${2:-docker_test}"
-export DEFAULT_TAG="v0.1.1-${FISHER_ENVIRONMENT}"
+export DEFAULT_TAG="v0.1.4-${FISHER_ENVIRONMENT}"
 
 #docker run -it --name rustbuilder -v $(pwd)/..:/fisherman rustbuilder:1.61.0 bash -c 'cd /fisherman && cargo build --release'
 CHECKBUILDER=$(docker image inspect $BUILDER_IMAGE >/dev/null 2>&1 && echo 1 || echo 0)
@@ -17,5 +17,6 @@ cp ../target/release/scheduler .
 cp ../target/release/fisherman .
 cp ../target/release/mbr_stats .
 cp ../scripts/build_docker/services .
+echo "FISHER_ENVIRONMENT: $FISHER_ENVIRONMENT"
 docker build --build-arg FISHER_ENVIRONMENT=$FISHER_ENVIRONMENT -f RuntimeDockerfile -t massbit/massbitroute_fisherman:${1:-$DEFAULT_TAG} .
 rm -rf ./benchmark ./scheduler ./fisherman ./services ./mbr_stats

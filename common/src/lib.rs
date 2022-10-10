@@ -32,12 +32,14 @@ lazy_static! {
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub default_http_request_timeout_ms: u64, //time in ms
+    pub update_status_interval: u64,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
             default_http_request_timeout_ms: 5000,
+            update_status_interval: 5000,
         }
     }
 }

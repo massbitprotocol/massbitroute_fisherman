@@ -92,6 +92,9 @@ lazy_static! {
     //     &env::var("ENVIRONMENT").expect("There is no env var ENVIRONMENT")).expect("Cannot parse var ENVIRONMENT");
     pub static ref SCHEME: Scheme = Scheme::from_str(
         &env::var("SCHEME").expect("There is no env var SCHEME")).expect("Cannot parse var SCHEME");
+    pub static ref SCHEDULER_MONITOR_OUTPUT: PathBuf = PathBuf::from(
+        &*env::var("SCHEDULER_MONITOR_OUTPUT").expect("There is no env var SCHEDULER_MONITOR_OUTPUT, e.g. /usr/local/bin/scheduler/logs/monitor/scheduler.monitor"));
+
 }
 
 pub trait TemplateRender {

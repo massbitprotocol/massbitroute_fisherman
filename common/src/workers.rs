@@ -10,6 +10,12 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
+#[derive(Default, Debug, Deserialize, Serialize, Clone, PartialEq)]
+pub struct WorkerStatus {
+    pub jobs_number_in_queue: usize,
+    pub reports_number_in_queue: usize,
+}
+
 #[derive(Clone, Serialize, Deserialize, Debug, Default, Eq, PartialEq, Hash)]
 pub struct WorkerInfo {
     /*
