@@ -32,12 +32,14 @@ lazy_static! {
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub default_http_request_timeout_ms: u64, //time in ms
+    pub update_status_interval: u64,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config {
             default_http_request_timeout_ms: 5000,
+            update_status_interval: 5000,
         }
     }
 }
@@ -82,6 +84,7 @@ impl FromStr for Environment {
         match s {
             "local" => Ok(Environment::Local),
             "docker_test" => Ok(Environment::DockerTest),
+            "release" => Ok(Environment::Release),
             "production" => Ok(Environment::Production),
             _ => Err(anyhow!("Cannot parse {s} to Environment")),
         }

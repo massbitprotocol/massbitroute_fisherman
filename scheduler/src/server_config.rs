@@ -1,4 +1,5 @@
 use common::Timestamp;
+use log::{error, info};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -17,12 +18,18 @@ pub struct Config {
 
 impl Config {
     pub fn load(file_path: &str) -> Self {
+        info!("read config file for scheduler `{}`", file_path);
         let json = std::fs::read_to_string(file_path).unwrap_or_else(|err| {
+            error!(
+                "Unable to read config file for scheduler`{}`: {}",
+                file_path, err
+            );
             panic!(
                 "Unable to read config file for scheduler`{}`: {}",
                 file_path, err
-            )
+            );
         });
+        info!("Config file json: {}", json);
         let config: Config = serde_json::from_str(&*json).unwrap();
         config
     }

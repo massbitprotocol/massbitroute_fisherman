@@ -109,6 +109,12 @@ impl ProviderStorage {
         }
         providers
     }
+    pub async fn get_number_active_providers(&self) -> (usize,usize) {
+        let nodes = self.nodes.lock().await.len();
+        let gateways = self.gateways.lock().await.len();
+        (gateways,nodes)
+    }
+    
     pub async fn clone_nodes_list(&self) -> Vec<ComponentInfo> {
         let nodes = self.nodes.lock().await;
         nodes.clone()
@@ -117,44 +123,4 @@ impl ProviderStorage {
         let gateways = self.gateways.lock().await;
         gateways.clone()
     }
-
-    // pub async fn generate_regular_jobs(
-    //     &mut self,
-    //     task: Arc<dyn TaskApplicant>,
-    // ) -> Result<Vec<Job>, anyhow::Error> {
-    //     //For nodes
-    //     let mut jobs_list = Vec::default();
-    //     let nodes = self.nodes.lock().await;
-    //     for node in nodes.iter() {
-    //         if task.can_apply(node) {
-    //             let mut jobs = task.apply(node)?;
-    //             jobs_list.append(&mut jobs);
-    //         }
-    //     }
-    //     //For gateways
-    //     let gateways = self.gateways.lock().await;
-    //     for gw in gateways.iter() {
-    //         if task.can_apply(gw) {
-    //             let mut jobs = task.apply(gw)?;
-    //             jobs_list.append(&mut jobs);
-    //         }
-    //     }
-    //     debug!("Regular jobs_list: {:?}", jobs_list);
-    //     Ok(jobs_list)
-    // }
-
-    /*
-     * Count nodes in verification queue to check available worker
-     */
-    /*
-     * count verifying nodes by zone
-     */
-    // pub async fn count_verifying_nodes(&self) -> HashMap<Zone, List<&ComponentInfo>> {
-    //     let mut map = HashMap::new();
-    //     self.nodes.lock().await.iter().for_each(|n1| {
-    //         let counter = map.get(&n1.zone).map_or(0_u16, |v| *v);
-    //         map.insert(n1.zone.clone(), counter + 1);
-    //     });
-    //     map
-    // }
 }

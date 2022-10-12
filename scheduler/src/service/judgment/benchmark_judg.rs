@@ -13,6 +13,7 @@ use log::debug;
 use std::collections::HashMap;
 use std::path::Path;
 
+use crate::service::report_portal::ReportErrorCode;
 use crate::CONFIG_BENCHMARK_DIR;
 use std::sync::{Arc, Mutex};
 
@@ -142,7 +143,9 @@ impl ReportCheck for BenchmarkJudgment {
     fn get_name(&self) -> String {
         String::from("Benchmark")
     }
-
+    fn get_error_code(&self) -> ReportErrorCode {
+        ReportErrorCode::BenchmarkCallFailed
+    }
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         return task.task_type.as_str() == "Benchmark";
     }
@@ -226,14 +229,22 @@ impl ReportCheck for BenchmarkJudgment {
                         "Histogram value at {}% is {} > {}",
                         &config.judge_histogram_percentile, *res, config.response_threshold
                     );
-                    JudgmentsResult::new_failed(self.get_name(), failed_reason)
+                    JudgmentsResult::new_failed(
+                        self.get_name(),
+                        failed_reason,
+                        ReportErrorCode::BenchmarkResponseTimeFailed,
+                    )
                 }
             } else {
                 let failed_reason = format!(
                     "Cannot get histogram percentile: {:?}",
                     best_benchmark.response.histograms
                 );
-                JudgmentsResult::new_failed(self.get_name(), failed_reason)
+                JudgmentsResult::new_failed(
+                    self.get_name(),
+                    failed_reason,
+                    ReportErrorCode::BenchmarkCallFailed,
+                )
             };
             // With verification process, need only one Pass result form all benchmark result to Pass the verification
             if let BenchmarkConfig {
@@ -255,7 +266,11 @@ impl ReportCheck for BenchmarkJudgment {
             Ok(judge_result)
         } else {
             let failed_reason = format!("Cannot get config for: {:?}", provider_task.task_name);
-            Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+            Ok(JudgmentsResult::new_failed(
+                self.get_name(),
+                failed_reason,
+                ReportErrorCode::BenchmarkJudgementFailed,
+            ))
         }
     }
 }

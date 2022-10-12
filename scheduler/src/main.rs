@@ -14,7 +14,10 @@ use scheduler::service::delivery::{CancelPlanBuffer, JobDelivery};
 use scheduler::service::generator::JobGenerator;
 use scheduler::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 use scheduler::state::{ProcessorState, SchedulerState};
-use scheduler::{DATABASE_URL, LOG_CONFIG, SCHEDULER_ENDPOINT, URL_GATEWAYS_LIST, URL_NODES_LIST};
+use scheduler::{
+    DATABASE_URL, LOG_CONFIG, SCHEDULER_ENDPOINT, SCHEDULER_MONITOR_OUTPUT, URL_GATEWAYS_LIST,
+    URL_NODES_LIST,
+};
 
 use migration::{Migrator, MigratorTrait};
 use scheduler::models::job_result_cache::JobResultCache;
@@ -24,6 +27,7 @@ use scheduler::persistence::services::provider_service::ProviderService;
 use scheduler::persistence::services::WorkerService;
 use scheduler::persistence::services::{get_sea_db_connection, JobService};
 use scheduler::service::check_worker_health::WorkerHealthService;
+use scheduler::service::service_monitor::ServiceMonitor;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task;
@@ -31,22 +35,18 @@ use tokio::task;
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     // Load env file
-    dotenv::dotenv().ok();
+    if dotenv::dotenv().is_err() {
+        println!("Warning: Cannot load .env file");
+    }
+
     // Init logger
     let _res = init_logger(&String::from("Fisherman Scheduler"), LOG_CONFIG.to_str());
+    // Show env list
+    info!("Envs list");
+    for (key, value) in std::env::vars() {
+        info!("{key}: {value}");
+    }
 
-    // let _matches = create_scheduler_app().get_matches();
-    // let manager = ConnectionManager::<PgConnection>::new(DATABASE_URL.as_str());
-    // let connection_pool = r2d2::Pool::builder()
-    //     .max_size(*CONNECTION_POOL_SIZE)
-    //     .build(manager)
-    //     .expect("Can not create connection pool");
-    // if let Ok(conn) = &connection_pool.get() {
-    //     match embedded_migrations::run(conn) {
-    //         Ok(res) => log::info!("Finished embedded_migration {:?}", &res),
-    //         Err(err) => log::info!("{:?}", &err),
-    //     };
-    // }
     let db_conn = match get_sea_db_connection(DATABASE_URL.as_str()).await {
         Ok(con) => con,
         Err(_) => {
@@ -59,6 +59,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let arc_conn = Arc::new(db_conn);
     let plan_service = Arc::new(PlanService::new(arc_conn.clone()));
+
     //Get worker infos
     let worker_service = Arc::new(WorkerService::new(arc_conn.clone()));
     let provider_service = Arc::new(ProviderService::new(arc_conn.clone()));
@@ -84,7 +85,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_result_cache(result_cache.clone())
         .build();
     let access_control = AccessControl::default();
-    //let (tx, mut rx) = mpsc::channel(1024);
+
     //Scanner for update provider list from portal
     let provider_scanner = ProviderScanner::new(
         URL_NODES_LIST.to_string(),
@@ -114,11 +115,22 @@ async fn main() -> Result<(), anyhow::Error> {
     // Check worker status task
     let worker_health = WorkerHealthService::new(worker_infos.clone(), result_cache.clone());
 
+    // Check Service Info
+    let service_monitor = ServiceMonitor::new(
+        &SCHEDULER_MONITOR_OUTPUT,
+        worker_infos.clone(),
+        result_cache.clone(),
+        cancel_plans_buffer.clone(),
+        provider_storage.clone(),
+        assigment_buffer.clone(),
+    );
+
     // Spawn tasks
     let task_worker_health = task::spawn(async move { worker_health.run().await });
     let task_provider_scanner = task::spawn(async move { provider_scanner.run().await });
     let task_job_generator = task::spawn(async move { job_generator.run().await });
     let task_job_delivery = task::spawn(async move { job_delivery.run().await });
+    let task_service_monitor = task::spawn(async move { service_monitor.run().await });
 
     let processor_state = ProcessorState::new(
         arc_conn.clone(),
@@ -136,102 +148,17 @@ async fn main() -> Result<(), anyhow::Error> {
         .with_scheduler_state(scheduler_state)
         .with_processor_state(processor_state)
         .build(scheduler_service, processor_service);
-    let task_serve = server.serve();
 
+    let _task_serve = tokio::spawn(async move { server.serve().await });
     // Run all spawn task
     let _res = join5(
         task_provider_scanner,
         task_job_generator,
         task_job_delivery,
-        task_serve,
         task_worker_health,
+        task_service_monitor,
     )
     .await;
 
     Ok(())
 }
-
-// fn create_scheduler_app() -> Command<'static> {
-//     Command::new("check-kind")
-//         .version("0.1")
-//         .about("fisherman-scheduler")
-//         .arg(
-//             Arg::new("list-node-id-file")
-//                 .short('n')
-//                 .long("list-node-id-file")
-//                 .value_name("list-node-id-file")
-//                 .help("Input list-node-id file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("list-gateway-id-file")
-//                 .short('g')
-//                 .long("list-gateway-id-file")
-//                 .value_name("list-gateway-id-file")
-//                 .help("Input list-gateway-id file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("list-dapi-id-file")
-//                 .short('d')
-//                 .long("list-dapi-id-file")
-//                 .value_name("list-dapi-id-file")
-//                 .help("Input list-dapi-id file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("list-user-file")
-//                 .short('u')
-//                 .long("list-user-file")
-//                 .value_name("list-user-file")
-//                 .help("Input list-user file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("check-flow")
-//                 .short('c')
-//                 .long("check-flow")
-//                 .value_name("check-flow")
-//                 .help("Input check-flow file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("base-endpoint")
-//                 .short('b')
-//                 .long("base-endpoint")
-//                 .value_name("base-endpoint")
-//                 .help("Input base-endpoint file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("massbit-chain-endpoint")
-//                 .short('m')
-//                 .long("massbit-chain-endpoint")
-//                 .value_name("massbit-chain-endpoint")
-//                 .help("Input massbit-chain-endpoint")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("signer-phrase")
-//                 .short('s')
-//                 .long("signer-phrase")
-//                 .value_name("signer-phrase")
-//                 .help("Input signer-phrase")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("output")
-//                 .short('o')
-//                 .long("output")
-//                 .value_name("output")
-//                 .help("Output file")
-//                 .takes_value(true),
-//         )
-//         .arg(
-//             Arg::new("domain")
-//                 .long("domain")
-//                 .value_name("domain")
-//                 .help("domain name")
-//                 .takes_value(true),
-//         )
-// }

@@ -23,7 +23,7 @@ use crate::service::judgment::http_ping_judg::HttpPingJudgment;
 use common::jobs::{Job, JobResult};
 
 use crate::service::judgment::JudgmentsResult::Failed;
-use crate::service::report_portal::ReportFailedReasons;
+use crate::service::report_portal::{ReportErrorCode, ReportFailedReasons};
 use common::job_manage::JobRole;
 use std::sync::Arc;
 
@@ -66,8 +66,13 @@ impl JudgmentsResult {
             _ => false,
         }
     }
-    pub fn new_failed(job_name: String, failed_detail: String) -> Self {
-        let reasons = ReportFailedReasons::new_with_single_reason(job_name, failed_detail);
+    pub fn new_failed(
+        job_name: String,
+        failed_detail: String,
+        error_code: ReportErrorCode,
+    ) -> Self {
+        let reasons =
+            ReportFailedReasons::new_with_single_reason(job_name, failed_detail, error_code);
         JudgmentsResult::Failed(reasons)
     }
 }
@@ -75,7 +80,7 @@ impl JudgmentsResult {
 #[async_trait]
 pub trait ReportCheck: Sync + Send {
     fn get_name(&self) -> String;
-    //fn can_apply(&self, job: &Job) -> bool;
+    fn get_error_code(&self) -> ReportErrorCode;
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool;
     async fn apply(
         &self,
