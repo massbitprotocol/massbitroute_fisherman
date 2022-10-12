@@ -2,7 +2,7 @@ use crate::models::job_result::ProviderTask;
 use crate::persistence::services::job_result_service::JobResultService;
 
 use crate::service::judgment::{get_report_judgments, JudgmentsResult, ReportCheck};
-use crate::service::report_portal::{ReportRecord, StoreReport};
+use crate::service::report_portal::{ReportErrorCode, ReportRecord, StoreReport};
 use crate::{CONFIG_TASK_DIR, IS_REGULAR_REPORT, PORTAL_AUTHORIZATION};
 use common::job_manage::JobRole;
 use common::jobs::{Job, JobResult};
@@ -118,6 +118,7 @@ impl MainJudgment {
                             provider_task.task_name,
                             err
                         ),
+                        judgment.get_error_code(),
                     ),
                 };
 
@@ -206,6 +207,7 @@ impl MainJudgment {
                             provider_task.task_name,
                             err
                         ),
+                        ReportErrorCode::JudgementFailed,
                     );
                 }
             }

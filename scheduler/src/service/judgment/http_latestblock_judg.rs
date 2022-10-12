@@ -8,6 +8,7 @@ use common::component::ComponentType;
 use common::job_manage::{JobResultDetail, JobRole};
 use common::jobs::JobResult;
 
+use crate::service::report_portal::ReportErrorCode;
 use crate::CONFIG_HTTP_REQUEST_DIR;
 use common::tasks::http_request::{
     HttpRequestJobConfig, HttpResponseValues, JobHttpResponseDetail, JobHttpResult,
@@ -133,6 +134,7 @@ impl LatestBlockResultCache {
             Ok(JudgmentsResult::new_failed(
                 Self::get_job_name(),
                 failed_reason,
+                ReportErrorCode::LatestBlockSyncTooLate,
             ))
         } else {
             Ok(JudgmentsResult::Pass)
@@ -178,6 +180,7 @@ impl LatestBlockResultCache {
             Ok(JudgmentsResult::new_failed(
                 Self::get_job_name(),
                 failed_reason,
+                ReportErrorCode::LatestBlockSyncTooLate,
             ))
         }
     }
@@ -240,6 +243,11 @@ impl ReportCheck for HttpLatestBlockJudgment {
     fn get_name(&self) -> String {
         String::from("HttpLatestBlock")
     }
+
+    fn get_error_code(&self) -> ReportErrorCode {
+        ReportErrorCode::LatestBlockCallFailed
+    }
+
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         return task.task_type.as_str() == "HttpRequest"
             && task.task_name.as_str() == "LatestBlock";
@@ -276,7 +284,11 @@ impl ReportCheck for HttpLatestBlockJudgment {
         for result in job_results {
             if result.chain_info.is_none() {
                 let failed_reason = format!("There are no chain info in the result: {:?}", result);
-                return Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason));
+                return Ok(JudgmentsResult::new_failed(
+                    self.get_name(),
+                    failed_reason,
+                    ReportErrorCode::LatestBlockJudgementFailed,
+                ));
             }
 
             if let (
@@ -325,7 +337,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
             comparator,
             thresholds,
         );
-        info!("Judg {:?} latest-block res: {:?}", provider_task, res);
+        trace!("Judg {:?} latest-block res: {:?}", provider_task, res);
         res
     }
 }

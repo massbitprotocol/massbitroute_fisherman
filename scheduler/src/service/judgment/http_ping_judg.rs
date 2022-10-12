@@ -2,6 +2,7 @@ use crate::models::job_result::ProviderTask;
 use crate::persistence::services::JobResultService;
 use crate::service::judgment::{JudgmentsResult, ReportCheck};
 
+use crate::service::report_portal::ReportErrorCode;
 use crate::CONFIG_HTTP_REQUEST_DIR;
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -179,7 +180,9 @@ impl ReportCheck for HttpPingJudgment {
         return task.task_type.as_str() == "HttpRequest"
             && task.task_name.as_str() == "RoundTripTime";
     }
-
+    fn get_error_code(&self) -> ReportErrorCode {
+        ReportErrorCode::RoundTripTimeCallFailed
+    }
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
@@ -218,7 +221,11 @@ impl ReportCheck for HttpPingJudgment {
                 "Success percent {} < {success_percent_threshold}",
                 response_durations.get_success_percent()
             );
-            Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+            Ok(JudgmentsResult::new_failed(
+                self.get_name(),
+                failed_reason,
+                ReportErrorCode::RoundTripTimeSuccessPercentFailed,
+            ))
         } else {
             let mut histogram = Histogram::new();
             for val in response_durations.iter() {
@@ -246,12 +253,20 @@ impl ReportCheck for HttpPingJudgment {
                     } else {
                         let failed_reason =
                             format!("{histogram_percentile_threshold}% response duration : {val} > {response_duration_threshold}");
-                        Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+                        Ok(JudgmentsResult::new_failed(
+                            self.get_name(),
+                            failed_reason,
+                            ReportErrorCode::RoundTripTimeResponseTimeFailed,
+                        ))
                     }
                 }
                 Err(err) => {
                     let failed_reason = format!("Cannot get response duration, with error: {err}");
-                    Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+                    Ok(JudgmentsResult::new_failed(
+                        self.get_name(),
+                        failed_reason,
+                        ReportErrorCode::RoundTripTimeCallFailed,
+                    ))
                 }
             }
         };

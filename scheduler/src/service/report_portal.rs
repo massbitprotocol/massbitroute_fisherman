@@ -48,17 +48,61 @@ impl ToString for ReportRecord {
     }
 }
 
+type ReportErrorCodeInteger = u32;
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub enum ReportErrorCode {
+    // No error
+    NoError = 0,
+    // Cannot call RTT
+    RoundTripTimeCallFailed = 100,
+    // RTT judgement error
+    RoundTripTimeJudgementFailed = 101,
+    // RTT response too high
+    RoundTripTimeResponseTimeFailed = 102,
+    // RTT success percent too low
+    RoundTripTimeSuccessPercentFailed = 103,
+    // Cannot call Latest block
+    LatestBlockCallFailed = 200,
+    // Latest block judgement error
+    LatestBlockJudgementFailed = 201,
+    // Latest block too late
+    LatestBlockSyncTooLate = 202,
+    // Cannot call websocket
+    WebsocketCallFailed = 300,
+    // Websocket judge error
+    WebsocketJudgementFailed = 301,
+    // Cannot call Benchmark
+    BenchmarkCallFailed = 400,
+    // Cannot call Benchmark
+    BenchmarkJudgementFailed = 401,
+    //Response time too hight
+    BenchmarkResponseTimeFailed = 402,
+    //Bandwidth is too narrow
+    BenchmarkThreadHoldFailed = 403,
+    //Judgement Failed
+    JudgementFailed = 900,
+}
+
+impl Default for ReportErrorCode {
+    fn default() -> Self {
+        ReportErrorCode::NoError
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct ReportFailedReason {
     job_name: String,
     failed_detail: String,
+    error_code: ReportErrorCode,
 }
 
 impl ReportFailedReason {
-    pub fn new(job_name: String, failed_detail: String) -> Self {
+    pub fn new(job_name: String, failed_detail: String, error_code: ReportErrorCode) -> Self {
         ReportFailedReason {
             job_name,
             failed_detail,
+            error_code,
         }
     }
 }
@@ -86,8 +130,12 @@ impl ReportFailedReasons {
     pub(crate) fn new(reasons: Vec<ReportFailedReason>) -> Self {
         ReportFailedReasons { inner: reasons }
     }
-    pub(crate) fn new_with_single_reason(job_name: String, failed_detail: String) -> Self {
-        let reasons = vec![ReportFailedReason::new(job_name, failed_detail)];
+    pub(crate) fn new_with_single_reason(
+        job_name: String,
+        failed_detail: String,
+        error_code: ReportErrorCode,
+    ) -> Self {
+        let reasons = vec![ReportFailedReason::new(job_name, failed_detail, error_code)];
         ReportFailedReasons { inner: reasons }
     }
     pub fn into_inner(self) -> Vec<ReportFailedReason> {
@@ -126,7 +174,6 @@ pub struct StoreReport {
     pub report_time: u128,
     pub status_detail: String,
     pub report_type: String,
-
     pub request_rate: f32,
     pub transfer_rate: f32,
     pub histogram_90: f32,
@@ -134,6 +181,7 @@ pub struct StoreReport {
     pub histogram_99: f32,
     pub stdev_latency: f32,
     pub max_latency: f32,
+    pub error_code: ReportErrorCodeInteger,
 }
 
 impl StoreReport {
@@ -172,6 +220,11 @@ impl StoreReport {
             JudgmentsResult::Failed(reasons) => {
                 self.is_data_correct = false;
                 self.status_detail = reasons.to_string();
+                self.error_code = reasons
+                    .inner
+                    .first()
+                    .map(|reason| reason.error_code as ReportErrorCodeInteger)
+                    .unwrap_or_default();
             }
             JudgmentsResult::Unfinished => {
                 self.is_data_correct = false;
