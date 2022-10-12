@@ -3,7 +3,7 @@
   "active": true,
   "url_template": "{{ws_scheme}}://{{provider.ip}}/",
   "phases": ["*"],
-  "provider_types": ["*"],
+  "provider_types": ["node"],
   "blockchains": ["*"],
   "networks": ["*"],
   "request_timeout": 3000,

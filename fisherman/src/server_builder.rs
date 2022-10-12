@@ -263,7 +263,7 @@ impl WebServerBuilder {
         self
     }
     pub fn with_worker_state(mut self, worker_state: WorkerState) -> Self {
-        self.worker_state = Arc::new(Mutex::new(worker_state));
+        self.worker_state = worker_state;
         self
     }
 

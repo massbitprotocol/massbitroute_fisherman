@@ -1,6 +1,7 @@
 use anyhow::Error;
 use bytesize::ByteSize;
 
+use log::info;
 use std::collections::HashMap;
 use std::process::Command;
 use std::time::Duration;
@@ -49,7 +50,7 @@ impl WrkBenchmark {
             cmd = cmd.arg("-H").arg(format!("{}: {}", key, value));
         }
 
-        let output = cmd
+        let cmd = cmd
             .arg(format!("-t{}", thread))
             .arg(format!("-c{}", connection))
             .arg(format!("-d{}", duration))
@@ -61,9 +62,9 @@ impl WrkBenchmark {
             .arg("--method")
             .arg(&method.to_uppercase())
             .arg("--body")
-            .arg(body.unwrap_or_default())
-            .output()
-            .expect("failed to execute process");
+            .arg(body.unwrap_or_default());
+        info!("Execute benchmark command {:?}", cmd);
+        let output = cmd.output().expect("failed to execute process");
         let status = output.status;
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
