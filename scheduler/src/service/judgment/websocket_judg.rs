@@ -4,6 +4,7 @@ use crate::service::judgment::{JudgmentsResult, ReportCheck};
 use std::path::Path;
 
 use crate::models::job_result_cache::TaskName;
+use crate::service::report_portal::ReportErrorCode;
 use crate::CONFIG_WEBSOCKET_DIR;
 use async_trait::async_trait;
 use common::job_manage::{JobResultDetail, JobRole};
@@ -49,6 +50,9 @@ impl ReportCheck for WebsocketJudgment {
     fn get_name(&self) -> String {
         String::from("Websocket")
     }
+    fn get_error_code(&self) -> ReportErrorCode {
+        ReportErrorCode::WebsocketCallFailed
+    }
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         return task.task_type.as_str() == "Websocket";
     }
@@ -69,7 +73,11 @@ impl ReportCheck for WebsocketJudgment {
                 "Error: Cannot load config from {:?} for {:?}",
                 self._job_configs, &first_result.job_name
             );
-            return Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason));
+            return Ok(JudgmentsResult::new_failed(
+                self.get_name(),
+                failed_reason,
+                ReportErrorCode::WebsocketJudgementFailed,
+            ));
         }
         let config = config.unwrap();
 
@@ -90,7 +98,11 @@ impl ReportCheck for WebsocketJudgment {
                             let failed_reason =
                                 format!("Response do not contain: {} in: {:?}", key, value);
 
-                            return Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason));
+                            return Ok(JudgmentsResult::new_failed(
+                                self.get_name(),
+                                failed_reason,
+                                ReportErrorCode::WebsocketCallFailed,
+                            ));
                         }
                     }
 
@@ -100,21 +112,33 @@ impl ReportCheck for WebsocketJudgment {
                         "Error: Result detail is not a hashmap, result_detail: {:?}",
                         first_result.result_detail
                     );
-                    Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+                    Ok(JudgmentsResult::new_failed(
+                        self.get_name(),
+                        failed_reason,
+                        ReportErrorCode::WebsocketCallFailed,
+                    ))
                 }
             } else {
                 let failed_reason = format!(
                     "error_code: {}, message: {}",
                     web_socket_result.error_code, web_socket_result.message
                 );
-                Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+                Ok(JudgmentsResult::new_failed(
+                    self.get_name(),
+                    failed_reason,
+                    ReportErrorCode::WebsocketCallFailed,
+                ))
             }
         } else {
             let failed_reason = format!(
                 "Result type should be Websocket instead {:?}",
                 first_result.result_detail
             );
-            Ok(JudgmentsResult::new_failed(self.get_name(), failed_reason))
+            Ok(JudgmentsResult::new_failed(
+                self.get_name(),
+                failed_reason,
+                ReportErrorCode::WebsocketJudgementFailed,
+            ))
         }
     }
 }
