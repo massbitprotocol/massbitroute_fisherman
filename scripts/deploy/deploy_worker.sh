@@ -18,13 +18,17 @@ do
   echo "Update bin file in zone $ZN"
   strip ../../target/release/fisherman
   rsync -avz ../../target/release/fisherman "worker-demo-$ZN:~/fisherman/fisherman"
-  rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
-  rsync -avz ../../.env_fisherman "worker-demo-$ZN:~/fisherman/.env_fisherman"
-  rsync -avz ../../common/configs/common.json "worker-demo-$ZN:~/fisherman/common.json"
-  rsync -avz ../../fisherman/configs/log.yaml "worker-demo-$ZN:~/fisherman/log.yaml"
+  # rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
+  # rsync -avz ../../.env_fisherman "worker-demo-$ZN:~/fisherman/.env_fisherman"
+  # rsync -avz ../../common/configs/common.json "worker-demo-$ZN:~/fisherman/common.json"
+  # rsync -avz ../../fisherman/configs/log.yaml "worker-demo-$ZN:~/fisherman/log.yaml"
+  rsync -avz ../../dockerize/worker_config/benchmark "worker-demo-$ZN:~/fisherman/benchmark"
+  rsync -avz ../../dockerize/worker_config/configs.production "worker-demo-$ZN:~/fisherman/configs.production"
+  rsync -avz ../../dockerize/worker_config/fisherman_worker.conf "worker-demo-$ZN:~/fisherman/fisherman_worker.conf"
+  rsync -avz ../../dockerize/worker_config/.env.production "worker-demo-$ZN:~/fisherman/.env.production"
 
   # Create run script
-  cat run_worker.sh | sed "s/{{ZONE}}/$ZN/g" > _run_worker_"$ZN".sh
+  cat ../../dockerize/run_worker.sh | sed "s/{{ZONE}}/$ZN/g" > _run_worker_"$ZN".sh
   # Copy run script
   rsync -avz ./_run_worker_"$ZN".sh "worker-demo-$ZN:~/fisherman/run.sh"
   # Remove template
