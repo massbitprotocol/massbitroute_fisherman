@@ -13,18 +13,23 @@ fi
 for ZN in "${ZONES[@]}"
 do
   echo "Create fisherman folder $ZN"
-  ssh "worker-demo-$ZN" "mkdir fisherman"
+  ssh "worker-demo-$ZN" "rm ~/fisherman -rf"
+  ssh "worker-demo-$ZN" "mkdir ~/fisherman"
 
   echo "Update bin file in zone $ZN"
   strip ../../target/release/fisherman
   rsync -avz ../../target/release/fisherman "worker-demo-$ZN:~/fisherman/fisherman"
+  # rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
+  # rsync -avz ../../.env_fisherman "worker-demo-$ZN:~/fisherman/.env_fisherman"
+  # rsync -avz ../../common/configs/common.json "worker-demo-$ZN:~/fisherman/common.json"
+  # rsync -avz ../../fisherman/configs/log.yaml "worker-demo-$ZN:~/fisherman/log.yaml"
   rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
-  rsync -avz ../../.env_fisherman "worker-demo-$ZN:~/fisherman/.env_fisherman"
-  rsync -avz ../../common/configs/common.json "worker-demo-$ZN:~/fisherman/common.json"
-  rsync -avz ../../fisherman/configs/log.yaml "worker-demo-$ZN:~/fisherman/log.yaml"
+  rsync -avz ../../dockerize/worker_config/configs.production "worker-demo-$ZN:~/fisherman/"
+  rsync -avz ./fisherman.conf "worker-demo-$ZN:~/fisherman/fisherman.conf"
+  rsync -avz ../../dockerize/worker_config/.env.deploy "worker-demo-$ZN:~/fisherman/.env"
 
   # Create run script
-  cat run_worker.sh | sed "s/{{ZONE}}/$ZN/g" > _run_worker_"$ZN".sh
+  cat ./run_worker.sh | sed "s/{{ZONE}}/$ZN/g" > _run_worker_"$ZN".sh
   # Copy run script
   rsync -avz ./_run_worker_"$ZN".sh "worker-demo-$ZN:~/fisherman/run.sh"
   # Remove template

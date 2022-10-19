@@ -2,7 +2,7 @@ use crate::persistence::ProviderMapModel;
 use common::component::ComponentInfo;
 use common::workers::{MatchedWorkers, Worker, WorkerInfo};
 use common::{ComponentId, WorkerId};
-use log::info;
+use log::{debug, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -120,11 +120,16 @@ impl WorkerInfoStorage {
             let d2 = distances.get(&b.worker_info.worker_id).unwrap();
             d1.partial_cmp(d2).unwrap()
         });
-        Ok(MatchedWorkers {
+        let matched_workers = MatchedWorkers {
             provider: provider.clone(),
             nearby_workers,
             measured_workers,
             remain_workers,
-        })
+        };
+        debug!(
+            "matched workers for provider {:?} {:?}",
+            provider, &matched_workers
+        );
+        Ok(matched_workers)
     }
 }

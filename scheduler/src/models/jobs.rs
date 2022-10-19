@@ -24,7 +24,12 @@ impl JobAssignmentBuffer {
         assignment_config: &Option<AssignmentConfig>,
     ) {
         //Do assignment
-        log::debug!("Assign job {:?} to workers {:?}", &job, workers);
+        log::debug!(
+            "Assign job {:?} to workers {:?} with config {:?}",
+            &job,
+            workers,
+            assignment_config
+        );
         let mut rng = rand::thread_rng();
         match assignment_config {
             None => {
@@ -64,6 +69,10 @@ impl JobAssignmentBuffer {
         workers: &MatchedWorkers,
         config: &AssignmentConfig,
     ) {
+        debug!(
+            "assign_job_with_config {:?} with config {:?} to workers {:?}",
+            job, config, workers
+        );
         let mut rng = rand::thread_rng();
         if let Some(true) = config.broadcast {
             for worker in workers.measured_workers.iter() {
@@ -87,6 +96,10 @@ impl JobAssignmentBuffer {
             }
         } else if let Some(val) = config.worker_number {
             if let Some(true) = config.nearby_only {
+                debug!(
+                    "assign_job_with_config for job {:?} to {} of workers {:?}",
+                    job, val, workers.nearby_workers
+                );
                 if !workers.nearby_workers.is_empty() {
                     for _i in 0..val {
                         let ind = rng.gen_range(0..workers.nearby_workers.len());

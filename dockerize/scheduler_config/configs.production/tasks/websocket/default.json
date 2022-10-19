@@ -3,7 +3,7 @@
   "active": true,
   "url_template": "{{ws_scheme}}://{{provider.ip}}/",
   "phases": ["*"],
-  "provider_types": ["*"],
+  "provider_types": ["node"],
   "blockchains": ["*"],
   "networks": ["*"],
   "request_timeout": 3000,
@@ -21,7 +21,7 @@
   "assignment": {
     "broadcast": false,
     "worker_number": 1,
-    "nearby_only": false,
+    "nearby_only": true,
     "by_distance": false
   },
   "thresholds": {
