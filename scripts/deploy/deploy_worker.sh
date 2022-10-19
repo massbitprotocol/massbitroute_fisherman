@@ -23,8 +23,8 @@ do
   # rsync -avz ../../.env_fisherman "worker-demo-$ZN:~/fisherman/.env_fisherman"
   # rsync -avz ../../common/configs/common.json "worker-demo-$ZN:~/fisherman/common.json"
   # rsync -avz ../../fisherman/configs/log.yaml "worker-demo-$ZN:~/fisherman/log.yaml"
-  rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/benchmark"
-  rsync -avz ../../dockerize/worker_config/configs.production "worker-demo-$ZN:~/fisherman/configs"
+  rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
+  rsync -avz ../../dockerize/worker_config/configs.production "worker-demo-$ZN:~/fisherman/"
   rsync -avz ./fisherman.conf "worker-demo-$ZN:~/fisherman/fisherman.conf"
   rsync -avz ../../dockerize/worker_config/.env.deploy "worker-demo-$ZN:~/fisherman/.env"
 
