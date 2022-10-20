@@ -53,6 +53,12 @@ impl JudRoundTripTimeDatas {
         let success_count = self.iter().filter(|&data| data.success).count() as f64;
         success_count * 100.0 / (self.len() as f64)
     }
+    fn get_response_messages(&self) -> String {
+        self.iter()
+            .map(|data| data.response_message.clone())
+            .collect::<Vec<String>>()
+            .join(",")
+    }
 }
 
 impl Deref for JudRoundTripTimeDatas {
@@ -73,14 +79,16 @@ pub struct JudRoundTripTimeData {
     response_duration: Timestamp,
     _receive_timestamp: Timestamp,
     success: bool,
+    response_message: String,
 }
 
 impl JudRoundTripTimeData {
-    fn new_false(receive_time: Timestamp) -> Self {
+    fn new(receive_time: Timestamp) -> Self {
         JudRoundTripTimeData {
             _receive_timestamp: receive_time,
             success: false,
-            response_duration: Default::default(),
+            response_duration: Timestamp::default(),
+            response_message: String::default(),
         }
     }
 }
@@ -95,18 +103,14 @@ impl HttpPingResultCache {
         for res in results.iter() {
             if let JobResultDetail::HttpRequest(JobHttpResult { response, .. }) = &res.result_detail
             {
-                let mut data = JudRoundTripTimeData::new_false(res.receive_timestamp);
+                let mut data = JudRoundTripTimeData::new(res.receive_timestamp);
                 trace!("append_results response: {:?}", response);
                 if let JobHttpResponseDetail::Body(val) = &response.detail {
                     if let Ok(response_duration) = val.parse::<Timestamp>() {
                         // Change unit of RTT response from us -> ms
-                        let response_duration = response_duration / 1000;
-
-                        data = JudRoundTripTimeData {
-                            response_duration,
-                            _receive_timestamp: res.receive_timestamp,
-                            success: true,
-                        };
+                        data.response_duration = response_duration / 1000;
+                        data.success = true;
+                        data.response_message = response.message.clone();
                     }
                 };
                 res_times.push(data);
@@ -135,7 +139,12 @@ impl HttpPingJudgment {
         // let path = format!("{}/http_request", config_dir);
         let path = Path::new(config_dir).join(&*CONFIG_HTTP_REQUEST_DIR);
         //let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
-        let task_configs = HttpRequestJobConfig::read_configs(&path, phase);
+        let task_configs = HttpRequestJobConfig::read_configs(&path, phase)
+            .into_iter()
+            .filter(|config| {
+                config.name.as_str() == "RoundTripTime" || config.name.as_str() == "Ping"
+            })
+            .collect::<Vec<HttpRequestJobConfig>>();
         HttpPingJudgment {
             task_configs,
             _result_service: result_service,
@@ -149,12 +158,8 @@ impl HttpPingJudgment {
         );
         self.task_configs
             .iter()
-            .filter(|config| {
-                config.match_phase(phase)
-                    && (config.name.as_str() == "RoundTripTime" || config.name.as_str() == "Ping")
-            })
-            .map(|config| config.clone())
-            .collect::<Vec<HttpRequestJobConfig>>()
+            .filter(|config| config.match_phase(phase))
+            .collect::<Vec<&HttpRequestJobConfig>>()
             .get(0)
             .map(|config| config.thresholds.clone())
             .unwrap_or_default()
@@ -218,8 +223,9 @@ impl ReportCheck for HttpPingJudgment {
             Ok(JudgmentsResult::Unfinished)
         } else if response_durations.get_success_percent() < success_percent_threshold as f64 {
             let failed_reason = format!(
-                "Success percent {} < {success_percent_threshold}",
-                response_durations.get_success_percent()
+                "Success percent {} < {success_percent_threshold}. Detail messages {}",
+                response_durations.get_success_percent(),
+                response_durations.get_response_messages()
             );
             Ok(JudgmentsResult::new_failed(
                 self.get_name(),

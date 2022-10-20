@@ -150,7 +150,6 @@ impl HttpRequestExecutor {
 #[async_trait]
 impl TaskExecutor for HttpRequestExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
-        trace!("HttpRequestExecutor execute job {:?}", &job);
         let res = self.call_http_request(job).await;
         let response = match res {
             Ok(res) => res,
@@ -163,7 +162,10 @@ impl TaskExecutor for HttpRequestExecutor {
                 //err.into()
             }
         };
-        trace!("Http request result {:?}", &response);
+        debug!(
+            "HttpRequestExecutor execute job {:?} with response {:?}",
+            &job, &response
+        );
         let result = JobHttpResult {
             job: job.clone(),
             //response_timestamp: get_current_time(),

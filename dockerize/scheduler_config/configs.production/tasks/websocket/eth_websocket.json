@@ -1,7 +1,7 @@
 {
   "name": "EthWebsocket",
   "blockchains": ["eth","bsc","matic"],
-  "provider_types": ["*"],
+  "provider_types": ["node"],
   "body": {
     "jsonrpc": "2.0",
     "method": "eth_getBlockByNumber",

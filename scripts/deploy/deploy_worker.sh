@@ -10,14 +10,14 @@ else
     ZONES=( "$1" )
 fi
 
+strip ../../target/release/fisherman
 for ZN in "${ZONES[@]}"
 do
   echo "Create fisherman folder $ZN"
-  ssh "worker-demo-$ZN" "rm ~/fisherman -rf"
-  ssh "worker-demo-$ZN" "mkdir ~/fisherman"
+  #ssh "worker-demo-$ZN" "rm ~/fisherman -rf"
+  ssh "worker-demo-$ZN" "mkdir -p ~/fisherman"
 
   echo "Update bin file in zone $ZN"
-  strip ../../target/release/fisherman
   rsync -avz ../../target/release/fisherman "worker-demo-$ZN:~/fisherman/fisherman"
   # rsync -avz ../benchmark "worker-demo-$ZN:~/fisherman/"
   # rsync -avz ../../.env_fisherman "worker-demo-$ZN:~/fisherman/.env_fisherman"
