@@ -28,7 +28,6 @@ impl JobResultReporter {
             }
             if !results.is_empty() {
                 let now = Instant::now();
-                info!("Sending {} results.", results.len());
                 let res = self.send_results(results).await;
                 info!(
                     "Finished sending results in {:.2?} with res: {:?}",
@@ -48,7 +47,6 @@ impl JobResultReporter {
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         let body = serde_json::to_string(&results)?;
         trace!("Body content: {}", body);
-        info!("sending body len: {}", body.len());
         let result = client
             .post(call_back)
             .header("content-type", "application/json")

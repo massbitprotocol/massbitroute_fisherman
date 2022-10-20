@@ -15,7 +15,7 @@ use common::workers::{WorkerStateParam, WorkerStatus};
 use common::{JobId, PlanId};
 use serde_json::json;
 use std::default::Default;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::RwLock;
 use warp::{http::StatusCode, Filter, Rejection, Reply};
 
 pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
@@ -24,14 +24,14 @@ pub const MAX_JSON_BODY_SIZE: u64 = 1024 * 1024;
 pub struct WebServerBuilder {
     entry_point: String,
     access_control: AccessControl,
-    worker_state: Arc<Mutex<WorkerState>>,
+    worker_state: Arc<WorkerState>,
 }
 
 pub struct WorkerServer {
     entry_point: String,
     access_control: AccessControl,
     pub web_service: Arc<WebService>,
-    worker_state: Arc<Mutex<WorkerState>>,
+    worker_state: Arc<WorkerState>,
     worker_status: Arc<RwLock<WorkerStatus>>,
 }
 
@@ -146,7 +146,7 @@ impl WorkerServer {
     fn create_route_handle_jobs(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<WorkerState>>,
+        state: Arc<WorkerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("handle_jobs")
             .and(WorkerServer::log_headers())
@@ -166,7 +166,7 @@ impl WorkerServer {
     fn create_route_cancel_jobs(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<WorkerState>>,
+        state: Arc<WorkerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("cancel_jobs")
             .and(WorkerServer::log_headers())
@@ -187,7 +187,7 @@ impl WorkerServer {
     fn create_route_cancel_plans(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<WorkerState>>,
+        state: Arc<WorkerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("cancel_plans")
             .and(WorkerServer::log_headers())
@@ -207,7 +207,7 @@ impl WorkerServer {
     fn create_route_update_jobs(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<WorkerState>>,
+        state: Arc<WorkerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("jobs_update")
             .and(WorkerServer::log_headers())
@@ -223,7 +223,7 @@ impl WorkerServer {
     fn create_route_get_state(
         &self,
         service: Arc<WebService>,
-        state: Arc<Mutex<WorkerState>>,
+        state: Arc<WorkerState>,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
         warp::path!("get_state")
             .and(WorkerServer::log_headers())
@@ -263,7 +263,7 @@ impl WebServerBuilder {
         self
     }
     pub fn with_worker_state(mut self, worker_state: WorkerState) -> Self {
-        self.worker_state = worker_state;
+        self.worker_state = Arc::new(worker_state);
         self
     }
 
@@ -316,7 +316,10 @@ mod tests {
 
     use std::time::Duration;
     use test_util::helper::load_env;
+    use tokio::sync::mpsc::{channel, Receiver, Sender};
 
+    use crate::services::service_status::WorkerStatusCheck;
+    use common::jobs::JobResult;
     use tokio::time::sleep;
 
     #[tokio::test]
@@ -334,15 +337,18 @@ mod tests {
             "Successfully register worker {}, report_callback: {}",
             &worker_id, report_callback
         );
+        let (sender, receiver): (Sender<JobResult>, Receiver<JobResult>) = channel(1024);
         let job_buffer = Arc::new(Mutex::new(JobBuffer::new()));
         let service = WebServiceBuilder::new().build();
+        let worker_status_check = WorkerStatusCheck::new(sender, job_buffer.clone());
+        let worker_status = worker_status_check.get_status();
         let access_control = AccessControl::default();
         // Create job process thread
         let server = WebServerBuilder::default()
             .with_entry_point(socket_addr.as_str())
             .with_access_control(access_control)
             .with_worker_state(WorkerState::new(job_buffer.clone()))
-            .build(service);
+            .build(service, worker_status);
         info!("Start fisherman service ");
 
         task_spawn::spawn(async move {

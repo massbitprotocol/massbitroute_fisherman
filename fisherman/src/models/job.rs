@@ -2,7 +2,7 @@ use common::jobs::Job;
 use common::util::get_current_time;
 
 use common::{JobId, PlanId};
-use log::{debug, info, trace};
+use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::ops::{Deref, DerefMut};
@@ -65,29 +65,28 @@ impl JobBuffer {
         self.jobs.len()
     }
 
-    pub fn cancel_jobs(&mut self, jobs: Vec<JobId>) -> usize {
-        let start_len = self.jobs.len();
-        info!("Remove jobs: {jobs:?} in {:?}", self.jobs);
+    pub fn cancel_jobs(&mut self, jobs: &Vec<JobId>) -> usize {
+        trace!("Remove jobs: {jobs:?} in {:?}", self.jobs);
         self.jobs.retain(|job| !jobs.contains(&job.job_id));
-        start_len - self.jobs.len()
+        self.jobs.len()
     }
 
-    pub fn cancel_plans(&mut self, plans: Vec<PlanId>) -> usize {
+    pub fn cancel_plans(&mut self, plans: &Vec<PlanId>) -> usize {
         let start_len = self.jobs.len();
-        info!("Remove plans: {plans:?} in {:?}", self.jobs);
+        trace!("Remove plans: {plans:?} in {:?}", self.jobs);
         self.jobs.retain(|job| !plans.contains(&job.plan_id));
         start_len - self.jobs.len()
     }
 
     pub fn pop_job(&mut self) -> Option<Job> {
         trace!("Jobs in queue {}", self.jobs.len());
-        let first_expected_time = self.jobs.front().and_then(|job| {
+        let first_expected_time = self.jobs.front().map(|job| {
             log::trace!(
                 "Found new job with expected runtime {}: {:?}",
                 &job.expected_runtime,
                 job
             );
-            Some(job.expected_runtime)
+            job.expected_runtime
         });
         if let Some(expected_time) = first_expected_time {
             let current_time = get_current_time();
@@ -103,7 +102,7 @@ impl JobBuffer {
                     let mut next_job = inner.clone();
                     if inner.repeat_number > 0 {
                         next_job.expected_runtime = current_time + inner.interval;
-                        next_job.repeat_number = next_job.repeat_number - 1;
+                        next_job.repeat_number -= 1;
                         trace!("Schedule new repeat job: {:?}", &next_job);
                         self.add_job(next_job);
                     }
