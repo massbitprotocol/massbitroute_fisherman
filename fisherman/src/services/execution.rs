@@ -64,7 +64,7 @@ impl JobExecution {
                         let counter = self.thread_counter.clone();
                         counter.fetch_add(1, Ordering::SeqCst);
                         rt_handle.spawn(async move {
-                            trace!("Execute job on a worker thread: {:?}", clone_job);
+                            debug!("Execute job on a worker thread: {:?}", clone_job);
                             let res = clone_executor.execute(&clone_job, result_sender).await;
                             warning_if_error("executor.execute return error", res);
                             //Fixme: Program will hang if it panic before fetch_sub is executed.
@@ -82,7 +82,7 @@ impl JobExecution {
                             continue;
                         }
                         let result_sender = self.result_sender.clone();
-                        trace!("Execute job on main execution thread");
+                        debug!("Execute job {:?} on main execution thread", &next_job);
                         match executor.execute(&next_job, result_sender).await {
                             Ok(_) => {}
                             Err(err) => {
