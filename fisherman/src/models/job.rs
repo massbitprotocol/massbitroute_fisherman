@@ -4,7 +4,7 @@ use common::util::get_current_time;
 use common::{JobId, PlanId};
 use log::{debug, trace};
 use serde::{Deserialize, Serialize};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, DerefMut};
 
 #[derive(Clone, Debug, Deserialize, Serialize, Default)]
@@ -116,6 +116,15 @@ impl JobBuffer {
             //log::trace!("Job queue is empty");
             None
         }
+    }
+    pub fn statistic_jobs(&self) -> HashMap<String, Vec<String>> {
+        let mut result = HashMap::default();
+        let _ = self.jobs.iter().map(|job| {
+            let key = format!("{}_{}", job.job_type, job.job_name);
+            let values = result.entry(key).or_insert_with(Vec::new);
+            values.push(job.job_id.clone());
+        });
+        result
     }
 }
 

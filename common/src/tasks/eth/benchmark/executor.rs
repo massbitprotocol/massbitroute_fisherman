@@ -12,6 +12,7 @@ use async_trait::async_trait;
 use bytesize::ByteSize;
 use log::debug;
 use regex::Regex;
+use reqwest::Client;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::time::Duration;
@@ -24,6 +25,7 @@ const WRK_NAME: &str = "./wrk";
 pub struct BenchmarkExecutor {
     worker_id: WorkerId,
     benchmark_wrk_path: String,
+    http_client: Client,
 }
 
 pub struct DetailedPercentileSpectrum {
@@ -50,7 +52,37 @@ impl BenchmarkExecutor {
         BenchmarkExecutor {
             worker_id,
             benchmark_wrk_path: benchmark_wrk_path.to_string(),
+            http_client: reqwest::Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .unwrap(),
         }
+    }
+    pub async fn check_http_request(&self, job_detail: &JobBenchmark) -> Result<bool, Error> {
+        let mut req_builder = match job_detail.method.to_lowercase().as_str() {
+            "post" => self.http_client.post(job_detail.url_path.as_str()),
+            "put" => self.http_client.put(job_detail.url_path.as_str()),
+            "patch" => self.http_client.patch(job_detail.url_path.as_str()),
+            "get" => self.http_client.get(job_detail.url_path.as_str()),
+            _ => return Err(Error::msg("Method invalid".to_string())),
+        };
+        req_builder = req_builder.timeout(Duration::from_millis(job_detail.timeout as u64));
+        // Add header
+        for (key, value) in job_detail.headers.iter() {
+            req_builder = req_builder.header(key, value);
+        }
+        log::trace!("Request header {:?}", &job_detail.headers);
+        //Body
+        if let Some(body) = &job_detail.body {
+            let req_body = body.clone().to_string();
+            log::trace!("Request body {:?}", &req_body);
+            req_builder = req_builder.body(req_body);
+        }
+        req_builder
+            .send()
+            .await
+            .map(|_res| true)
+            .map_err(|err| Error::msg(format!("{}", err)))
     }
     pub async fn call_benchmark(&self, job: &Job) -> Result<BenchmarkResponse, CallBenchmarkError> {
         let Job { job_detail, .. } = job;
@@ -122,7 +154,7 @@ impl BenchmarkExecutor {
         latency
     }
 
-    fn get_result(&self, stdout: &str, histograms: &Vec<u32>) -> Result<BenchmarkResponse, Error> {
+    fn get_result(&self, stdout: &str, histograms: &[u32]) -> Result<BenchmarkResponse, Error> {
         //info!("{}", stdout);
         // Get percent_low_latency
         let sorted_table = Self::get_latency_table(stdout)?;
@@ -150,7 +182,7 @@ impl BenchmarkExecutor {
         // Get Requests/sec, Transfer/sec
         let transfer_rate = caps.name("transfer_rate").unwrap().as_str();
         debug!("tran_per_sec:{}", transfer_rate);
-        let transfer_rate = ByteSize::from_str(&transfer_rate).unwrap();
+        let transfer_rate = ByteSize::from_str(transfer_rate).unwrap();
 
         // Get Requests/sec, Transfer/sec
         let re = Regex::new(
@@ -229,30 +261,36 @@ impl TaskExecutor for BenchmarkExecutor {
     async fn execute(&self, job: &Job, result_sender: Sender<JobResult>) -> Result<(), Error> {
         debug!("TaskBenchmark execute for job {:?}", &job);
         if let JobDetail::Benchmark(job_detail) = &job.job_detail {
-            let res = self.call_benchmark(job).await;
-            let response = match res {
-                Ok(res) => res,
-                Err(err) => err.into(),
-            };
-            let current_time = get_current_time();
-            debug!("Benchmark result {:?}", &response);
-            // Send result
-            let result = JobBenchmarkResult {
-                job: job.clone(),
-                worker_id: self.worker_id.clone(),
-                response_timestamp: current_time,
-                response,
-            };
-            let chain_info = ChainInfo::new(job_detail.chain_type.clone(), NetworkType::default());
-            let res = result_sender
-                .send(JobResult::new(
-                    JobResultDetail::Benchmark(result),
-                    Some(chain_info),
-                    job,
-                ))
-                .await;
-            debug!("send res: {:?}", res);
-            Ok(())
+            match self.check_http_request(job_detail).await {
+                Ok(_) => {
+                    let res = self.call_benchmark(job).await;
+                    let response = match res {
+                        Ok(res) => res,
+                        Err(err) => err.into(),
+                    };
+                    let current_time = get_current_time();
+                    debug!("Benchmark result {:?}", &response);
+                    // Send result
+                    let result = JobBenchmarkResult {
+                        job: job.clone(),
+                        worker_id: self.worker_id.clone(),
+                        response_timestamp: current_time,
+                        response,
+                    };
+                    let chain_info =
+                        ChainInfo::new(job_detail.chain_type.clone(), NetworkType::default());
+                    let res = result_sender
+                        .send(JobResult::new(
+                            JobResultDetail::Benchmark(result),
+                            Some(chain_info),
+                            job,
+                        ))
+                        .await;
+                    debug!("send res: {:?}", res);
+                    Ok(())
+                }
+                Err(err) => Err(err),
+            }
         } else {
             Err(Error::msg("Execute wrong job type"))
         }
