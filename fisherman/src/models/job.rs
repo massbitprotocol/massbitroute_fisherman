@@ -119,7 +119,7 @@ impl JobBuffer {
     }
     pub fn statistic_jobs(&self) -> HashMap<String, Vec<String>> {
         let mut result = HashMap::default();
-        let _ = self.jobs.iter().map(|job| {
+        self.jobs.iter().for_each(|job| {
             let key = format!("{}_{}", job.job_type, job.job_name);
             let values = result.entry(key).or_insert_with(Vec::new);
             values.push(job.job_id.clone());
