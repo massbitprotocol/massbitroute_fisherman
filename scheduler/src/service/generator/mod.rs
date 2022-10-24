@@ -131,7 +131,6 @@ impl JobGenerator {
         let regular_task = task_spawn::spawn(async move {
             info!("Run Regular task");
             loop {
-                info!("Start generate_regular_jobs");
                 let res = regular.generate_regular_jobs().await;
                 info!("generate_regular_jobs result: {:?} ", res);
                 sleep(Duration::from_secs(

@@ -30,7 +30,7 @@ impl WorkerStatusCheck {
         loop {
             // Update status
             self.update_status().await;
-            sleep(Duration::from_micros(COMMON_CONFIG.update_status_interval)).await;
+            sleep(Duration::from_millis(COMMON_CONFIG.update_status_interval)).await;
         }
     }
     async fn update_status(&self) {

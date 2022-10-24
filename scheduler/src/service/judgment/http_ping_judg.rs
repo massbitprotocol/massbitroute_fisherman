@@ -103,6 +103,7 @@ impl HttpPingResultCache {
         for res in results.iter() {
             if let JobResultDetail::HttpRequest(JobHttpResult { response, .. }) = &res.result_detail
             {
+                //Default success if false
                 let mut data = JudRoundTripTimeData::new(res.receive_timestamp);
                 trace!("append_results response: {:?}", response);
                 if let JobHttpResponseDetail::Body(val) = &response.detail {

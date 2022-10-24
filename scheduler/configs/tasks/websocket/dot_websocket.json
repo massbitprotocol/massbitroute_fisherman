@@ -1,7 +1,6 @@
 {
   "name": "DotWebsocket",
   "blockchains": ["dot"],
-  "provider_types": ["*"],
   "body": {
     "jsonrpc": "2.0",
     "method": "chain_getBlock",
