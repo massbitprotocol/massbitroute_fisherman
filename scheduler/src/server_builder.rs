@@ -2,7 +2,6 @@ use crate::server_config::AccessControl;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 
-use anyhow::{anyhow, Error};
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -345,14 +344,12 @@ mod tests {
     use crate::service::{ProcessorServiceBuilder, SchedulerServiceBuilder};
 
     use anyhow::Error;
-    use common::logger::init_logger;
     use common::task_spawn;
     use reqwest::Client;
-    use sea_orm::{entity::prelude::*, DatabaseBackend, MockDatabase};
+    use sea_orm::{DatabaseBackend, MockDatabase};
     use std::env;
 
     use crate::models::job_result_cache::JobResultCache;
-    use futures_util::AsyncBufReadExt;
     use serde_json::json;
     use std::time::Duration;
     use test_util::helper::{load_env, mock_db_connection};

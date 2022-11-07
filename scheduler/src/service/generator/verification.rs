@@ -198,7 +198,7 @@ impl VerificationJobGenerator {
         assignment_buffer: &mut JobAssignmentBuffer,
     ) -> WaitingProviderPlanTask {
         let provider_plan = plan_task.provider_plan.clone();
-        let mut waiting_task = WaitingProviderPlanTask::new(provider_plan.clone());
+        let waiting_task = WaitingProviderPlanTask::new(provider_plan.clone());
         for task in plan_task.tasks.iter() {
             if !task.can_apply(&provider_plan.provider) {
                 log::debug!(
