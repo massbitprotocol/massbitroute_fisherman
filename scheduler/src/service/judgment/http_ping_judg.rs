@@ -55,6 +55,7 @@ impl JudRoundTripTimeDatas {
     }
     fn get_response_messages(&self) -> String {
         self.iter()
+            .filter(|data| data.response_message.len() > 0)
             .map(|data| data.response_message.clone())
             .collect::<Vec<String>>()
             .join(",")
