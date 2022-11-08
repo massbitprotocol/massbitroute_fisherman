@@ -46,7 +46,7 @@ impl LatestJudgmentCache {
     }
     pub fn get_value(&self, key: &JudgmentKey) -> Option<JudgmentsResult> {
         let values = self.values.lock().unwrap();
-        values.get(key).map(|r| r.clone())
+        values.get(key).cloned()
     }
 }
 
@@ -61,7 +61,7 @@ impl MainJudgment {
     }
     pub fn put_judgment_result(&self, plan: &PlanEntity, job_id: JobId, result: JudgmentsResult) {
         self.judgment_result_cache
-            .insert_value(plan.plan_id.clone(), job_id.clone(), result);
+            .insert_value(plan.plan_id.clone(), job_id, result);
     }
     pub fn get_latest_judgment(
         &self,
@@ -69,9 +69,7 @@ impl MainJudgment {
         job_id: &JobId,
     ) -> Option<JudgmentsResult> {
         let key = JudgmentKey::new(plan.plan_id.clone(), job_id.clone());
-        self.judgment_result_cache
-            .get_value(&key)
-            .map(|r| r.clone())
+        self.judgment_result_cache.get_value(&key)
     }
     /*
      * for each plan, check result of all judgment,
@@ -105,7 +103,7 @@ impl MainJudgment {
         for judgment in self.judgments.iter() {
             if judgment.can_apply_for_result(provider_task) {
                 currentjob_result = judgment
-                    .apply_for_results(provider_task, &results)
+                    .apply_for_results(provider_task, results)
                     .await
                     .unwrap_or(JudgmentsResult::Failed);
                 info!(
@@ -162,7 +160,7 @@ impl MainJudgment {
             .unwrap_or_default();
 
         for judgment in self.judgments.iter() {
-            if !judgment.can_apply_for_result(&provider_task) {
+            if !judgment.can_apply_for_result(provider_task) {
                 continue;
             }
             let res = judgment.apply_for_results(provider_task, results).await;
@@ -191,7 +189,7 @@ impl MainJudgment {
             match judg_result {
                 JudgmentsResult::Failed | JudgmentsResult::Error => {
                     let mut report = StoreReport::build(
-                        &"Scheduler".to_string(),
+                        "Scheduler",
                         &JobRole::Regular,
                         &*PORTAL_AUTHORIZATION,
                         &DOMAIN,

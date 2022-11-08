@@ -29,7 +29,7 @@ impl Default for JobStatus {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, Default, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, Default, Eq, PartialEq)]
 pub struct Job {
     pub job_id: JobId,
     pub job_type: String,

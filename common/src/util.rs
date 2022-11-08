@@ -11,7 +11,7 @@ pub fn get_current_time() -> Timestamp {
         .expect("Unix time doesn't go backwards; qed")
         .as_millis() as Timestamp
 }
-pub fn remove_break_line(input: &String) -> String {
+pub fn remove_break_line(input: &str) -> String {
     match Regex::new(r#"^\s*(?P<result>[\s\S]*?)\s*$"#).map(|regex| {
         let caps = regex.captures(input).unwrap();
         caps.name("result").unwrap().as_str().to_string()
@@ -22,18 +22,24 @@ pub fn remove_break_line(input: &String) -> String {
         }
         Err(err) => {
             debug!("{}", err);
-            input.clone()
+            input.to_owned()
         }
     }
 }
 
 pub fn from_str_radix16(input: &str) -> Result<i64, anyhow::Error> {
-    let result = Regex::new(r#"0x(?P<result>\w+)"#)
+    Regex::new(r#"0x(?P<result>\w+)"#)
         .map_err(|err| anyhow!("{:?}", err))
-        .and_then(|regex| regex.captures(input).ok_or(anyhow!("Capture not found")))
-        .and_then(|caps| caps.name("result").ok_or(anyhow!("Match result not found")))
-        .and_then(|m| i64::from_str_radix(m.as_str(), 16).map_err(|err| anyhow!("{:?}", err)));
-    result
+        .and_then(|regex| {
+            regex
+                .captures(input)
+                .ok_or_else(|| anyhow!("Capture not found"))
+        })
+        .and_then(|caps| {
+            caps.name("result")
+                .ok_or_else(|| anyhow!("Match result not found"))
+        })
+        .and_then(|m| i64::from_str_radix(m.as_str(), 16).map_err(|err| anyhow!("{:?}", err)))
 }
 
 pub fn warning_if_error<T>(message: &str, result: anyhow::Result<T, Error>) {

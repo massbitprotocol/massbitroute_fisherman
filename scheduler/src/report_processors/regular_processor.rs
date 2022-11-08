@@ -67,7 +67,9 @@ impl ReportProcessor for RegularReportProcessor {
                 report.result_detail.get_name(),
                 report.job_name.clone(),
             );
-            let jobs = provider_task_results.entry(key).or_insert(Vec::default());
+            let jobs = provider_task_results
+                .entry(key)
+                .or_insert_with(Vec::default);
             jobs.push(report);
         }
         for (key, results) in provider_task_results {

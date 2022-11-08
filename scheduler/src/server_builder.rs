@@ -46,7 +46,7 @@ pub struct DeployParam {
     pub id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 pub struct SimpleResponse {
     pub success: bool,
 }

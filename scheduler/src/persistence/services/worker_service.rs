@@ -36,8 +36,8 @@ impl WorkerService {
             .await
         {
             Ok(workers) => {
-                if workers.len() > 0 {
-                    workers.get(0).map(|val| WorkerInfo::from(val))
+                if !workers.is_empty() {
+                    workers.get(0).map(WorkerInfo::from)
                 } else {
                     None
                 }

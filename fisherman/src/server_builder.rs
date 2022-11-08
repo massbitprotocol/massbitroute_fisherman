@@ -36,7 +36,7 @@ pub struct DeployParam {
     pub id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Eq, PartialEq)]
 pub struct SimpleResponse {
     success: bool,
 }
@@ -241,7 +241,7 @@ mod tests {
             &worker_id, report_callback
         );
         let job_buffer = Arc::new(Mutex::new(JobBuffer::new()));
-        let service = WebServiceBuilder::new().build();
+        let service = WebServiceBuilder::default().build();
         let access_control = AccessControl::default();
         // Create job process thread
         let server = WebServerBuilder::default()

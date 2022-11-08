@@ -4,7 +4,6 @@ use crate::models::TimeFrames;
 use crate::{ComponentInfo, IPAddress, WorkerId};
 use anyhow::anyhow;
 use rand::Rng;
-use reqwest::Body;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -47,12 +46,13 @@ impl WorkerInfo {
     }
 }
 
+/*
 impl Into<Body> for WorkerInfo {
     fn into(self) -> Body {
         todo!()
     }
 }
-
+*/
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 pub struct WorkerRegisterResult {
     pub worker_id: String,
@@ -162,16 +162,16 @@ pub struct MatchedWorkers {
 
 impl MatchedWorkers {
     pub fn get_nearby_worker(&self, ind: usize) -> Option<Arc<Worker>> {
-        self.nearby_workers.get(ind).map(|arc| arc.clone())
+        self.nearby_workers.get(ind).cloned()
     }
     pub fn get_best_worker(&self, ind: usize) -> Option<Arc<Worker>> {
-        self.measured_workers.get(ind).map(|arc| arc.clone())
+        self.measured_workers.get(ind).cloned()
     }
     pub fn get_random_worker(&self) -> Option<Arc<Worker>> {
-        if self.remain_workers.len() > 0 {
+        if !self.remain_workers.is_empty() {
             let mut rng = rand::thread_rng();
             let ind = rng.gen_range(0..self.remain_workers.len());
-            self.remain_workers.get(ind).map(|val| val.clone())
+            self.remain_workers.get(ind).cloned()
         } else {
             None
         }

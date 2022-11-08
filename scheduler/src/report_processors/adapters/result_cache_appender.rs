@@ -6,7 +6,6 @@ use common::util::get_current_time;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-
 pub struct ResultCacheAppender {
     result_cache: Arc<JobResultCache>,
 }
@@ -19,7 +18,7 @@ impl ResultCacheAppender {
 
 #[async_trait]
 impl Appender for ResultCacheAppender {
-    async fn append_job_results(&self, results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
+    async fn append_job_results(&self, results: &[JobResult]) -> Result<(), anyhow::Error> {
         //log::info!("ResultCacheAppender append results");
         if results.is_empty() {
             return Ok(());
@@ -37,10 +36,10 @@ impl Appender for ResultCacheAppender {
             // Create new entry if need
             let result_by_task = result_cache
                 .entry(component_id.clone())
-                .or_insert(HashMap::new());
+                .or_insert_with(HashMap::new);
             let task_result_cache = result_by_task
                 .entry(task_key)
-                .or_insert(TaskResultCache::new(get_current_time()));
+                .or_insert_with(|| TaskResultCache::new(get_current_time()));
             // Store to cache
             task_result_cache.push_back_cache(result.clone());
         }

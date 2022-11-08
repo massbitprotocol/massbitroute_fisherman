@@ -46,7 +46,7 @@ impl ToString for ChainTypeForTest {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct CountItems<T: Hash + Eq> {
     inner: HashMap<T, u64>,
 }
@@ -81,8 +81,11 @@ impl<T: Hash + Eq + Debug> CountItems<T> {
         res.add_items(items);
         res
     }
+    //pub fn sum_len(&self) -> u64 {
+    //    self.inner.values().into_iter().fold(0, |sum, &x| sum + x)
+    //}
     pub fn sum_len(&self) -> u64 {
-        self.inner.values().into_iter().fold(0, |sum, &x| sum + x)
+        self.inner.values().into_iter().sum()
     }
     pub fn len(&self) -> usize {
         self.inner.len()
@@ -121,7 +124,7 @@ pub fn mock_db_connection() -> DatabaseConnection {
         response_duration: 0,
     };
     let exec_res = MockExecResult {
-        last_insert_id: 1 as u64,
+        last_insert_id: 1_u64,
         rows_affected: 1,
     };
 

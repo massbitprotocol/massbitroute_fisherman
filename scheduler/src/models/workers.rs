@@ -49,12 +49,7 @@ impl WorkerInfoStorage {
 
     pub async fn get_workers(&self) -> Vec<Arc<Worker>> {
         //debug!("Lock and clone all worker refs");
-        self.workers
-            .lock()
-            .await
-            .iter()
-            .map(|worker| worker.clone())
-            .collect()
+        self.workers.lock().await.iter().cloned().collect()
     }
     pub async fn get_provider_distances(
         &self,
@@ -72,7 +67,7 @@ impl WorkerInfoStorage {
             .for_each(|dist| {
                 distances.insert(
                     dist.worker_id.clone(),
-                    dist.ping_response_duration.as_ref().unwrap().clone(),
+                    *dist.ping_response_duration.as_ref().unwrap(),
                 );
             });
         distances
@@ -89,7 +84,7 @@ impl WorkerInfoStorage {
         let nearby_workers = all_workers
             .iter()
             .filter(|worker| worker.worker_info.zone == provider.zone)
-            .map(|worker| worker.clone())
+            .cloned()
             .collect();
         let distances = self.get_provider_distances(provider).await;
         let mut remain_workers = Vec::new();

@@ -100,10 +100,10 @@ impl HttpRequestExecutor {
     async fn parse_response(
         &self,
         response: Response,
-        response_type: &String,
+        response_type: &str,
         values: &HashMap<String, Vec<Value>>,
     ) -> Result<JobHttpResponseDetail, HttpRequestError> {
-        let response_detail = match response_type.as_str() {
+        let response_detail = match response_type {
             "json" => response
                 .text()
                 .await
@@ -138,7 +138,7 @@ impl HttpRequestExecutor {
                 } else if field.is_number() && tmp_value.is_array() {
                     tmp_value = &tmp_value[field.as_u64().unwrap() as usize]
                 }
-                ind = ind + 1;
+                ind += 1;
             }
             results.insert(key.clone(), tmp_value.clone());
         }
@@ -184,10 +184,7 @@ impl TaskExecutor for HttpRequestExecutor {
     }
 
     fn can_apply(&self, job: &Job) -> bool {
-        match &job.job_detail {
-            JobDetail::HttpRequest(_) => true,
-            _ => false,
-        }
+        matches!(&job.job_detail, JobDetail::HttpRequest(_))
     }
 }
 

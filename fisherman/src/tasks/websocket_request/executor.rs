@@ -89,10 +89,7 @@ impl WebsocketRequestExecutor {
                         OwnedMessage::Pong(_) => {}
                     }
                 }
-                match client.shutdown() {
-                    Ok(_) => {}
-                    Err(_) => {}
-                };
+                if client.shutdown().is_ok() {}
                 received_message
             } else {
                 let mut client = client_builder.connect_insecure().map_err(|err| {
@@ -121,10 +118,7 @@ impl WebsocketRequestExecutor {
                         OwnedMessage::Pong(_) => {}
                     }
                 }
-                match client.shutdown() {
-                    Ok(_) => {}
-                    Err(_) => {}
-                };
+                if client.shutdown().is_ok() {}
                 received_message
             };
             let response = if let OwnedMessage::Text(mess) = received_message {
@@ -204,11 +198,11 @@ impl TaskExecutor for WebsocketRequestExecutor {
     fn can_apply(&self, job: &Job) -> bool {
         match &job.job_detail {
             JobDetail::Websocket(request) => {
-                if request.url.len() > 0 {
+                if !request.url.is_empty() {
                     return true;
                 }
                 log::warn!("Missing url for job {:?}", job);
-                return false;
+                false
             }
             _ => false,
         }
@@ -222,6 +216,7 @@ mod tests {
 
     use common::tasks::websocket_request::{JobWebsocket, JobWebsocketResponseDetail};
     use serde_json::Value;
+    /*
     #[derive(Debug)]
     struct ProviderInfo {
         url: String,
@@ -229,6 +224,7 @@ mod tests {
         api_key: String,
         provider_type: String,
     }
+     */
     fn new_executor() -> WebsocketRequestExecutor {
         WebsocketRequestExecutor::new("test_websocket_worker_id".to_string())
     }
@@ -249,6 +245,7 @@ mod tests {
         let job_websocket: JobWebsocket = serde_json::from_str(job_detail).unwrap();
         job_websocket
     }
+    /*
     fn set_provider_info(job: &mut JobWebsocket, provider: &ProviderInfo) {
         job.url = provider.url.clone();
         if !provider.id.is_empty() {
@@ -265,6 +262,7 @@ mod tests {
                 .insert("X-Api-Key".to_string(), provider.api_key.clone());
         }
     }
+     */
     const ETH_REQUEST: &str = r#"{
             "url": "",
             "headers": {},
@@ -285,86 +283,12 @@ mod tests {
                 "hash": ["result", "hash"]
             }
         }"#;
-    #[tokio::test]
-    async fn test_eth_gateway_websocket() {
-        let executor = new_executor();
-        let providers = vec![ProviderInfo {
-            url: "wss://34.101.135.131/_node/058a6e94-8b65-46ad-ab52-240a7cb2c36a-ws/".to_string(),
-            id: "7bc87cee-1425-4bfd-8f24-ba8f25ee5e2e".to_string(),
-            api_key: "cUH7LakFjSfLhrqoISFmNA".to_string(),
-            provider_type: "gw".to_string(),
-        }];
-        let mut job_websocket = new_test_job(ETH_REQUEST);
-        for provider in providers.iter() {
-            set_provider_info(&mut job_websocket, provider);
-            println!("Set provider {:?} to job {:?}", provider, &job_websocket);
-            let response = executor
-                .call_websocket_request(&job_websocket)
-                .await
-                .unwrap_or_default();
-            match response.detail {
-                JobWebsocketResponseDetail::Body(_body) => {
-                    println!("Test failed for provider {:?}", provider);
-                    assert_eq!(0, 1);
-                }
-                JobWebsocketResponseDetail::Values(values) => {
-                    println!("Test pass for provider {:?}", provider);
-                    assert_eq!(
-                        values.get("number").map(|val| val.clone()),
-                        Some(Value::from("0xa7e964"))
-                    )
-                }
-            }
-        }
-    }
-    // Ignore because the node is turnoff
-    #[ignore]
-    #[tokio::test]
-    async fn test_node_websocket() {
-        let executor = new_executor();
-        let providers = vec![
-            ProviderInfo {
-                url: "wss://34.101.146.31/".to_string(),
-                id: "058a6e94-8b65-46ad-ab52-240a7cb2c36a".to_string(),
-                api_key: "lSP1lFN9I_izEzRi_jBapA".to_string(),
-                provider_type: "node".to_string(),
-            },
-            ProviderInfo {
-                url: "wss://34.69.64.125/".to_string(),
-                id: "0dc806f2-59b0-4300-b3e5-1e18b3095e10".to_string(),
-                api_key: "ZCY7yfAnkt1R7gL_x9kCKw".to_string(),
-                provider_type: "node".to_string(),
-            },
-        ];
-        let mut job_websocket = new_test_job(ETH_REQUEST);
-        for provider in providers.iter() {
-            set_provider_info(&mut job_websocket, provider);
-            println!("Set provider {:?} to job {:?}", provider, &job_websocket);
-            let response = executor
-                .call_websocket_request(&job_websocket)
-                .await
-                .unwrap_or_default();
-            match response.detail {
-                JobWebsocketResponseDetail::Body(_body) => {
-                    println!("Test failed for provider {:?}", provider);
-                    assert_eq!(0, 1);
-                }
-                JobWebsocketResponseDetail::Values(values) => {
-                    println!("Test pass for provider {:?}", provider);
-                    assert_eq!(
-                        values.get("number").map(|val| val.clone()),
-                        Some(Value::from("0xa7e964"))
-                    )
-                }
-            }
-        }
-    }
 
     #[tokio::test]
     async fn test_datasource_websocket() {
         let executor = new_executor();
         let urls = vec![
-            "ws://34.121.91.195:8546",
+            //"ws://34.121.91.195:8546",
             "wss://eth-mainnet.nodereal.io/ws/v1/c7c206714f38461c83c84a6a8448b552",
         ];
 

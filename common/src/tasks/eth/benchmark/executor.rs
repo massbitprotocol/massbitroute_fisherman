@@ -116,7 +116,7 @@ impl BenchmarkExecutor {
         latency
     }
 
-    fn get_result(&self, stdout: &str, histograms: &Vec<u32>) -> Result<BenchmarkResponse, Error> {
+    fn get_result(&self, stdout: &str, histograms: &[u32]) -> Result<BenchmarkResponse, Error> {
         //info!("{}", stdout);
         // Get percent_low_latency
         let sorted_table = Self::get_latency_table(stdout)?;
@@ -144,7 +144,7 @@ impl BenchmarkExecutor {
         // Get Requests/sec, Transfer/sec
         let transfer_rate = caps.name("transfer_rate").unwrap().as_str();
         debug!("tran_per_sec:{}", transfer_rate);
-        let transfer_rate = ByteSize::from_str(&transfer_rate).unwrap();
+        let transfer_rate = ByteSize::from_str(transfer_rate).unwrap();
 
         // Get Requests/sec, Transfer/sec
         let re = Regex::new(

@@ -39,7 +39,7 @@ impl PlanEntity {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub enum PlanStatus {
     Init,
     Generated,

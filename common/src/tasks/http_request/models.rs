@@ -14,7 +14,7 @@ use std::fmt::Formatter;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq, Default)]
 pub struct JobHttpRequest {
     pub url: String,
     pub chain_info: Option<ChainInfo>,
@@ -41,7 +41,7 @@ pub enum JobHttpResponseDetail {
     Values(HttpResponseValues),
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct HttpResponseValues {
     inner: HashMap<String, Value>,
 }
@@ -218,7 +218,7 @@ impl TaskConfigTrait for HttpRequestJobConfig {
     fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
-    fn match_blockchain(&self, blockchain: &String) -> bool {
+    fn match_blockchain(&self, blockchain: &str) -> bool {
         let blockchain = blockchain.to_lowercase();
         if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
         {
@@ -231,7 +231,7 @@ impl TaskConfigTrait for HttpRequestJobConfig {
         }
         true
     }
-    fn match_network(&self, network: &String) -> bool {
+    fn match_network(&self, network: &str) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
             log::trace!(
@@ -243,7 +243,7 @@ impl TaskConfigTrait for HttpRequestJobConfig {
         }
         true
     }
-    fn match_provider_type(&self, provider_type: &String) -> bool {
+    fn match_provider_type(&self, provider_type: &str) -> bool {
         let provider_type = provider_type.to_lowercase();
         if !self.provider_types.contains(&String::from("*"))
             && !self.provider_types.contains(&provider_type)
@@ -354,7 +354,7 @@ impl HttpRequestJobConfig {
             Value::String(val) => {
                 let value = handlebars
                     .render_template(val.as_str(), context)
-                    .unwrap_or(val.clone());
+                    .unwrap_or_else(|_| val.clone());
                 Ok(Value::String(value))
             }
             Value::Array(arrs) => {
@@ -376,7 +376,7 @@ impl HttpRequestJobConfig {
                 Ok(Value::Object(rendered_map))
             }
             Value::Number(val) => Ok(Value::from(val.clone())),
-            Value::Bool(val) => Ok(Value::from(val.clone())),
+            Value::Bool(val) => Ok(Value::from(*val)),
             Value::Null => Ok(Value::Null),
         }
     }

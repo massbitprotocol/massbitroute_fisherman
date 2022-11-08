@@ -17,7 +17,7 @@ pub fn get_executors(worker_id: WorkerId, benchmark_wrk_path: &str) -> Vec<Arc<d
             worker_id.clone(),
             benchmark_wrk_path,
         )),
-        Arc::new(WebsocketRequestExecutor::new(worker_id.clone())),
+        Arc::new(WebsocketRequestExecutor::new(worker_id)),
     ];
     result
 }

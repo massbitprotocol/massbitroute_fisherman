@@ -127,7 +127,7 @@ impl Default for Zone {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Default)]
 pub struct ChainInfo {
     pub chain: BlockChainType,
     pub network: NetworkType,
@@ -152,7 +152,7 @@ impl FromStr for ChainInfo {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let arr = s.split(".").collect::<Vec<&str>>();
+        let arr = s.split('.').collect::<Vec<&str>>();
         if arr.len() != 2 {
             return Err(Error::msg(format!("Cannot parse {} to ChainInfo", s)));
         }

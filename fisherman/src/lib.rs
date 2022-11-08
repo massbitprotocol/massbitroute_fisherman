@@ -18,19 +18,19 @@ lazy_static! {
     pub static ref SCHEDULER_ENDPOINT: String = env::var("SCHEDULER_ENDPOINT")
         .expect("There is no env var SCHEDULER_ENDPOINT");
     pub static ref WORKER_ID: String =
-        env::var("WORKER_ID").unwrap_or(Uuid::new_v4().to_string());
+        env::var("WORKER_ID").unwrap_or_else(|_| Uuid::new_v4().to_string());
     pub static ref ZONE: String = env::var("ZONE")
         .unwrap()
-        .trim_start_matches("\"").trim_end_matches("\"").to_uppercase();
-    pub static ref ENVIRONMENT: String = env::var("ENVIRONMENT").unwrap_or(String::from("unset"));
+        .trim_start_matches('"').trim_end_matches('"').to_uppercase();
+    pub static ref ENVIRONMENT: String = env::var("ENVIRONMENT").unwrap_or_else(|_|String::from("unset"));
     //Endpoint for scheduler push jobs
     pub static ref WORKER_ENDPOINT: String =
-        env::var("WORKER_ENDPOINT").unwrap_or(String::from("http://127.0.0.1:4040"));
+        env::var("WORKER_ENDPOINT").unwrap_or_else(|_|String::from("http://127.0.0.1:4040"));
     //For init webservice
     pub static ref WORKER_SERVICE_ENDPOINT: String =
-        env::var("WORKER_SERVICE_ENDPOINT").unwrap_or(String::from("127.0.0.1:4040"));
+        env::var("WORKER_SERVICE_ENDPOINT").unwrap_or_else(|_|String::from("127.0.0.1:4040"));
     pub static ref WORKER_IP: String =
-        env::var("WORKER_IP").unwrap_or(String::from("127.0.0.1"));
+        env::var("WORKER_IP").unwrap_or_else(|_|String::from("127.0.0.1"));
     pub static ref MAX_THREAD_COUNTER: usize = env::var("MAX_THREAD_COUNTER").ok().and_then(|val|{ val.parse::<usize>().ok()}).unwrap_or(4);
     //Waiting time period for parallelable threads in milliseconds
     pub static ref WAITING_TIME_FOR_EXECUTING_THREAD: u64 = env::var("WAITING_TIME_FOR_EXECUTING_THREAD").ok().and_then(|val|{ val.parse::<u64>().ok()}).unwrap_or(100);

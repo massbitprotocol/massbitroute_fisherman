@@ -73,7 +73,7 @@ impl TaskConfigTrait for BenchmarkConfig {
     fn match_phase(&self, phase: &JobRole) -> bool {
         self.phases.contains(&String::from("*")) || self.phases.contains(&phase.to_string())
     }
-    fn match_blockchain(&self, blockchain: &String) -> bool {
+    fn match_blockchain(&self, blockchain: &str) -> bool {
         let blockchain = blockchain.to_lowercase();
         if !self.blockchains.contains(&String::from("*")) && !self.blockchains.contains(&blockchain)
         {
@@ -86,7 +86,7 @@ impl TaskConfigTrait for BenchmarkConfig {
         }
         true
     }
-    fn match_network(&self, network: &String) -> bool {
+    fn match_network(&self, network: &str) -> bool {
         let network = network.to_lowercase();
         if !self.networks.contains(&String::from("*")) && !self.networks.contains(&network) {
             log::trace!(
@@ -98,7 +98,7 @@ impl TaskConfigTrait for BenchmarkConfig {
         }
         true
     }
-    fn match_provider_type(&self, provider_type: &String) -> bool {
+    fn match_provider_type(&self, provider_type: &str) -> bool {
         let provider_type = provider_type.to_lowercase();
         if !self.provider_types.contains(&String::from("*"))
             && !self.provider_types.contains(&provider_type)
@@ -171,9 +171,9 @@ impl BenchmarkGenerator {
         BenchmarkConfig::generate_url(config.url_template.as_str(), &self.handlebars, context).map(
             |job_url| {
                 let headers =
-                    BenchmarkConfig::generate_header(&config.headers, &self.handlebars, &context);
+                    BenchmarkConfig::generate_header(&config.headers, &self.handlebars, context);
                 let body =
-                    BenchmarkConfig::generate_body(&config.body, &self.handlebars, &context).ok();
+                    BenchmarkConfig::generate_body(&config.body, &self.handlebars, context).ok();
                 let job_benchmark = JobBenchmark {
                     component_type: component.component_type.clone(),
                     chain_type: component.blockchain.clone(),

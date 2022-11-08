@@ -48,9 +48,7 @@ pub struct LatestBlockValue {
 
 impl LatestBlockValue {
     pub fn is_empty(&self) -> bool {
-        return self.block_number.is_none()
-            && self.block_hash.is_none()
-            && self.block_timestamp.is_none();
+        self.block_number.is_none() && self.block_hash.is_none() && self.block_timestamp.is_none()
     }
 }
 impl From<HttpResponseValues> for LatestBlockValue {
@@ -135,7 +133,7 @@ impl LatestBlockCache {
         provider_id: ComponentId,
         latest_value: LatestBlockValue,
     ) {
-        let block_id = BlockChainId::new(chain_info.chain.clone(), chain_info.network.clone());
+        let block_id = BlockChainId::new(chain_info.chain.clone(), chain_info.network);
         if let Some(val) = latest_value.block_timestamp {
             let max = self
                 .max_block_timestamp
@@ -171,17 +169,11 @@ impl LatestBlockCache {
                         blockchain: blockchain_id.blockchain.clone(),
                         network: blockchain_id.network.clone(),
                         blockhash: value.block_hash.clone(),
-                        block_timestamp: value.block_timestamp.clone(),
-                        max_block_timestamp: self
-                            .max_block_timestamp
-                            .get(blockchain_id)
-                            .map(|val| val.clone()),
-                        block_number: value.block_number.clone(),
-                        max_block_number: self
-                            .max_block_number
-                            .get(blockchain_id)
-                            .map(|val| val.clone()),
-                        response_timestamp: value.response_timestamp.clone(),
+                        block_timestamp: value.block_timestamp,
+                        max_block_timestamp: self.max_block_timestamp.get(blockchain_id).cloned(),
+                        block_number: value.block_number,
+                        max_block_number: self.max_block_number.get(blockchain_id).cloned(),
+                        response_timestamp: value.response_timestamp,
                     };
                     result.push(model);
                 }

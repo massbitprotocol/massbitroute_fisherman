@@ -2,7 +2,7 @@
  * Each Task description can apply to node/gateway to generate a list of jobs.
  * If task is not suitable then result is empty
  */
-use crate::models::job_result_cache::{TaskKey};
+use crate::models::job_result_cache::TaskKey;
 use crate::models::jobs::JobAssignmentBuffer;
 
 use crate::persistence::PlanModel;
@@ -51,10 +51,7 @@ pub trait TaskApplicant: Sync + Send {
         latest_update: HashMap<String, Timestamp>,
     ) -> Result<JobAssignmentBuffer, anyhow::Error> {
         let task_name = self.get_type();
-        let timestamp = latest_update
-            .get(&task_name)
-            .map(|val| val.clone())
-            .unwrap_or_default();
+        let timestamp = latest_update.get(&task_name).copied().unwrap_or_default();
         if get_current_time() - timestamp > CONFIG.generate_new_regular_timeout * 1000 {
             self.apply(plan, component, phase, workers, &HashMap::default())
         } else {
@@ -65,7 +62,7 @@ pub trait TaskApplicant: Sync + Send {
         &self,
         _plan: &PlanModel,
         _provider_node: &ComponentInfo,
-        jobs: &Vec<Job>,
+        jobs: &[Job],
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
         let mut assignments = Vec::default();
@@ -88,7 +85,7 @@ pub trait TaskApplicant: Sync + Send {
 pub fn get_tasks(
     config_dir: &str,
     role: JobRole,
-    task_types: &Vec<String>,
+    task_types: &[String],
 ) -> Vec<Arc<dyn TaskApplicant>> {
     let mut result: Vec<Arc<dyn TaskApplicant>> = Default::default();
     //Generic http request task

@@ -50,13 +50,13 @@ impl JobBuffer {
         self.jobs.len()
     }
     pub fn pop_job(&mut self) -> Option<Job> {
-        let first_expected_time = self.jobs.front().and_then(|job| {
+        let first_expected_time = self.jobs.front().map(|job| {
             log::trace!(
                 "Found new job with expected runtime {}: {:?}",
                 &job.expected_runtime,
                 job
             );
-            Some(job.expected_runtime)
+            job.expected_runtime
         });
         if let Some(expected_time) = first_expected_time {
             let current_time = get_current_time();
@@ -72,7 +72,7 @@ impl JobBuffer {
                     let mut next_job = inner.clone();
                     if inner.repeat_number > 0 {
                         next_job.expected_runtime = current_time + inner.interval;
-                        next_job.repeat_number = next_job.repeat_number - 1;
+                        next_job.repeat_number -= next_job.repeat_number;
                         trace!("Schedule new repeat job: {:?}", &next_job);
                         self.add_job(next_job);
                     }
@@ -91,7 +91,7 @@ impl JobBuffer {
 #[cfg(test)]
 mod test {
     use crate::models::job::JobBuffer;
-    
+
     use common::job_manage::JobDetail;
     use common::jobs::Job;
     use common::tasks::http_request::JobHttpRequest;

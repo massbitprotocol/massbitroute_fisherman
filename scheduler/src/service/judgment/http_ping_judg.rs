@@ -88,7 +88,7 @@ impl HttpPingResultCache {
     pub async fn append_results(
         &self,
         provider_task: &ProviderTask,
-        results: &Vec<JobResult>,
+        results: &[JobResult],
     ) -> JudRoundTripTimeDatas {
         let mut res_times = JudRoundTripTimeDatas::new();
         for res in results.iter() {
@@ -115,7 +115,7 @@ impl HttpPingResultCache {
             let mut values = self.response_durations.lock().await;
             let values = values
                 .entry(provider_task.clone())
-                .or_insert(JudRoundTripTimeDatas::new());
+                .or_insert_with(JudRoundTripTimeDatas::new);
             values.append(&mut res_times);
             res_times = values.clone();
         }
@@ -152,7 +152,7 @@ impl HttpPingJudgment {
                 config.match_phase(phase)
                     && (config.name.as_str() == "RoundTripTime" || config.name.as_str() == "Ping")
             })
-            .map(|config| config.clone())
+            .cloned()
             .collect::<Vec<HttpRequestJobConfig>>()
             .get(0)
             .map(|config| config.thresholds.clone())
@@ -164,9 +164,9 @@ impl HttpPingJudgment {
     ) -> Result<i64, anyhow::Error> {
         thresholds
             .get(field)
-            .ok_or(anyhow!("Missing threshold config {}", field))?
+            .ok_or_else(|| anyhow!("Missing threshold config {}", field))?
             .as_i64()
-            .ok_or(anyhow!("Invalid threshold config {}", field))
+            .ok_or_else(|| anyhow!("Invalid threshold config {}", field))
     }
 }
 
@@ -183,7 +183,7 @@ impl ReportCheck for HttpPingJudgment {
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
-        result: &Vec<JobResult>,
+        result: &[JobResult],
     ) -> Result<JudgmentsResult, anyhow::Error> {
         if result.is_empty() {
             return Ok(JudgmentsResult::Unfinished);

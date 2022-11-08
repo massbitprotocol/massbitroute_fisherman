@@ -67,7 +67,7 @@ impl JobAssignmentBuffer {
         let mut rng = rand::thread_rng();
         if let Some(true) = config.broadcast {
             for worker in workers.measured_workers.iter() {
-                let job_assignment = JobAssignment::new(worker.clone(), &job);
+                let job_assignment = JobAssignment::new(worker.clone(), job);
                 self.list_assignments.push(job_assignment);
                 debug!(
                     "Assign job {:?} to worker {:?}",
@@ -76,7 +76,7 @@ impl JobAssignmentBuffer {
                 )
             }
             for worker in workers.remain_workers.iter() {
-                let job_assignment = JobAssignment::new(worker.clone(), &job);
+                let job_assignment = JobAssignment::new(worker.clone(), job);
                 self.list_assignments.push(job_assignment);
                 debug!(
                     "Assign job {:?} on provider {:?} to worker {:?}",
@@ -91,7 +91,7 @@ impl JobAssignmentBuffer {
                     for _i in 0..val {
                         let ind = rng.gen_range(0..workers.nearby_workers.len());
                         let worker = workers.get_nearby_worker(ind).unwrap();
-                        let job_assignment = JobAssignment::new(worker.clone(), &job);
+                        let job_assignment = JobAssignment::new(worker.clone(), job);
                         self.list_assignments.push(job_assignment);
                     }
                 }
@@ -100,7 +100,7 @@ impl JobAssignmentBuffer {
                     for _i in 0..val {
                         let ind = rng.gen_range(0..workers.measured_workers.len());
                         let worker = workers.get_best_worker(ind).unwrap();
-                        let job_assignment = JobAssignment::new(worker.clone(), &job);
+                        let job_assignment = JobAssignment::new(worker.clone(), job);
                         self.list_assignments.push(job_assignment);
                     }
                 }
@@ -114,7 +114,7 @@ impl JobAssignmentBuffer {
                     val,
                     all_workers.len()
                 );
-                if all_workers.len() > 0 {
+                if !all_workers.is_empty() {
                     for _ in 0..val {
                         let ind = rng.gen_range(0..all_workers.len());
                         if let Some(worker) = all_workers.get(ind) {
@@ -124,7 +124,7 @@ impl JobAssignmentBuffer {
                                 job.component_id,
                                 worker.get_url("")
                             );
-                            let job_assignment = JobAssignment::new(worker.clone(), &job);
+                            let job_assignment = JobAssignment::new(worker.clone(), job);
                             self.list_assignments.push(job_assignment);
                         }
                     }

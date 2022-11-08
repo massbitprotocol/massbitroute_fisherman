@@ -4,9 +4,7 @@ use common::job_manage::{BenchmarkResponse, JobBenchmarkResult};
 use common::jobs::{Job, JobResult};
 use common::tasks::ping::JobPingResult;
 use entity::seaorm::job_result_pings::Model as ResultPingModel;
-use entity::seaorm::{
-    job_result_benchmarks, job_result_http_requests, job_result_pings,
-};
+use entity::seaorm::{job_result_benchmarks, job_result_http_requests, job_result_pings};
 use log::debug;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
@@ -25,7 +23,7 @@ impl JobResultService {
     }
     pub async fn save_result_pings(
         &self,
-        vec_results: &Vec<JobPingResult>,
+        vec_results: &[JobPingResult],
     ) -> Result<usize, anyhow::Error> {
         let job_ids = Vec::from_iter(
             vec_results
@@ -131,11 +129,11 @@ impl JobResultService {
 
     pub async fn save_result_http_requests(
         &self,
-        vec_results: &Vec<JobResult>,
+        vec_results: &[JobResult],
     ) -> Result<usize, anyhow::Error> {
         let records = vec_results
             .iter()
-            .map(|job| job_result_http_requests::ActiveModel::from(job))
+            .map(job_result_http_requests::ActiveModel::from)
             .collect::<Vec<job_result_http_requests::ActiveModel>>();
         let length = records.len();
         debug!("Save job_result_http_requests with {:?} records", records);
@@ -209,11 +207,11 @@ impl JobResultService {
 
     pub async fn save_result_benchmarks(
         &self,
-        vec_results: &Vec<JobBenchmarkResult>,
+        vec_results: &[JobBenchmarkResult],
     ) -> Result<i64, anyhow::Error> {
         let records = vec_results
             .iter()
-            .map(|job| job_result_benchmarks::ActiveModel::from(job))
+            .map(job_result_benchmarks::ActiveModel::from)
             .collect::<Vec<job_result_benchmarks::ActiveModel>>();
         let length = records.len();
         debug!("Save job_result_benchmarks with {:?} records", records);
@@ -354,11 +352,7 @@ impl FromDb<job_result_benchmarks::Model> for JobBenchmarkResult {
 mod tests {
     use super::*;
     use anyhow::Error;
-    
-    
-    
-    
-    
+
     use pretty_assertions::assert_eq;
     use sea_orm::{DatabaseBackend, MockDatabase, MockExecResult};
     use std::env;

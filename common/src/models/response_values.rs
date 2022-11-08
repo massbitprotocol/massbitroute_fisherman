@@ -12,7 +12,7 @@ pub struct ResponseConfig {
     pub values: HashMap<String, Vec<Value>>, //Path to values
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct ResponseValues {
     inner: HashMap<String, Value>,
 }
@@ -38,7 +38,7 @@ impl ResponseValues {
                 } else if field.is_number() && tmp_value.is_array() {
                     tmp_value = &tmp_value[field.as_u64().unwrap() as usize]
                 }
-                ind = ind + 1;
+                ind += 1;
             }
             results.insert(key.clone(), tmp_value.clone());
         }
