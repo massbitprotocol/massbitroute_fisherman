@@ -181,7 +181,7 @@ impl VerificationReportProcessor {
         plan_ids: &HashSet<PlanId>,
     ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
         self.plan_service
-            .get_active_plan_by_ids(&Some(JobRole::Verification), &plan_ids)
+            .get_active_plan_by_ids(&Some(JobRole::Verification), plan_ids)
             .await
             .map(|plans| {
                 plans
@@ -196,7 +196,7 @@ impl VerificationReportProcessor {
         providers: &HashSet<ComponentId>,
     ) -> Result<HashMap<ComponentId, PlanEntity>, anyhow::Error> {
         self.plan_service
-            .get_active_plan_by_components(&Some(JobRole::Verification), &providers)
+            .get_active_plan_by_components(&Some(JobRole::Verification), providers)
             .await
             .map(|plans| {
                 plans
@@ -307,7 +307,7 @@ impl VerificationReportProcessor {
         match judg_result {
             JudgmentsResult::Failed | JudgmentsResult::Pass | JudgmentsResult::Error => {
                 let mut report = StoreReport::build(
-                    &"Scheduler".to_string(),
+                    "Scheduler",
                     &JobRole::Verification,
                     &*PORTAL_AUTHORIZATION,
                     &DOMAIN,

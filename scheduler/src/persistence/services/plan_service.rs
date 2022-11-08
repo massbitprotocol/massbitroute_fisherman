@@ -213,10 +213,10 @@ impl PlanService {
         }
     }
 
-    pub async fn store_plans(&self, vec_plans: &Vec<PlanEntity>) -> Result<i64, anyhow::Error> {
+    pub async fn store_plans(&self, vec_plans: &[PlanEntity]) -> Result<i64, anyhow::Error> {
         let records = vec_plans
             .iter()
-            .map(|plan| plans::ActiveModel::from(plan))
+            .map(plans::ActiveModel::from)
             .collect::<Vec<plans::ActiveModel>>();
         let length = records.len();
         warn!("save_plans records:{:?}", records);

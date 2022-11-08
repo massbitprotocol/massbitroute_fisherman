@@ -28,7 +28,7 @@ impl Appender for ProvidersMapAdapter {
     fn get_name(&self) -> String {
         "ProvidersMapAdapter".to_string()
     }
-    async fn append_job_results(&self, results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
+    async fn append_job_results(&self, results: &[JobResult]) -> Result<(), anyhow::Error> {
         log::debug!("ProvidersMapAdapter append RoundTripTime results");
         let current_time = get_current_time() as i64;
         let provider_maps = results
@@ -64,12 +64,12 @@ impl Appender for ProvidersMapAdapter {
                     bandwidth: None,
                     bandwidth_timestamp: None,
                     status: Some(1),
-                    last_connect_time: Some(current_time.clone()),
+                    last_connect_time: Some(current_time),
                     last_check: Some(current_time),
                 }
             })
             .collect::<Vec<ProviderMapModel>>();
-        if provider_maps.len() > 0 {
+        if !provider_maps.is_empty() {
             let res = self
                 .provider_service
                 .store_provider_maps(&provider_maps)
@@ -78,7 +78,7 @@ impl Appender for ProvidersMapAdapter {
         }
         Ok(())
     }
-    async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {
+    async fn append_ping_results(&self, results: &[JobPingResult]) -> Result<(), Error> {
         log::debug!("ProvidersMapAdapter append ping results");
         let current_time = get_current_time() as i64;
         let provider_maps = results
@@ -92,7 +92,7 @@ impl Appender for ProvidersMapAdapter {
                 bandwidth: None,
                 bandwidth_timestamp: None,
                 status: Some(1),
-                last_connect_time: Some(current_time.clone()),
+                last_connect_time: Some(current_time),
                 last_check: Some(current_time),
             })
             .collect::<Vec<ProviderMapModel>>();

@@ -55,7 +55,7 @@ impl JobResultCache {
         for (provider_id, values) in results {
             let result_cache = cache_content
                 .entry(provider_id)
-                .or_insert(HashMap::default());
+                .or_insert_with(HashMap::default);
             for (key, task_result) in values {
                 match result_cache.get_mut(&key) {
                     None => {
@@ -87,7 +87,7 @@ impl JobResultCache {
             .get(provider_id)
             .map(|res| {
                 res.iter()
-                    .map(|(key, value)| (key.clone(), value.update_time.clone()))
+                    .map(|(key, value)| (key.clone(), value.update_time))
                     .collect::<HashMap<TaskKey, Timestamp>>()
             })
             .unwrap_or_default()
@@ -161,26 +161,26 @@ impl JobResultCache {
     pub async fn get_judg_result(
         &self,
         provider_plan: Arc<ProviderPlan>,
-        task_type: &String,
-        task_name: &String,
+        task_type: &str,
+        task_name: &str,
     ) -> Option<JudgmentsResult> {
         let key = PlanTaskResultKey::new(
             provider_plan.plan.plan_id.clone(),
-            task_type.clone(),
-            task_name.clone(),
+            task_type.to_owned(),
+            task_name.to_owned(),
         );
         self.task_judg_result
             .lock()
             .await
             .get(&provider_plan.plan.provider_id)
             .and_then(|map| map.get(&key))
-            .map(|val| val.clone())
+            .cloned()
     }
     pub async fn update_plan_results(
         &self,
         plan: &PlanEntity,
         job_results: &HashMap<JobId, JudgmentsResult>,
-        plan_jobs: &Vec<Job>,
+        plan_jobs: &[Job],
     ) {
         let map_jobs = plan_jobs
             .iter()
@@ -205,12 +205,12 @@ impl JobResultCache {
             .lock()
             .await
             .entry(plan.provider_id.clone())
-            .or_insert(HashMap::default())
+            .or_insert_with(HashMap::default)
             .extend(results);
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TaskResultCache {
     pub results: VecDeque<JobResult>,
     pub update_time: Timestamp,
@@ -256,14 +256,5 @@ impl TaskResultCache {
     pub fn reset_timestamp(&mut self, timestamp: Timestamp) {
         self.update_time = timestamp;
         self.results.clear()
-    }
-}
-
-impl Default for TaskResultCache {
-    fn default() -> Self {
-        Self {
-            results: VecDeque::new(),
-            update_time: 0,
-        }
     }
 }

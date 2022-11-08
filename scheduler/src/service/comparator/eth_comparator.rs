@@ -11,9 +11,9 @@ impl LatestBlockEthComparator {
     pub fn get_block_time(values: &HttpResponseValues) -> Result<i64, Error> {
         let timestamp = values
             .get("timestamp")
-            .ok_or(anyhow!("timestamp not found"))
-            .and_then(|val| val.as_str().ok_or(anyhow!("Invalid value")))
-            .and_then(|val| from_str_radix16(val));
+            .ok_or_else(|| anyhow!("timestamp not found"))
+            .and_then(|val| val.as_str().ok_or_else(|| anyhow!("Invalid value")))
+            .and_then(from_str_radix16);
         timestamp
     }
 }

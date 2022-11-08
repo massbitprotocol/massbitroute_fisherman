@@ -28,7 +28,7 @@ pub struct CacheKey {
     pub provider_id: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Default)]
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, Default)]
 pub struct ResultValue {
     pub time: Timestamp,
     pub values: HttpResponseValues,
@@ -43,7 +43,7 @@ impl ResultValue {
             &job_result.result_detail
         {
             if let JobHttpResponseDetail::Values(values) = &response.detail {
-                return ResultValue::new(response.response_duration.clone(), values.clone());
+                return ResultValue::new(response.response_duration, values.clone());
             }
         }
         ResultValue::default()
@@ -94,19 +94,20 @@ impl LatestBlockResultCache {
         comparator: Arc<dyn Comparator>,
         thresholds: Map<String, Value>,
     ) -> Result<JudgmentsResult, Error> {
-        let latest_block_time =
-            comparator
-                .get_latest_value(&result_value.values)
-                .ok_or(anyhow!(
+        let latest_block_time = comparator
+            .get_latest_value(&result_value.values)
+            .ok_or_else(|| {
+                anyhow!(
                     "Error: missing latest value in response {:?}",
                     &result_value.values
-                ))?;
+                )
+            })?;
 
         let late_duration_threshold = thresholds
             .get("late_duration")
-            .ok_or(anyhow!("Missing late_duration"))?
+            .ok_or_else(|| anyhow!("Missing late_duration"))?
             .as_i64()
-            .ok_or(anyhow!("Wrong value late_duration"))?;
+            .ok_or_else(|| anyhow!("Wrong value late_duration"))?;
         let late_duration = result_value.time / 1000 - latest_block_time; //In seconds
         info!(
             "execution_timestamp: {}, block_timestamp: {}, Latest block late_duration/threshold: {}s/{}s",
@@ -148,9 +149,9 @@ impl LatestBlockResultCache {
         }
         let max_block_missing = thresholds
             .get("max_block_missing")
-            .ok_or(anyhow!("Missing max_block_missing"))?
+            .ok_or_else(|| anyhow!("Missing max_block_missing"))?
             .as_i64()
-            .ok_or(anyhow!("Wrong value max_block_missing"))?;
+            .ok_or_else(|| anyhow!("Wrong value max_block_missing"))?;
 
         if missing_block < max_block_missing {
             Ok(JudgmentsResult::Pass)
@@ -186,8 +187,8 @@ impl HttpLatestBlockJudgment {
     pub fn get_task_config(
         &self,
         phase: &JobRole,
-        blockchain: &String,
-        network: &String,
+        blockchain: &str,
+        network: &str,
         provider_type: &ComponentType,
     ) -> Map<String, Value> {
         self.task_configs
@@ -199,7 +200,7 @@ impl HttpLatestBlockJudgment {
                     && config.match_provider_type(&provider_type.to_string())
                     && config.name.as_str() == "LatestBlock"
             })
-            .map(|config| config.clone())
+            .cloned()
             .collect::<Vec<HttpRequestJobConfig>>()
             .get(0)
             .map(|config| config.thresholds.clone())
@@ -208,8 +209,8 @@ impl HttpLatestBlockJudgment {
     pub fn get_comparator(&self, chain_id: &ChainId) -> Arc<dyn Comparator> {
         self.comparators
             .get(chain_id)
-            .map(|item| item.clone())
-            .unwrap_or(Arc::new(LatestBlockDefaultComparator::default()))
+            .cloned()
+            .unwrap_or_else(|| Arc::new(LatestBlockDefaultComparator::default()))
     }
 }
 
@@ -226,7 +227,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
-        job_results: &Vec<JobResult>,
+        job_results: &[JobResult],
     ) -> Result<JudgmentsResult, Error> {
         if job_results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);
@@ -236,7 +237,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
         let chain_info = first_result
             .chain_info
             .as_ref()
-            .ok_or(anyhow!("Missing chain_info"))?
+            .ok_or_else(|| anyhow!("Missing chain_info"))?
             .clone();
         let comparator = self.get_comparator(&chain_info.chain);
 
@@ -268,10 +269,10 @@ impl ReportCheck for HttpLatestBlockJudgment {
                     &latest_detail.response.detail,
                     &current_detail.response.detail,
                 ) {
-                    if let Ok(diff) = comparator.compare(&latest_values, current_values) {
+                    if let Ok(diff) = comparator.compare(latest_values, current_values) {
                         if diff < 0 {
                             latest_result_values = ResultValue::new(
-                                current_detail.response.response_duration.clone(),
+                                current_detail.response.response_duration,
                                 current_values.clone(),
                             );
                             latest_job_result = result;

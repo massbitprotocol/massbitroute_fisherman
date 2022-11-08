@@ -12,7 +12,6 @@ use common::component::ComponentInfo;
 use common::job_manage::JobRole;
 use common::jobs::Job;
 use common::util::{get_current_time, warning_if_error};
-use common::workers::MatchedWorkers;
 use common::Timestamp;
 use log::{debug, info, warn};
 use sea_orm::{DatabaseConnection, TransactionTrait};
@@ -90,7 +89,7 @@ impl RegularJobGenerator {
         info!("There is {} gen_jobs", jobs.len(),);
         info!("There is {} job_assignments", list_assignments.len(),);
 
-        if list_assignments.len() > 0 {
+        if !list_assignments.is_empty() {
             let res = self
                 .job_service
                 .save_job_assignments(&list_assignments)
@@ -102,7 +101,7 @@ impl RegularJobGenerator {
                 .add_assignments(list_assignments);
             //Store job assignments to db
         }
-        if jobs.len() > 0 {
+        if !jobs.is_empty() {
             //Store jobs to db
             let res = self.store_jobs(jobs).await;
             warning_if_error("store_jobs return error", res);
@@ -137,7 +136,7 @@ impl RegularJobGenerator {
             .worker_infos
             .match_workers(provider)
             .await
-            .unwrap_or(MatchedWorkers::default());
+            .unwrap_or_default();
 
         for task in self.tasks.iter() {
             if !task.can_apply(provider) {
@@ -148,7 +147,7 @@ impl RegularJobGenerator {
             let latest_task_update = latest_update
                 .iter()
                 .filter(|(key, _)| key.task_type.as_str() == task_type.as_str())
-                .map(|(key, value)| (key.task_name.clone(), value.clone()))
+                .map(|(key, value)| (key.task_name.clone(), *value))
                 .collect::<HashMap<String, Timestamp>>();
             debug!(
                 "latest_task_update of task {} for provider {} {}: {:?}",
@@ -160,12 +159,12 @@ impl RegularJobGenerator {
             let plan_id = format!("{}-{}", JobRole::Regular.to_string(), provider.id);
             if let Ok(applied_jobs) = task.apply_with_cache(
                 &plan_id,
-                &provider,
+                provider,
                 JobRole::Regular,
                 &matched_workers,
                 latest_task_update,
             ) {
-                if applied_jobs.jobs.len() > 0 {
+                if !applied_jobs.jobs.is_empty() {
                     debug!(
                         "Generated {} regular jobs for provider {}, {:?}",
                         &applied_jobs.jobs.len(),

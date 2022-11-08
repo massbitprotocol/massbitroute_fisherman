@@ -1,7 +1,7 @@
 use crate::{Deserialize, Serialize};
 use crate::{UrlType, Value};
 
-#[derive(Clone, Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default, Eq, PartialEq)]
 pub struct CheckStep {
     #[serde(default)]
     pub action: Value,
@@ -11,7 +11,7 @@ pub struct CheckStep {
     pub failed_case: FailedCase,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default, Eq, PartialEq)]
 pub struct FailedCase {
     #[serde(default)]
     pub critical: bool,
@@ -21,7 +21,7 @@ pub struct FailedCase {
     pub conclude: CheckMkStatus,
 }
 
-#[derive(PartialEq, Clone, Debug, Deserialize, Serialize)]
+#[derive(Eq, PartialEq, Clone, Debug, Deserialize, Serialize)]
 pub enum CheckMkStatus {
     Ok = 0,
     Warning = 1,
@@ -35,7 +35,7 @@ impl Default for CheckMkStatus {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, Default, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default, Eq, PartialEq)]
 pub struct EndpointInfo {
     pub url: UrlType,
     #[serde(default, rename = "X-Api-Key")]

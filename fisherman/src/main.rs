@@ -44,7 +44,7 @@ async fn main() {
         let mut reporter = JobResultReporter::new(receiver, report_callback);
 
         let mut execution = JobExecution::new(sender, job_buffer.clone());
-        let service = WebServiceBuilder::new().build();
+        let service = WebServiceBuilder::default().build();
         let access_control = AccessControl::default();
         // Create job process thread
         let server = WebServerBuilder::default()

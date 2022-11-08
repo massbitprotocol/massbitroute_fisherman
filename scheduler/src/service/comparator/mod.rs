@@ -18,9 +18,9 @@ pub trait Comparator: Sync + Send + Debug {
     fn get_number_value(&self, value: &HttpResponseValues, field: &str) -> Result<i64, Error> {
         let res = value
             .get(field)
-            .ok_or(anyhow!("Field {} not found", field))
-            .and_then(|val| val.as_str().ok_or(anyhow!("Invalid value")))
-            .and_then(|str| from_str_radix16(str));
+            .ok_or_else(|| anyhow!("Field {} not found", field))
+            .and_then(|val| val.as_str().ok_or_else(|| anyhow!("Invalid value")))
+            .and_then(from_str_radix16);
         debug!("Get field {} from {:?} return {:?}", field, value, &res);
         res
     }

@@ -21,9 +21,9 @@ impl Default for AccessControl {
 impl AccessControl {
     pub fn get_access_control_allow_headers(&self) -> Vec<String> {
         self.access_control_allow_headers
-            .split(",")
+            .split(',')
             .into_iter()
-            .map(|header| header.replace(" ", ""))
+            .map(|header| header.replace(' ', ""))
             .collect()
     }
 }

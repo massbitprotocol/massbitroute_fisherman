@@ -92,7 +92,7 @@ impl BenchmarkResultCache {
     pub async fn append_results(
         &self,
         provider_task: &ProviderTask,
-        results: &Vec<JobResult>,
+        results: &[JobResult],
         histogram_percentile: u32,
     ) -> BestBenchmarkResult {
         let mut benchmark_results = Vec::default();
@@ -146,7 +146,7 @@ impl ReportCheck for BenchmarkJudgment {
     fn can_apply_for_result(&self, task: &ProviderTask) -> bool {
         return task.task_type.as_str() == "Benchmark";
     }
-    async fn apply(&self, _plan: &PlanEntity, _job: &Vec<Job>) -> Result<JudgmentsResult, Error> {
+    async fn apply(&self, _plan: &PlanEntity, _job: &[Job]) -> Result<JudgmentsResult, Error> {
         //Todo: unimplement
         Ok(JudgmentsResult::Unfinished)
         /*
@@ -195,7 +195,7 @@ impl ReportCheck for BenchmarkJudgment {
     async fn apply_for_results(
         &self,
         provider_task: &ProviderTask,
-        results: &Vec<JobResult>,
+        results: &[JobResult],
     ) -> Result<JudgmentsResult, Error> {
         if results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);

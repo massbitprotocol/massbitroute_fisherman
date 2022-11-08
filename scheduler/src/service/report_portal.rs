@@ -46,20 +46,20 @@ pub struct StoreReport {
 
 impl StoreReport {
     pub fn build(
-        reporter: &String,
+        reporter: &str,
         reporter_role: &JobRole,
-        authorization: &String,
-        domain: &String,
+        authorization: &str,
+        domain: &str,
     ) -> StoreReport {
         let report_type = match reporter_role {
             JobRole::Verification => "Benchmark".to_string(),
             JobRole::Regular => "ReportProvider".to_string(),
         };
         StoreReport {
-            reporter: reporter.clone(),
+            reporter: reporter.to_owned(),
             reporter_role: reporter_role.clone(),
-            authorization: authorization.clone(),
-            domain: domain.clone(),
+            authorization: authorization.to_owned(),
+            domain: domain.to_owned(),
             report_type,
             ..Default::default()
         }

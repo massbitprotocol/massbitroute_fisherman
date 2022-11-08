@@ -91,7 +91,7 @@ impl JobGenerator {
             tasks: get_tasks(config_dir, JobRole::Regular, &task_config.regular),
             job_service,
             assignments,
-            result_cache: result_cache.clone(),
+            result_cache,
         };
 
         JobGenerator {

@@ -9,6 +9,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::{Rejection, Reply};
 
+#[derive(Default)]
 pub struct WebService {}
 
 impl WebService {
@@ -39,7 +40,7 @@ impl WebService {
         //serde_json::to_string(jds);
         let res = JobHandleResponse::new(job_ids);
         let res = warp::reply::json(&res);
-        return Ok(res);
+        Ok(res)
     }
     pub async fn update_jobs(
         &self,
@@ -47,32 +48,34 @@ impl WebService {
         _state: Arc<Mutex<WorkerState>>,
     ) -> Result<impl Reply, Rejection> {
         info!("Update jobs: {:?}", &jobs);
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
+        Ok(warp::reply::json(&json!({ "error": "Not implemented" })))
     }
     pub async fn get_state(
         &self,
         _state: Arc<Mutex<WorkerState>>,
     ) -> Result<impl Reply, Rejection> {
         info!("Get state request");
-        return Ok(warp::reply::json(&json!({ "error": "Not implemented" })));
+        Ok(warp::reply::json(&json!({ "error": "Not implemented" })))
     }
 }
+#[derive(Default)]
 pub struct WebServiceBuilder {
     inner: WebService,
 }
-
-impl WebServiceBuilder {
-    pub fn new() -> Self {
+/*
+impl Default for WebServiceBuilder {
+    fn default() -> Self {
         WebServiceBuilder {
             inner: WebService {},
         }
     }
-
+}
+*/
+impl WebServiceBuilder {
     pub fn build(self) -> WebService {
         self.inner
     }
 }
-
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]
 struct JobHandleResponse {
     success: bool,

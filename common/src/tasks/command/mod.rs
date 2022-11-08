@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 pub mod executor;
 pub mod generator;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, Eq, PartialEq)]
 pub struct JobCommand {}
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default)]

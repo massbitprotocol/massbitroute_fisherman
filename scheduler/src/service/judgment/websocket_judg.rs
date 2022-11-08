@@ -45,7 +45,7 @@ impl ReportCheck for WebsocketJudgment {
     async fn apply_for_results(
         &self,
         _provider_task: &ProviderTask,
-        job_results: &Vec<JobResult>,
+        job_results: &[JobResult],
     ) -> Result<JudgmentsResult, anyhow::Error> {
         if job_results.is_empty() {
             return Ok(JudgmentsResult::Unfinished);

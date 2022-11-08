@@ -1,6 +1,5 @@
 use crate::tasks::toanyhowerror;
-use anyhow::{Error};
-
+use anyhow::Error;
 
 use hyper::buffer::BufReader;
 use hyper::header::{Authorization, Basic};
@@ -22,7 +21,6 @@ use websocket::result::{WSUrlErrorKind, WebSocketOtherError};
 use websocket::stream::Stream;
 use websocket::sync::Client;
 use websocket::url::{ParseError, Position, Url};
-
 
 #[derive(Clone, Debug)]
 pub struct WebSocketClientBuilder<'u> {
@@ -55,7 +53,7 @@ impl<'u> WebSocketClientBuilder<'u> {
                 "wss" => Ok(443),
                 _ => Ok(80),
             })
-            .and_then(|host_and_port| TcpStream::connect(host_and_port))
+            .and_then(TcpStream::connect)
             .map_err(toanyhowerror)
     }
     fn wrap_ssl(
@@ -136,10 +134,7 @@ impl<'u> WebSocketClientBuilder<'u> {
         if !self.url.username().is_empty() {
             self.headers.set(Authorization(Basic {
                 username: self.url.username().to_owned(),
-                password: match self.url.password() {
-                    Some(password) => Some(password.to_owned()),
-                    None => None,
-                },
+                password: self.url.password().map(|password| password.to_owned()),
             }));
         }
 

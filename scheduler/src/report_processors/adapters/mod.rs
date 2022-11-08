@@ -25,14 +25,11 @@ pub trait Appender: Sync + Send {
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
-    async fn append_job_results(&self, _results: &Vec<JobResult>) -> Result<(), anyhow::Error> {
+    async fn append_job_results(&self, _results: &[JobResult]) -> Result<(), anyhow::Error> {
         Ok(())
     }
 
-    async fn append_ping_results(
-        &self,
-        _results: &Vec<JobPingResult>,
-    ) -> Result<(), anyhow::Error> {
+    async fn append_ping_results(&self, _results: &[JobPingResult]) -> Result<(), anyhow::Error> {
         Ok(())
     }
     // async fn append_latest_block_results(
@@ -43,13 +40,13 @@ pub trait Appender: Sync + Send {
     // }
     async fn append_benchmark_results(
         &self,
-        _result: &Vec<JobBenchmarkResult>,
+        _result: &[JobBenchmarkResult],
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
     async fn append_http_request_results(
         &self,
-        _results: &Vec<JobResult>,
+        _results: &[JobResult],
     ) -> Result<(), anyhow::Error> {
         Ok(())
     }
@@ -57,9 +54,9 @@ pub trait Appender: Sync + Send {
 }
 
 pub fn get_report_adapters(connection: Arc<DatabaseConnection>) -> Vec<Arc<dyn Appender>> {
-    let mut result: Vec<Arc<dyn Appender>> = Default::default();
-    result.push(Arc::new(CsvAppender::new()));
-    result.push(Arc::new(PostgresAppender::new(connection.clone())));
-    result.push(Arc::new(ProvidersMapAdapter::new(connection.clone())));
-    result
+    vec![
+        Arc::new(CsvAppender::default()),
+        Arc::new(PostgresAppender::new(connection.clone())),
+        Arc::new(ProvidersMapAdapter::new(connection)),
+    ]
 }

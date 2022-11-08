@@ -83,7 +83,7 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
         let def_config: Option<Map<String, Value>> = config_value
             .get(DEFAULT_KEY)
             .and_then(|value| value.as_object())
-            .map(|val| val.clone());
+            .cloned();
 
         if config_value.is_object() {
             if let Some(tasks) = config_value.get(TASKS_KEY).and_then(|val| val.as_array()) {
@@ -120,7 +120,7 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
         default: &Option<Map<String, Value>>,
         phase: &JobRole,
     ) -> Result<T, anyhow::Error> {
-        let mut map_config = default.as_ref().map(|val| val.clone()).unwrap_or_default();
+        let mut map_config = default.as_ref().cloned().unwrap_or_default();
         //log::debug!("Task config before append {:?}", &task_config);
         Self::append(&mut map_config, config);
         let value = serde_json::Value::Object(map_config);
@@ -137,7 +137,7 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
         }
     }
     fn parse_array_config(
-        configs: &Vec<Value>,
+        configs: &[Value],
         default: &Option<Map<String, Value>>,
         phase: &JobRole,
     ) -> Vec<T> {
@@ -159,9 +159,9 @@ pub trait LoadConfigs<T: TaskConfigTrait + DeserializeOwned + Default + Debug> {
 
 pub trait TaskConfigTrait {
     fn match_phase(&self, phase: &JobRole) -> bool;
-    fn match_blockchain(&self, blockchain: &String) -> bool;
-    fn match_network(&self, network: &String) -> bool;
-    fn match_provider_type(&self, provider_type: &String) -> bool;
+    fn match_blockchain(&self, blockchain: &str) -> bool;
+    fn match_network(&self, network: &str) -> bool;
+    fn match_provider_type(&self, provider_type: &str) -> bool;
     fn can_apply(&self, provider: &ComponentInfo, phase: &JobRole) -> bool;
 }
 pub trait TemplateRender {
@@ -216,7 +216,7 @@ pub trait TemplateRender {
             Value::String(val) => {
                 let value = handlebars
                     .render_template(val.as_str(), context)
-                    .unwrap_or(val.clone());
+                    .unwrap_or_else(|_| val.clone());
                 Ok(Value::String(value))
             }
             Value::Array(arrs) => {
@@ -238,7 +238,7 @@ pub trait TemplateRender {
                 Ok(Value::Object(rendered_map))
             }
             Value::Number(val) => Ok(Value::from(val.clone())),
-            Value::Bool(val) => Ok(Value::from(val.clone())),
+            Value::Bool(val) => Ok(Value::from(*val)),
             Value::Null => Ok(Value::Null),
         }
     }

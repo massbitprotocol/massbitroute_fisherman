@@ -86,11 +86,11 @@ impl HttpRequestGenerator {
                     .map(|str| str.to_string())
                     .unwrap_or_default(),
             );
-            let headers = config.generate_header(&self.handlebars, &context);
-            let body = config.generate_body(&self.handlebars, &context).ok();
+            let headers = config.generate_header(&self.handlebars, context);
+            let body = config.generate_body(&self.handlebars, context).ok();
             let detail = JobHttpRequest {
                 url: url.clone(),
-                chain_info: Some(chain_info.clone()),
+                chain_info: Some(chain_info),
                 method: config.http_method.clone(),
                 headers,
                 body,
@@ -183,10 +183,8 @@ impl TaskApplicant for HttpRequestGenerator {
                 trace!("Can not apply config {:?} for {:?}", config, component);
                 continue;
             }
-            let latest_update_timestamp = latest_update
-                .get(&config.name)
-                .map(|val| val.clone())
-                .unwrap_or_default();
+            let latest_update_timestamp =
+                latest_update.get(&config.name).copied().unwrap_or_default();
             //Check time_to_timeout > 0: timeout; <=0 not yet.
             let time_pass_timeout = get_current_time()
                 - latest_update_timestamp
@@ -218,7 +216,7 @@ impl TaskApplicant for HttpRequestGenerator {
         &self,
         _plan: &PlanModel,
         _provider_node: &ComponentInfo,
-        jobs: &Vec<Job>,
+        jobs: &[Job],
         workers: &MatchedWorkers,
     ) -> Result<Vec<JobAssignment>, anyhow::Error> {
         let mut assignments = Vec::default();

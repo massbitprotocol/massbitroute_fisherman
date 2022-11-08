@@ -2,12 +2,12 @@ use super::super::IntegrationTest;
 
 fn basic_test1() {
     println!("Running basic test1");
-    assert!(true);
+    //assert!(true);
 }
 
 fn basic_test2() {
     println!("Running basic test2");
-    assert!(true);
+    //assert!(true);
 }
 
 inventory::submit!(IntegrationTest {

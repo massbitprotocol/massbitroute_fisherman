@@ -9,9 +9,7 @@ use common::jobs::JobResult;
 
 use log::debug;
 
-use sea_orm::{
-     ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement, Value,
-};
+use sea_orm::{ConnectionTrait, DatabaseBackend, DatabaseConnection, Statement, Value};
 
 use common::util::warning_if_error;
 use std::sync::Arc;
@@ -49,10 +47,7 @@ impl PostgresAppender {
 
 #[async_trait]
 impl Appender for PostgresAppender {
-    fn get_name(&self) -> String {
-        "PostgresAppender".to_string()
-    }
-    async fn append_job_results(&self, reports: &Vec<JobResult>) -> Result<(), anyhow::Error> {
+    async fn append_job_results(&self, reports: &[JobResult]) -> Result<(), anyhow::Error> {
         let mut ping_results = Vec::new();
         let mut benchmark_results: Vec<JobBenchmarkResult> = Vec::new();
         // let mut latest_block_results: Vec<JobLatestBlockResult> = Vec::new();
@@ -77,7 +72,7 @@ impl Appender for PostgresAppender {
         }
         //update provider map base on ping result
         // Todo: Add response time for each Job result
-        if ping_results.len() > 0 {
+        if !ping_results.is_empty() {
             let _res = self
                 .job_result_service
                 .save_result_pings(&ping_results)
@@ -89,16 +84,19 @@ impl Appender for PostgresAppender {
         //         .save_result_latest_blocks(&latest_block_results)
         //         .await;
         // }
-        if benchmark_results.len() > 0 {
+        if !benchmark_results.is_empty() {
             let _res = self
                 .job_result_service
                 .save_result_benchmarks(&benchmark_results)
                 .await;
         }
-        if http_request_results.len() > 0 {
+        if !http_request_results.is_empty() {
             let _res = self.append_http_request_results(http_request_results).await;
         }
         Ok(())
+    }
+    fn get_name(&self) -> String {
+        "PostgresAppender".to_string()
     }
     // async fn append_ping_results(&self, results: &Vec<JobPingResult>) -> Result<(), Error> {
     //     log::debug!("PostgresAppender append ping results");
@@ -147,7 +145,7 @@ impl PostgresAppender {
             }
         }
         let _res = self.check_flush_latest_block_cache().await;
-        if generals.len() > 0 {
+        if !generals.is_empty() {
             let res = self
                 .job_result_service
                 .save_result_http_requests(&generals)
@@ -171,15 +169,15 @@ impl PostgresAppender {
                 values.push(Value::from(item.blockchain.clone()));
                 values.push(Value::from(item.network.clone()));
                 values.push(Value::from(item.blockhash.clone()));
-                values.push(Value::from(item.block_timestamp.clone()));
-                values.push(Value::from(item.max_block_timestamp.clone()));
-                values.push(Value::from(item.block_number.clone()));
-                values.push(Value::from(item.max_block_number.clone()));
-                values.push(Value::from(item.response_timestamp.clone()));
+                values.push(Value::from(item.block_timestamp));
+                values.push(Value::from(item.max_block_timestamp));
+                values.push(Value::from(item.block_number));
+                values.push(Value::from(item.max_block_number));
+                values.push(Value::from(item.response_timestamp));
                 for i in 0..column_count {
                     rows.push(format!("${}", row + i));
                 }
-                row = row + column_count;
+                row += column_count;
                 place_holders.push(format!("({})", rows.join(",")));
             }
             let query = format!(

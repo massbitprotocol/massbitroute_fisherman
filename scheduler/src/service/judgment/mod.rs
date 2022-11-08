@@ -25,7 +25,7 @@ use common::jobs::{Job, JobResult};
 use common::job_manage::JobRole;
 use std::sync::Arc;
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub enum JudgmentsResult {
     Pass = 1,
     Failed = -1,
@@ -55,7 +55,7 @@ pub trait ReportCheck: Sync + Send {
     async fn apply(
         &self,
         _plan: &PlanEntity,
-        _job: &Vec<Job>,
+        _job: &[Job],
     ) -> Result<JudgmentsResult, anyhow::Error> {
         //Todo: remove this function
         Ok(JudgmentsResult::Unfinished)
@@ -64,7 +64,7 @@ pub trait ReportCheck: Sync + Send {
     async fn apply_for_results(
         &self,
         _provider_task: &ProviderTask,
-        _result: &Vec<JobResult>,
+        _result: &[JobResult],
     ) -> Result<JudgmentsResult, anyhow::Error> {
         Ok(JudgmentsResult::Error)
     }
@@ -87,11 +87,7 @@ pub fn get_report_judgments(
             phase,
             result_service.clone(),
         )),
-        Arc::new(WebsocketJudgment::new(
-            config_dir,
-            phase,
-            result_service.clone(),
-        )),
+        Arc::new(WebsocketJudgment::new(config_dir, phase, result_service)),
     ];
     result
 }

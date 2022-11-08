@@ -133,11 +133,7 @@ impl VerificationJobGenerator {
         let current_timestamp = get_current_time();
         self.processing_plans.retain(|plan| {
             expired_plans.push(plan.clone());
-            if plan.plan.expiry_time < current_timestamp {
-                false
-            } else {
-                true
-            }
+            plan.plan.expiry_time >= current_timestamp
         });
     }
     async fn generate_jobs_for_waiting_tasks(&mut self) {
@@ -229,14 +225,14 @@ impl VerificationJobGenerator {
                 &provider_plan.plan.plan_id,
                 &provider_plan.provider,
                 JobRole::Verification,
-                &matched_workers,
+                matched_workers,
                 &sub_task_results,
             ) {
                 //Todo: Improve this, don't create redundant jobs
-                if applied_jobs.jobs.len() > 0 {
+                if !applied_jobs.jobs.is_empty() {
                     applied_jobs = self.remote_duplicated_jobs(applied_jobs).await;
                 }
-                if applied_jobs.jobs.len() > 0 {
+                if !applied_jobs.jobs.is_empty() {
                     assignment_buffer.append(applied_jobs);
                 }
             }

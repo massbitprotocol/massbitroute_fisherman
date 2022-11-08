@@ -128,7 +128,7 @@ impl ProviderScanner {
 
         //Filter components
         if let Some(status) = filter_status {
-            components.retain(|component| &component.status == status);
+            components.retain(|component| component.status == status);
         }
 
         //Filter zone
@@ -149,7 +149,7 @@ impl ProviderScanner {
      */
     pub async fn reload_provider_map(&self) {
         let map = self.provider_service.get_provider_maps().await;
-        if map.len() > 0 {
+        if !map.is_empty() {
             trace!("Waiting for setting map {} worker providers", &map.len());
             self.workers.set_map_worker_provider(map).await;
         }

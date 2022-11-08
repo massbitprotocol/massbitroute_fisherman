@@ -31,7 +31,7 @@ impl ProviderService {
         worker_provider_maps::Entity::find()
             .all(self.db.as_ref())
             .await
-            .unwrap_or(vec![])
+            .unwrap_or_default()
     }
     pub async fn store_provider_maps(
         &self,
@@ -55,14 +55,14 @@ impl ProviderService {
             let mut rows = Vec::new();
             values.push(Value::from(item.worker_id.clone()));
             values.push(Value::from(item.provider_id.clone()));
-            values.push(Value::from(item.ping_response_duration.clone()));
-            values.push(Value::from(item.ping_timestamp.clone()));
-            values.push(Value::from(item.last_connect_time.clone()));
-            values.push(Value::from(item.last_check.clone()));
+            values.push(Value::from(item.ping_response_duration));
+            values.push(Value::from(item.ping_timestamp));
+            values.push(Value::from(item.last_connect_time));
+            values.push(Value::from(item.last_check));
             for i in 0..column_count {
                 rows.push(format!("${}", row + i));
             }
-            row = row + column_count;
+            row += column_count;
             place_holders.push(format!("({})", rows.join(",")));
         }
         let query = format!(

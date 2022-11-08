@@ -17,10 +17,10 @@ impl JobService {
     pub fn new(db: Arc<DatabaseConnection>) -> Self {
         JobService { db }
     }
-    pub async fn save_jobs(&self, vec_jobs: &Vec<Job>) -> Result<i32, anyhow::Error> {
+    pub async fn save_jobs(&self, vec_jobs: &[Job]) -> Result<i32, anyhow::Error> {
         let records = vec_jobs
             .iter()
-            .map(|job| jobs::ActiveModel::from(job))
+            .map(jobs::ActiveModel::from)
             .collect::<Vec<jobs::ActiveModel>>();
         let length = records.len();
         debug!("save_jobs records:{:?}", length);
@@ -41,11 +41,11 @@ impl JobService {
     }
     pub async fn save_job_assignments(
         &self,
-        assignments: &Vec<JobAssignment>,
+        assignments: &[JobAssignment],
     ) -> Result<i32, anyhow::Error> {
         let models = assignments
             .iter()
-            .map(|item| JobAssignmentActiveModel::from(item))
+            .map(JobAssignmentActiveModel::from)
             .collect::<Vec<JobAssignmentActiveModel>>();
         let length = models.len();
         debug!("save_job_assignments records:{:?}", length);
@@ -86,10 +86,7 @@ impl JobService {
             .all(self.db.as_ref())
             .await
         {
-            Ok(entities) => Ok(entities
-                .iter()
-                .map(|entity| Job::from(entity))
-                .collect::<Vec<Job>>()),
+            Ok(entities) => Ok(entities.iter().map(Job::from).collect::<Vec<Job>>()),
             Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }
     }
@@ -106,10 +103,7 @@ impl JobService {
             .all(self.db.as_ref())
             .await
         {
-            Ok(entities) => Ok(entities
-                .iter()
-                .map(|entity| Job::from(entity))
-                .collect::<Vec<Job>>()),
+            Ok(entities) => Ok(entities.iter().map(Job::from).collect::<Vec<Job>>()),
             Err(err) => Err(anyhow::Error::msg(format!("get_plans error: {:?}", err))),
         }
     }

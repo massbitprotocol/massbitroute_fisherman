@@ -4,13 +4,9 @@ use async_trait::async_trait;
 use common::job_manage::JobBenchmarkResult;
 use common::tasks::ping::JobPingResult;
 use serde_json::{Map, Value};
+#[derive(Default)]
 pub struct CsvAppender {}
 
-impl CsvAppender {
-    pub fn new() -> Self {
-        CsvAppender {}
-    }
-}
 #[async_trait]
 impl Appender for CsvAppender {
     fn get_name(&self) -> String {
@@ -19,10 +15,7 @@ impl Appender for CsvAppender {
     async fn append(&self, _channel: String, _report: &Map<String, Value>) -> Result<(), Error> {
         Ok(())
     }
-    async fn append_ping_results(
-        &self,
-        _results: &Vec<JobPingResult>,
-    ) -> Result<(), anyhow::Error> {
+    async fn append_ping_results(&self, _results: &[JobPingResult]) -> Result<(), anyhow::Error> {
         log::debug!("Csv append ping results");
         Ok(())
     }
@@ -35,7 +28,7 @@ impl Appender for CsvAppender {
     // }
     async fn append_benchmark_results(
         &self,
-        _result: &Vec<JobBenchmarkResult>,
+        _result: &[JobBenchmarkResult],
     ) -> Result<(), anyhow::Error> {
         log::debug!("Csv append benchmark results");
         Ok(())

@@ -1,7 +1,7 @@
 use crate::seaorm::plans::Model as PlanModel;
 use crate::seaorm::{
-    job_assignments, job_result_benchmarks, job_result_http_requests,
-    job_result_pings, jobs, plans, workers,
+    job_assignments, job_result_benchmarks, job_result_http_requests, job_result_pings, jobs,
+    plans, workers,
 };
 use common::component::{ChainInfo, ComponentType, Zone};
 use common::job_manage::{JobBenchmarkResult, JobResultDetail, JobRole};
@@ -22,15 +22,14 @@ use std::str::FromStr;
 
 impl From<&WorkerInfo> for workers::ActiveModel {
     fn from(worker: &WorkerInfo) -> Self {
-        let workers = workers::ActiveModel {
+        workers::ActiveModel {
             worker_id: Set(worker.worker_id.to_owned()),
             worker_ip: Set(worker.worker_ip.to_owned()),
             active: Set(1),
             zone: Set(format!("{:?}", &worker.zone)),
             url: Set(worker.url.to_owned()),
             ..Default::default()
-        };
-        workers
+        }
     }
 }
 
@@ -97,13 +96,13 @@ impl From<&jobs::Model> for Job {
             component_id: model.component_id.to_string(),
             component_type: ComponentType::from_str(model.component_type.as_str())
                 .unwrap_or(ComponentType::Node),
-            priority: model.priority.clone(),
-            expected_runtime: model.expected_runtime.clone(),
-            parallelable: model.parallelable.clone(),
-            timeout: model.timeout.clone(),
+            priority: model.priority,
+            expected_runtime: model.expected_runtime,
+            parallelable: model.parallelable,
+            timeout: model.timeout,
             component_url: model.component_url.to_string(),
-            repeat_number: model.repeat_number.clone(),
-            interval: model.interval.clone(),
+            repeat_number: model.repeat_number,
+            interval: model.interval,
             job_detail: serde_json::from_value(model.job_detail.clone()).unwrap_or_default(),
             phase: JobRole::from_str(model.phase.as_str()).unwrap_or_default(),
         }
@@ -190,19 +189,19 @@ impl From<&JobBenchmarkResult> for job_result_benchmarks::ActiveModel {
                 .response
                 .histograms
                 .get(&90)
-                .map(|val| val.clone())
+                .copied()
                 .unwrap_or(0_f32) as f64),
             histogram95: Set(result
                 .response
                 .histograms
                 .get(&95)
-                .map(|val| val.clone())
+                .copied()
                 .unwrap_or(0_f32) as f64),
             histogram99: Set(result
                 .response
                 .histograms
                 .get(&99)
-                .map(|val| val.clone())
+                .copied()
                 .unwrap_or(0_f32) as f64),
             execution_timestamp: Set(result.response_timestamp),
             recorded_timestamp: Set(result.response_timestamp),
@@ -257,8 +256,7 @@ impl From<&JobResult> for job_result_http_requests::ActiveModel {
                 .chain_info
                 .as_ref()
                 .unwrap_or(&ChainInfo::default())
-                .chain_id()
-                .clone()),
+                .chain_id()),
             http_code: Set(result.response.http_code as i32),
             error_code: Set(result.response.error_code as i32),
             message: Set(result.response.message.to_string()),
@@ -304,11 +302,11 @@ impl From<&PlanEntity> for PlanModel {
 impl From<&crate::plans::Model> for PlanEntity {
     fn from(info: &crate::plans::Model) -> Self {
         PlanEntity {
-            id: info.id.clone(),
+            id: info.id,
             provider_id: info.provider_id.clone(),
-            request_time: info.request_time.clone(),
-            finish_time: info.finish_time.clone(),
-            expiry_time: info.expiry_time.clone(),
+            request_time: info.request_time,
+            finish_time: info.finish_time,
+            expiry_time: info.expiry_time,
             result: info.result.clone(),
             message: info.message.clone(),
             status: PlanStatus::from_str(&*info.status).unwrap_or_default(),

@@ -543,7 +543,7 @@ create table if not exists job_result_http_requests
     response_duration       bigint  default 0                     not null
 );
 "#;
-        let sqls = sqls.split(";");
+        let sqls = sqls.split(';');
         for sql in sqls {
             println!("sql: {}", sql);
             let stmt = Statement::from_string(manager.get_database_backend(), sql.to_owned());
