@@ -20,7 +20,9 @@ impl JobResultReporter {
         }
     }
     pub async fn run(&mut self) {
+        let mut loop_counter: u64 = 0;
         loop {
+            loop_counter = loop_counter + 1;
             let mut results = Vec::<JobResult>::new();
             while let Ok(job_result) = self.receiver.try_recv() {
                 trace!("Received job result: {:?}", job_result);
@@ -28,7 +30,6 @@ impl JobResultReporter {
             }
             if !results.is_empty() {
                 let now = Instant::now();
-                info!("Sending {} results.", results.len());
                 let res = self.send_results(results).await;
                 info!(
                     "Finished sending results in {:.2?} with res: {:?}",
@@ -36,7 +37,10 @@ impl JobResultReporter {
                     res
                 );
             } else {
-                debug!("No job result for report.");
+                //Print log for each 30 loops
+                if loop_counter % 30 == 0 {
+                    debug!("No job result for report.");
+                }
                 sleep(Duration::from_millis(*JOB_RESULT_REPORTER_PERIOD)).await;
             }
         }
@@ -48,7 +52,6 @@ impl JobResultReporter {
         let client = client_builder.danger_accept_invalid_certs(true).build()?;
         let body = serde_json::to_string(&results)?;
         trace!("Body content: {}", body);
-        info!("sending body len: {}", body.len());
         let result = client
             .post(call_back)
             .header("content-type", "application/json")

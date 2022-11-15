@@ -11,7 +11,7 @@ sudo mv ~/log.yaml /opt/fisherman/configs/
 
 chmod +x /opt/fisherman/run.sh
 
-#sudo cp ~/configs /opt/fisherman/ -r
-#sudo rm -rf ~/configs
+sudo cp ~/configs /opt/fisherman/ -r
+sudo rm -rf ~/configs
 
 sudo supervisorctl restart scheduler

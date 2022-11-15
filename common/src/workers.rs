@@ -6,6 +6,7 @@ use anyhow::anyhow;
 use rand::Rng;
 use reqwest::Body;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -14,6 +15,7 @@ use std::time::Duration;
 pub struct WorkerStatus {
     pub jobs_number_in_queue: usize,
     pub reports_number_in_queue: usize,
+    pub jobs_stat: HashMap<String, Vec<String>>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, Default, Eq, PartialEq, Hash)]

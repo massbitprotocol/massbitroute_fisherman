@@ -33,18 +33,27 @@ pub struct CacheKey {
 pub struct ResultValue {
     pub time: Timestamp,
     pub values: HttpResponseValues,
+    response_message: String,
 }
 
 impl ResultValue {
-    pub fn new(time: Timestamp, values: HttpResponseValues) -> Self {
-        Self { time, values }
+    pub fn new(time: Timestamp, values: HttpResponseValues, response_message: String) -> Self {
+        Self {
+            time,
+            values,
+            response_message,
+        }
     }
     pub fn from_job_result(job_result: &JobResult) -> Self {
         if let JobResultDetail::HttpRequest(JobHttpResult { response, .. }) =
             &job_result.result_detail
         {
             if let JobHttpResponseDetail::Values(values) = &response.detail {
-                return ResultValue::new(response.response_duration.clone(), values.clone());
+                return ResultValue::new(
+                    response.response_duration,
+                    values.clone(),
+                    response.message.clone(),
+                );
             }
         }
         ResultValue::default()
@@ -102,19 +111,20 @@ impl LatestBlockResultCache {
         comparator: Arc<dyn Comparator>,
         thresholds: Map<String, Value>,
     ) -> Result<JudgmentsResult, Error> {
-        let latest_block_time =
-            comparator
-                .get_latest_value(&result_value.values)
-                .ok_or(anyhow!(
+        let latest_block_time = comparator
+            .get_latest_value(&result_value.values)
+            .ok_or_else(|| {
+                anyhow!(
                     "Error: missing latest value in response {:?}",
                     &result_value.values
-                ))?;
+                )
+            })?;
 
         let late_duration_threshold = thresholds
             .get("late_duration")
-            .ok_or(anyhow!("Missing late_duration"))?
+            .ok_or_else(|| anyhow!("Missing late_duration"))?
             .as_i64()
-            .ok_or(anyhow!("Wrong value late_duration"))?;
+            .ok_or_else(|| anyhow!("Wrong value late_duration"))?;
         let result_value_time = result_value.time / 1000;
         let late_duration = result_value_time - latest_block_time; //In seconds
         info!(
@@ -128,8 +138,8 @@ impl LatestBlockResultCache {
         if late_duration > late_duration_threshold {
             info!("Judge Failed latest-block for Node eth {:?}", cache_key);
             let failed_reason = format!(
-                "provider latest block timestamp {}, late duration: {} > {}",
-                result_value_time, late_duration, late_duration_threshold
+                "provider latest block timestamp {}, late duration: {} > {}. Response message: {:?}",
+                result_value_time, late_duration, late_duration_threshold, &result_value.response_message
             );
             Ok(JudgmentsResult::new_failed(
                 Self::get_job_name(),
@@ -165,17 +175,20 @@ impl LatestBlockResultCache {
         }
         let max_block_missing = thresholds
             .get("max_block_missing")
-            .ok_or(anyhow!("Missing max_block_missing"))?
+            .ok_or_else(|| anyhow!("Missing max_block_missing"))?
             .as_i64()
-            .ok_or(anyhow!("Wrong value max_block_missing"))?;
+            .ok_or_else(|| anyhow!("Wrong value max_block_missing"))?;
 
         if missing_block < max_block_missing {
             Ok(JudgmentsResult::Pass)
         } else {
             info!("Judge Failed latest-block for Node Dot {:?}", cache_key);
             let failed_reason = format!(
-                "provider latest block {:?}, late duration: {} > {}",
-                result_value.values, missing_block, max_block_missing
+                "provider latest block {:?}, late duration: {} > {}. Response message: {:?}",
+                result_value.values,
+                missing_block,
+                max_block_missing,
+                &result_value.response_message
             );
             Ok(JudgmentsResult::new_failed(
                 Self::get_job_name(),
@@ -199,7 +212,10 @@ impl HttpLatestBlockJudgment {
         //let path = format!("{}/http_request", config_dir);
         let path = Path::new(config_dir).join(&*CONFIG_HTTP_REQUEST_DIR);
         // let task_configs = HttpRequestJobConfig::read_config(path.as_str(), phase);
-        let task_configs = HttpRequestJobConfig::read_configs(&path, phase);
+        let task_configs = HttpRequestJobConfig::read_configs(&path, phase)
+            .into_iter()
+            .filter(|config| config.name.as_str() == "LatestBlock")
+            .collect::<Vec<HttpRequestJobConfig>>();
         let comparators = get_comparators();
         HttpLatestBlockJudgment {
             task_configs,
@@ -222,10 +238,8 @@ impl HttpLatestBlockJudgment {
                     && config.match_blockchain(blockchain)
                     && config.match_network(network)
                     && config.match_provider_type(&provider_type.to_string())
-                    && config.name.as_str() == "LatestBlock"
             })
-            .map(|config| config.clone())
-            .collect::<Vec<HttpRequestJobConfig>>()
+            .collect::<Vec<&HttpRequestJobConfig>>()
             .get(0)
             .map(|config| config.thresholds.clone())
             .unwrap_or_default()
@@ -233,8 +247,8 @@ impl HttpLatestBlockJudgment {
     pub fn get_comparator(&self, chain_id: &BlockChainType) -> Arc<dyn Comparator> {
         self.comparators
             .get(chain_id)
-            .map(|item| item.clone())
-            .unwrap_or(Arc::new(LatestBlockDefaultComparator::default()))
+            .cloned()
+            .unwrap_or_else(|| Arc::new(LatestBlockDefaultComparator::default()))
     }
 }
 
@@ -266,7 +280,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
         let chain_info = first_result
             .chain_info
             .as_ref()
-            .ok_or(anyhow!("Missing chain_info"))?
+            .ok_or_else(|| anyhow!("Missing chain_info"))?
             .clone();
         let comparator = self.get_comparator(&chain_info.chain);
 
@@ -279,7 +293,6 @@ impl ReportCheck for HttpLatestBlockJudgment {
         );
         let mut latest_job_result = first_result;
         let mut latest_result_values = ResultValue::from_job_result(first_result);
-        debug!("Latest result values {:?}", &latest_result_values);
         // Get newest result from cache
         for result in job_results {
             if result.chain_info.is_none() {
@@ -303,11 +316,12 @@ impl ReportCheck for HttpLatestBlockJudgment {
                     &latest_detail.response.detail,
                     &current_detail.response.detail,
                 ) {
-                    if let Ok(diff) = comparator.compare(&latest_values, current_values) {
+                    if let Ok(diff) = comparator.compare(latest_values, current_values) {
                         if diff < 0 {
                             latest_result_values = ResultValue::new(
-                                current_detail.response.response_duration.clone(),
+                                current_detail.response.response_duration,
                                 current_values.clone(),
+                                current_detail.response.message.clone(),
                             );
                             latest_job_result = result;
                         }
@@ -316,10 +330,9 @@ impl ReportCheck for HttpLatestBlockJudgment {
             }
         }
         // Get threshold from config
-        trace!(
+        debug!(
             "cache_key: {:?}, latest_job_result: {:?}",
-            cache_key,
-            latest_job_result
+            cache_key, latest_job_result
         );
         let thresholds = self.get_task_config(
             &latest_job_result.phase,
@@ -337,7 +350,7 @@ impl ReportCheck for HttpLatestBlockJudgment {
             comparator,
             thresholds,
         );
-        trace!("Judg {:?} latest-block res: {:?}", provider_task, res);
+        trace!("Judge {:?} latest-block res: {:?}", provider_task, res);
         res
     }
 }

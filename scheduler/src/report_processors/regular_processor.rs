@@ -50,7 +50,7 @@ impl ReportProcessor for RegularReportProcessor {
         reports: Vec<JobResult>,
         _db_connection: Arc<DatabaseConnection>,
     ) -> Result<(), anyhow::Error> {
-        log::info!("Regular report process jobs");
+        log::info!("Regular report process jobs {:?}", reports);
 
         let mut provider_task_results = HashMap::<ProviderTask, Vec<JobResult>>::new();
 

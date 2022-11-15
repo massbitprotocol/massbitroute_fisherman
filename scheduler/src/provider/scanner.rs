@@ -31,7 +31,7 @@ impl ProviderScanner {
         workers: Arc<WorkerInfoStorage>,
         provider_service: Arc<ProviderService>,
     ) -> Self {
-        ProviderScanner {
+        let provider_scanner = ProviderScanner {
             url_list_nodes,
             url_list_gateways,
             providers,
@@ -43,16 +43,19 @@ impl ProviderScanner {
                     .build()
                     .unwrap()
             },
-        }
+        };
+        debug!(
+            "Create new provider scanner with urls {:?}, {:?}",
+            &provider_scanner.url_list_nodes, &provider_scanner.url_list_gateways
+        );
+        provider_scanner
     }
 
     pub async fn run(mut self) {
         loop {
-            let res = self.update_providers().await;
-            debug!("Get new providers response: {res:?}");
+            let _res = self.update_providers().await;
             //Update provider map
             self.reload_provider_map().await;
-            debug!("Sleep for {} seconds", CONFIG.update_provider_list_interval);
             sleep(Duration::from_secs(
                 CONFIG.update_provider_list_interval as u64,
             ))
@@ -110,7 +113,6 @@ impl ProviderScanner {
             ComponentType::Gateway => &self.url_list_gateways,
         };
 
-        debug!("list component url:{}", url);
         let res_data = self
             .client
             .get(url)
@@ -122,9 +124,7 @@ impl ProviderScanner {
             .await?
             .text()
             .await?;
-        //debug!("res_data Node: {:?}", res_data);
         let mut components: Vec<ComponentInfo> = serde_json::from_str(res_data.as_str())?;
-        //debug!("components Node: {:?}", components);
         // Add component type because Portal did not return the info
         for component in components.iter_mut() {
             component.component_type = component_type.clone();

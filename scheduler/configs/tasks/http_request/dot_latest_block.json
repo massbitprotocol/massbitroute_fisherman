@@ -31,7 +31,7 @@
     "assignment": {
       "broadcast": false,
       "worker_number": 1,
-      "nearby_only": false,
+      "nearby_only": true,
       "by_distance": false
     },
     "thresholds": {

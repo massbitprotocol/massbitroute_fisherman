@@ -6,7 +6,7 @@ use crate::service::delivery::CancelPlanBuffer;
 use anyhow::Error;
 use common::workers::{Worker, WorkerStatus};
 use common::{Timestamp, COMMON_CONFIG};
-use log::{debug, error, info};
+use log::{debug, error};
 use reqwest::Client;
 
 use std::path::PathBuf;
@@ -241,11 +241,11 @@ impl ServiceMonitor {
                 // To string
                 let mut report = Self::worker_status_to_string(&workers_status);
                 report.push_str(&scheduler_monitor.to_check_mk_string());
-                info!("workers_status: {}", report);
+                //info!("workers_status: {}", report);
                 // Write to file
                 match self.write_to_file(&report) {
                     Ok(_) => {
-                        info!("Updated status file");
+                        //info!("Updated status file");
                     }
                     Err(error) => {
                         error!("Cannot update status file: {}", error);
