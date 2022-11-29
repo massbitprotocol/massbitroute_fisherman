@@ -9,7 +9,7 @@ use common::BlockChainType;
 pub use default_comparator::LatestBlockDefaultComparator;
 pub use dot_comparator::LatestBlockDotComparator;
 pub use eth_comparator::LatestBlockEthComparator;
-use log::{debug, trace};
+use log::trace;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
