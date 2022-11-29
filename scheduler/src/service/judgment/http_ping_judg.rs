@@ -60,6 +60,16 @@ impl JudRoundTripTimeDatas {
             .collect::<Vec<String>>()
             .join(",")
     }
+    /*
+     * Tai: 2022-11-29
+     * If only push result into the cache then it take to long to reach the failed ratio
+     */
+    fn append(&mut self, other: &mut Self, number_for_decide: usize) {
+        while self.inner.len() > number_for_decide {
+            self.inner.remove(0);
+        }
+        self.inner.append(other);
+    }
 }
 
 impl Deref for JudRoundTripTimeDatas {
@@ -99,6 +109,7 @@ impl HttpPingResultCache {
         &self,
         provider_task: &ProviderTask,
         results: &Vec<JobResult>,
+        number_for_decide: usize,
     ) -> JudRoundTripTimeDatas {
         let mut res_times = JudRoundTripTimeDatas::new();
         for res in results.iter() {
@@ -123,7 +134,7 @@ impl HttpPingResultCache {
             let values = values
                 .entry(provider_task.clone())
                 .or_insert(JudRoundTripTimeDatas::new());
-            values.append(&mut res_times);
+            values.append(&mut res_times, number_for_decide);
             res_times = values.clone();
         }
         res_times
@@ -199,11 +210,6 @@ impl ReportCheck for HttpPingJudgment {
             return Ok(JudgmentsResult::Unfinished);
         }
         let phase = result.first().unwrap().phase.clone();
-        let response_durations = self
-            .result_cache
-            .append_results(provider_task, result)
-            .await;
-
         // Get threshold from config
         let thresholds = self.get_judgment_thresholds(&phase);
         trace!(
@@ -219,7 +225,10 @@ impl ReportCheck for HttpPingJudgment {
             Self::get_threshold_value(&thresholds, &String::from("histogram_percentile"))?;
         let response_duration_threshold =
             Self::get_threshold_value(&thresholds, &String::from("response_duration"))?;
-
+        let response_durations = self
+            .result_cache
+            .append_results(provider_task, result, number_for_decide as usize)
+            .await;
         debug!("{} Http Ping in cache.", response_durations.len());
         return if response_durations.len() < number_for_decide as usize {
             Ok(JudgmentsResult::Unfinished)
